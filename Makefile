@@ -1,5 +1,5 @@
 # Build the camlpdf library as byte code and native code
-SOURCES = cc.ml scc.ml ck.ml cek.ml secd.ml eval.ml
+SOURCES = naive.ml cc.ml scc.ml ck.ml cek.ml secd.ml eval.ml
 
 PACKS = compiler-libs.common
 
