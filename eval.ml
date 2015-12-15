@@ -29,22 +29,22 @@ let ast code =
 
 let rec really_run first state =
   match Naive.next state with
-    Naive.Next state' ->
+    Evalutils.Next state' ->
       if not !quiet then begin
         print_string (Naive.repr state');
         print_string "\n"
       end;
       really_run false state'
-  | Naive.IsValue ->
+  | Evalutils.IsValue ->
       if !quiet || first then begin
         print_string (Naive.repr state);
         print_string "\n"
       end
-  | Naive.Malformed s ->
+  | Evalutils.Malformed s ->
       print_string "Malformed AST node\n";
       print_string s;
       print_string "\n"
-  | Naive.Unimplemented s ->
+  | Evalutils.Unimplemented s ->
       print_string "Unimplemented AST node\n";
       print_string s;
       print_string "\n"
