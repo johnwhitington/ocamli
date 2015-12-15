@@ -53,9 +53,9 @@ H. Function application
 
 f x
 
-I. Recursive let binding
+I. [Recursive] let binding
 
-let rec f a [b c...] = e1 in e2
+let [rec] f a [b c...] = e1 in e2
 
 3. Example program:
 
