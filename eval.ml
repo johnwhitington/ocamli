@@ -1,9 +1,3 @@
-(* Command line interface *)
-
-(* In debug mode, extra info is printed. *)
-let debug = ref false
-
-(* In quiet mode, only the final value is printed *)
 let quiet = ref false
 
 type mode =
@@ -11,6 +5,8 @@ type mode =
 | FromText of string
 
 let source = ref None
+
+let machine = ref "naive"
 
 let setfile s =
   source := Some (FromFile s)
@@ -26,12 +22,41 @@ let load_file f =
   close_in ic;
   s
 
-let run _ = ()
+(* Main loop. Get the right abstract machine module, and keep calling it until
+IsValue or Malformed or Unimplemented *)
+let ast code =
+  code |> Lexing.from_string |> Parse.implementation
+
+let rec really_run first state =
+  match Naive.next state with
+    Naive.Next state' ->
+      if not !quiet then begin
+        print_string (Naive.repr state');
+        print_string "\n"
+      end;
+      really_run false state'
+  | Naive.IsValue ->
+      if !quiet || first then begin
+        print_string (Naive.repr state);
+        print_string "\n"
+      end
+  | Naive.Malformed s ->
+      print_string "Malformed AST node\n";
+      print_string s;
+      print_string "\n"
+  | Naive.Unimplemented s ->
+      print_string "Unimplemented AST node\n";
+      print_string s;
+      print_string "\n"
+
+let run code =
+  let state = Naive.init (ast code) in
+    really_run true state
 
 let argspec =
-  [("-quiet", Arg.Set quiet, " Print only the result");
-   ("-e", Arg.String settext, " Evaluate the program text given");
-   ("-debug", Arg.Set debug, " Print extra information")]
+  [("-machine", Arg.Set_string machine, " Set the abstract machine");
+   ("-quiet", Arg.Set quiet, " Print only the result");
+   ("-e", Arg.String settext, " Evaluate the program text given")]
 
 let load_code () =
   match !source with
@@ -41,8 +66,14 @@ let load_code () =
 
 let () =
   Arg.parse argspec setfile
-    "Syntax: eval <naive | cc | scc | ck | cek | secd> <filename | -e program>";
-  try run (load_code ()) with
-  | e -> Printf.eprintf "Uncaught Error: [%s]\n" (Printexc.to_string e); exit 1
+    "Syntax: eval <filename | -e program>
+             [-quiet]
+             [-machine <naive | cc | scc | ck | cek | secd>]\n";
+  try
+    match load_code () with
+      None -> failwith "No source code provided"
+    | Some x -> run x
+  with
+    e -> Printf.eprintf "Error: [%s]\n" (Printexc.to_string e); exit 1
 
 

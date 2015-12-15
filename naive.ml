@@ -4,7 +4,10 @@ open Asttypes
 type t = Parsetree.expression
 
 let init = function
-  [{pstr_desc = Pstr_eval (e, _)}] -> e
+  [{pstr_desc = Pstr_eval (e, _)}]
+| [{pstr_desc =
+     Pstr_value
+       (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])}] -> e
 | _ -> failwith "Not a single structure item"
 
 type result =
