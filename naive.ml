@@ -6,12 +6,11 @@ type t = Parsetree.expression
 
 let init = getexpr
 
-(* Naive evaluation by substitution *)
 let rec is_value e =
   match e.pexp_desc with
     Pexp_constant (Const_int _)
   | Pexp_construct ({txt = Longident.Lident ("true" | "false")}, None)
-  | Pexp_fun _ -> true
+  | Pexp_fun _
   | Pexp_function _ -> true
   | _ -> false
 
@@ -39,7 +38,7 @@ let rec substitute_expression_desc var value = function
           else substitute_expression var value e
       in
         let value_bindings' =
-          (* If recursive, don't binding names shadow in binding *)
+          (* If recursive, name may shadow *)
           List.map
             (fun binding ->
                if rec_flag = Recursive && appears_in_value_bindings var [binding]
@@ -48,6 +47,12 @@ let rec substitute_expression_desc var value = function
             value_bindings
         in
           Pexp_let (rec_flag, value_bindings', e')
+  | Pexp_fun (arg_label, label_expr, ({ppat_desc = Ppat_var {txt}} as pat), expr) ->
+      if var = txt then
+        Pexp_fun (arg_label, label_expr, pat, expr)
+      else
+        Pexp_fun
+          (arg_label, label_expr, pat, substitute_expression var value expr)
   | Pexp_ifthenelse (e1, e2, Some e3) ->
       let r = substitute_expression var value in
         Pexp_ifthenelse (r e1, r e2, Some (r e3))
@@ -61,21 +66,20 @@ and substitute_expression var value exp =
   {exp with
     pexp_desc = substitute_expression_desc var value exp.pexp_desc}
 
-
-let comparison_of_string = function
-  | "=" -> ( = ) | "<>" -> ( <> ) | "<" -> ( < )
-  | ">" -> ( > ) | "<=" -> ( <= ) | ">=" -> ( >= )
+let int_op_of_string = function
+  | "*" -> ( * ) | "+" -> ( + ) | "-" -> ( - ) | "/" -> ( / )
   | _ -> malformed __LOC__
 
-let calculate a b = function
-  | "*" -> a * b | "+" -> a + b | "-" -> a - b | "/" -> a / b
-  | _ -> unimp __LOC__
-
 let comparison a b op =
-  match a.pexp_desc, b.pexp_desc with
-    Pexp_constant (Const_int ai), Pexp_constant (Const_int bi) ->
-      (comparison_of_string op) ai bi
-  | _ -> unimp __LOC__
+  let comparison_of_string = function
+    | "=" -> ( = ) | "<>" -> ( <> ) | "<" -> ( < )
+    | ">" -> ( > ) | "<=" -> ( <= ) | ">=" -> ( >= )
+    | _ -> malformed __LOC__
+  in
+    match a.pexp_desc, b.pexp_desc with
+      Pexp_constant (Const_int ai), Pexp_constant (Const_int bi) ->
+        (comparison_of_string op) ai bi
+    | _ -> malformed __LOC__
 
 (* Evaluate an abstract syntax tree by one step *)
 let rec eval_expression e = 
@@ -100,7 +104,6 @@ let rec eval_expression e =
         | _ -> malformed __LOC__
         end
     | Pexp_apply (expr, args) ->
-        (* If args all values, proceed to apply *)
         if List.for_all (fun (_, arg) -> is_value arg) args then
           begin match expr.pexp_desc with
             Pexp_ident
@@ -115,12 +118,10 @@ let rec eval_expression e =
               begin match args with
                 [(_, {pexp_desc = Pexp_constant (Const_int a)});
                  (_, {pexp_desc = Pexp_constant (Const_int b)})] ->
-                  let result = calculate a b op in
+                  let result = (int_op_of_string op) a b in
                     {e with pexp_desc = Pexp_constant (Const_int result)}
               | _ -> malformed __LOC__
               end
-          | Pexp_ident {txt = Longident.Lident t} ->
-              unimp (__LOC__ ^ ": " ^ t)
           | Pexp_fun (arg_label, opt, {ppat_desc = Ppat_var {txt}}, body) ->
               begin match args with
               | [] -> malformed __LOC__
@@ -148,47 +149,44 @@ let rec eval_expression e =
         else
           {e with pexp_desc = Pexp_ifthenelse (eval_expression e1, e2, Some e3)}
     | Pexp_let (rec_flag, value_bindings, let_exp) ->
-        eval_let_expr e rec_flag let_exp value_bindings
-    | x -> unimp (__LOC__ ^ "\n" (*^ string_of_expression_desc x*))
+        begin match value_bindings with
+        | [{pvb_expr} as binding] ->
+          if is_value pvb_expr then
+            begin match binding.pvb_pat.ppat_desc with
+            | Ppat_var {txt} ->
+                substitute_expression
+                  txt
+                  (if rec_flag = Recursive
+                     then
+                       {e with pexp_desc =
+                         Pexp_let (rec_flag, value_bindings, binding.pvb_expr)}
+                     else
+                       binding.pvb_expr)
+                  let_exp
+            | _ -> unimp __LOC__
+            end
+          else
+            {e with
+              pexp_desc =
+                Pexp_let
+                  (rec_flag,
+                   [{binding with pvb_expr = eval_expression pvb_expr}],
+                   let_exp)}
+        | _ -> unimp __LOC__
+        end
+    | x -> unimp __LOC__
     end
 
-and eval_single_let value_bindings e rec_flag binding let_exp =
-  match binding.pvb_pat.ppat_desc with
-  | Ppat_var {txt} ->
-      substitute_expression
-        txt
-        (if rec_flag = Recursive
-           then
-             {e with pexp_desc =
-               Pexp_let (rec_flag, value_bindings, binding.pvb_expr)}
-           else
-             binding.pvb_expr)
-        let_exp
-  | _ -> unimp __LOC__
-
-and eval_let_expr e rec_flag let_exp = function
-  | [{pvb_expr} as binding] as value_bindings ->
-      if is_value pvb_expr then
-        eval_single_let value_bindings e rec_flag binding let_exp
-      else
-        {e with
-          pexp_desc =
-            Pexp_let
-              (rec_flag,
-               [{binding with pvb_expr = eval_expression pvb_expr}],
-               let_exp)}
-  | _ -> malformed __LOC__
-
-and evaluate_first = function
-  [] -> []
-| h::t ->
-  if is_value h
-    then h::evaluate_first t
-    else eval_expression h::t
-
 and evaluate_first_args args =
-  let l, a = List.split args in
-    List.combine l (evaluate_first a)
+  let rec evaluate_first = function
+  | [] -> []
+  | h::t ->
+    if is_value h
+      then h::evaluate_first t
+      else eval_expression h::t
+  in
+    let l, a = List.split args in
+      List.combine l (evaluate_first a)
 
 let next ast =
   if is_value ast then IsValue else
@@ -197,4 +195,3 @@ let next ast =
     | ExnMalformed s -> Malformed s
 
 let repr ast = to_string ast
-
