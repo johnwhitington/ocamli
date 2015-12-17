@@ -17,19 +17,19 @@ type tiny =
 | Fun of (string * tiny)                         (* fun x -> e *)
 | App of (tiny * tiny)                           (* e e' *)
 
-let calc a b = function
-  Add -> a + b | Sub -> a - b | Mul -> a * b | Div -> a / b
+let calc = function
+  Add -> (+) | Sub -> (-) | Mul -> ( * ) | Div -> (/)
 
-let comp a b = function
-  LT -> a < b | EQ -> a = b | GT -> a > b | EQLT -> a <= b
-| EQGT -> a >= b | NEQ -> a <> b
+let comp = function
+  LT -> (<) | EQ -> (=) | GT -> (>) | EQLT -> (<=) | EQGT -> (>=) | NEQ -> (<>)
 
 (* Predicate on value-ness of expressions. Var _ is here for convenience *)
-let is_value = function Int _ | Bool _ | Fun _ -> true | _ -> false
+let is_value = function
+  Int _ | Bool _ | Fun _ -> true | _ -> false
 
 (* Substitute a value for a name in an expresion *)
 let rec substitute n v = function
-| Var x when x = n -> v
+  Var x when x = n -> v
 | Op (op, a, b) -> Op (op, substitute n v a, substitute n v b)
 | And (a, b) -> And (substitute n v a, substitute n v b)
 | Or (a, b) -> Or (substitute n v a, substitute n v b)
@@ -45,7 +45,7 @@ let rec substitute n v = function
 
 (* Evaluate one step, assuming not already a value *)
 let rec eval = function
-  Op (op, Int a, Int b) -> Int (calc a b op)
+  Op (op, Int a, Int b) -> Int (calc op a b)
 | Op (op, Int a, b) -> Op (op, Int a, eval b)
 | Op (op, a, b) -> Op (op, eval a, b)
 | And (Bool false, _) -> Bool false
@@ -56,7 +56,7 @@ let rec eval = function
 | Or (Bool false, Bool b) -> Bool b
 | Or (Bool false, b) -> eval b
 | Or (a, b) -> And (eval a, b)
-| Cmp (op, Int a, Int b) -> Bool (comp a b op)
+| Cmp (op, Int a, Int b) -> Bool (comp op a b)
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval b)
 | Cmp (op, a, b) -> Cmp (op, eval a, b)
 | If (Bool true, a, _) -> a
@@ -68,7 +68,7 @@ let rec eval = function
 | App (Fun (n, body) as f, x) ->
     if is_value x then substitute n x body else App (f, eval x)
 | App (f, x) -> App (eval f, x)
-| Var _ -> failwith "Eval: unknown var"
+| Var _ -> failwith "Expression not closed: unknown variable"
 | Int _ | Bool _ | Fun _ -> failwith "Eval: already a value"
  
 (* Evaluate all the way to a value. *)
@@ -110,4 +110,4 @@ let factorial =
        If (Cmp (EQ, Var "x", Int 1),
            Var "x",
            App (Var "factorial", Op (Sub, Var "x", Int 1)))),
-     Int 4)
+     App (Var "factorial", Int 4))
