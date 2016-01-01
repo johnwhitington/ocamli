@@ -8,7 +8,7 @@ let init = getexpr
 
 let rec is_value e =
   match e.pexp_desc with
-    Pexp_constant (Const_int _)
+    Pexp_constant (PConst_int _)
   | Pexp_construct ({txt = Longident.Lident ("true" | "false")}, None)
   | Pexp_fun _
   | Pexp_function _ -> true
@@ -77,8 +77,8 @@ let comparison a b op =
     | _ -> malformed __LOC__
   in
     match a.pexp_desc, b.pexp_desc with
-      Pexp_constant (Const_int ai), Pexp_constant (Const_int bi) ->
-        (comparison_of_string op) ai bi
+      Pexp_constant (PConst_int (ai, _)), Pexp_constant (PConst_int (bi, _)) ->
+        (comparison_of_string op) (int_of_string ai) (int_of_string bi)
     | _ -> malformed __LOC__
 
 (* Evaluate an abstract syntax tree by one step *)
@@ -116,10 +116,10 @@ let rec eval_expression e =
                 end
           | Pexp_ident {txt = Longident.Lident (("*" | "/" | "+" | "-") as op)} ->
               begin match args with
-                [(_, {pexp_desc = Pexp_constant (Const_int a)});
-                 (_, {pexp_desc = Pexp_constant (Const_int b)})] ->
-                  let result = (int_op_of_string op) a b in
-                    {e with pexp_desc = Pexp_constant (Const_int result)}
+                [(_, {pexp_desc = Pexp_constant (PConst_int (a, _))});
+                 (_, {pexp_desc = Pexp_constant (PConst_int (b, _))})] ->
+                  let result = (int_op_of_string op) (int_of_string a) (int_of_string b) in
+                    {e with pexp_desc = Pexp_constant (PConst_int (string_of_int result, None))}
               | _ -> malformed __LOC__
               end
           | Pexp_fun (arg_label, opt, {ppat_desc = Ppat_var {txt}}, body) ->
