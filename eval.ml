@@ -1,5 +1,7 @@
 let quiet = ref false
 
+let top = ref false
+
 type mode =
   FromFile of string
 | FromText of string
@@ -56,7 +58,8 @@ let run code =
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
-   ("-e", Arg.String settext, " Evaluate the program text given")]
+   ("-e", Arg.String settext, " Evaluate the program text given");
+   ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)")]
 
 let load_code () =
   match !source with
@@ -70,10 +73,10 @@ let () =
              [-quiet]
              [-machine <naive | cc | scc | ck | cek | secd>]\n";
   try
-    match load_code () with
-      None -> failwith "No source code provided"
-    | Some x -> run x
+    if not !top then
+      match load_code () with
+        None -> failwith "No source code provided"
+      | Some x -> run x
   with
     e -> Printf.eprintf "Error: [%s]\n" (Printexc.to_string e); exit 1
-
 

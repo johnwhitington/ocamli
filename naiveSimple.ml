@@ -1,21 +1,5 @@
 (* Uses the tiny-ocaml simple AST *)
-type op = Add | Sub | Mul | Div
-
-type comparison = LT | EQ | GT | EQLT | EQGT | NEQ
-
-type tiny =
-  Int of int                                     (* 1 *)
-| Bool of bool                                   (* false *)
-| Var of string                                  (* x *)
-| Op of (op * tiny * tiny)                       (* + - / * *)
-| And of (tiny * tiny)                           (* && *)
-| Or of (tiny * tiny)                            (* || *)
-| Cmp of (comparison * tiny * tiny)              (* < > <> = <= >= *)
-| If of (tiny * tiny * tiny)                     (* if e then e1 else e2 *)
-| Let of (string * tiny * tiny)                  (* let x = e in e' *)
-| LetRec of (string * tiny * tiny)               (* let rec x = e in e' *)
-| Fun of (string * tiny)                         (* fun x -> e *)
-| App of (tiny * tiny)                           (* e e' *)
+open Tinyocaml
 
 let calc = function
   Add -> (+) | Sub -> (-) | Mul -> ( * ) | Div -> (/)
@@ -80,39 +64,3 @@ let rec eval = function
 let rec until_value e =
   if is_value e then e else until_value (eval e)
 
-(* Example programs *)
-
-(* 1 + 2 * 3 *)
-let arith =
-  Op (Add, Int 1, Op (Mul, Int 2, Int 3))
-
-(* true && false *)
-let logicaland =
-  And (Bool true, Bool false)
-
-(* (fun x -> x + 1) 2 *)
-let funapp =
-  App (Fun ("x", Op (Add, Var "x", Int 1)), Int 2)
-
-(* Function *)
-let func =
-  Let ("f", Fun ("x", Op (Add, Var "x", Int 1)), App (Var "f", Int 6))
-
-(* let x = 1 in let x = 2 in let y = 3 in x + y *)
-let lets =
-  Let ("x", Int 1,
-    Let ("x", Int 2,
-      Let ("y", Int 3, Op (Add, Var "x", Var "y"))))
-
-(* let rec factorial x =
-     if x = 1 then 1 else x * factorial (x - 1)
-   in
-     factorial 4 *)
-let factorial =
-  LetRec
-    ("factorial",
-     Fun ("x",
-       If (Cmp (EQ, Var "x", Int 1),
-           Var "x",
-           App (Var "factorial", Op (Sub, Var "x", Int 1)))),
-     App (Var "factorial", Int 4))

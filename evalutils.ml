@@ -8,7 +8,6 @@ type 'a result =
   | Malformed of string
   | Unimplemented of string
 
-
 exception ExnUnimplemented of string
 exception ExnMalformed of string
 
