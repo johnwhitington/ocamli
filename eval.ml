@@ -29,17 +29,19 @@ IsValue or Malformed or Unimplemented *)
 let ast code =
   code |> Lexing.from_string |> Parse.implementation
 
+module I = NaiveSimple
+
 let rec really_run first state =
-  match Naive.next state with
+  match I.next state with
     Evalutils.Next state' ->
       if not !quiet then begin
-        print_string (Evalutils.to_string (Naive.tree state'));
+        print_string (Evalutils.to_string (I.tree state'));
         print_string "\n"
       end;
       really_run false state'
   | Evalutils.IsValue ->
       if !quiet || first then begin
-        print_string (Evalutils.to_string (Naive.tree state));
+        print_string (Evalutils.to_string (I.tree state));
         print_string "\n"
       end
   | Evalutils.Malformed s ->
@@ -52,7 +54,7 @@ let rec really_run first state =
       print_string "\n"
 
 let run code =
-  let state = Naive.init (ast code) in
+  let state = I.init (ast code) in
     really_run true state
 
 let argspec =

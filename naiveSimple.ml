@@ -1,5 +1,8 @@
 (* Uses the tiny-ocaml simple AST *)
 open Tinyocaml
+open Evalutils
+
+type t = Tinyocaml.t
 
 let calc = function
   Add -> (+) | Sub -> (-) | Mul -> ( * ) | Div -> (/)
@@ -61,4 +64,14 @@ let rec eval = function
 (* Evaluate all the way to a value. *)
 let rec until_value e =
   if is_value e then e else until_value (eval e)
+
+let init x = Tinyocaml.of_real_ocaml (getexpr x)
+
+let next e =
+  try
+    if is_value e then IsValue else Next (eval e) 
+  with
+    _ -> Malformed "naiveSimple"
+
+let tree x = Tinyocaml.to_real_ocaml x
 
