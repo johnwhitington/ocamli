@@ -31,33 +31,17 @@ IsValue or Malformed or Unimplemented *)
 let ast code =
   code |> Lexing.from_string |> Parse.implementation
 
-module I = NaiveSimple
+module type Evaluator =
+  sig
+    type t
+    val init : Parsetree.structure -> t
+    val next : t -> t Evalutils.result
+    val tree : t -> Parsetree.structure
+  end
 
-let rec really_run first state =
-  match I.next state with
-    Next state' ->
-      if not !quiet then begin
-        print_string (to_string (getexpr (I.tree state')));
-        print_string "\n"
-      end;
-      really_run false state'
-  | IsValue ->
-      if !quiet || first then begin
-        print_string (to_string (getexpr (I.tree state)));
-        print_string "\n"
-      end
-  | Malformed s ->
-      print_string "Malformed AST node\n";
-      print_string s;
-      print_string "\n"
-  | Unimplemented s ->
-      print_string "Unimplemented AST node\n";
-      print_string s;
-      print_string "\n"
-
-let run code =
-  let state = I.init (ast code) in
-    really_run true state
+let implementations =
+  [("naive", (module Naive : Evaluator));
+   ("naiveSimple", (module NaiveSimple : Evaluator))]
 
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
@@ -76,11 +60,45 @@ let () =
     "Syntax: eval <filename | -e program>
              [-quiet]
              [-machine <naive | cc | scc | ck | cek | secd>]\n";
-  try
-    if not !top then
-      match load_code () with
-        None -> failwith "No source code provided"
-      | Some x -> run x
-  with
-    e -> Printf.eprintf "Error: [%s]\n" (Printexc.to_string e); exit 1
+  let module I =
+    (val
+       (try
+         List.assoc !machine implementations
+        with
+         _ -> failwith "Unknown machine"
+       ) : Evaluator)
+  in
+  let rec really_run first state =
+    match I.next state with
+      Next state' ->
+        if not !quiet then begin
+          print_string (to_string (getexpr (I.tree state')));
+          print_string "\n"
+        end;
+        really_run false state'
+    | IsValue ->
+        if !quiet || first then begin
+          print_string (to_string (getexpr (I.tree state)));
+          print_string "\n"
+        end
+    | Malformed s ->
+        print_string "Malformed AST node\n";
+        print_string s;
+        print_string "\n"
+    | Unimplemented s ->
+        print_string "Unimplemented AST node\n";
+        print_string s;
+        print_string "\n"
+  in
+   let run code =
+    let state = I.init (ast code) in
+      really_run true state
+   in
+      try
+        if not !top then
+          match load_code () with
+            None -> failwith "No source code provided"
+          | Some x -> run x
+      with
+        e -> Printf.eprintf "Error: [%s]\n" (Printexc.to_string e); exit 1
 
