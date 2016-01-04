@@ -28,6 +28,9 @@ let getexpr = function
        (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])}] -> e
 | _ -> failwith "Not a single structure item"
 
+let makestructure e =
+  [{pstr_desc = Pstr_eval (e, []); pstr_loc = Location.none}]
+
 let with_desc x =
   {pexp_desc = x;
    pexp_loc = Location.none;

@@ -1,3 +1,5 @@
+open Evalutils
+
 let quiet = ref false
 
 let top = ref false
@@ -33,22 +35,22 @@ module I = NaiveSimple
 
 let rec really_run first state =
   match I.next state with
-    Evalutils.Next state' ->
+    Next state' ->
       if not !quiet then begin
-        print_string (Evalutils.to_string (I.tree state'));
+        print_string (to_string (getexpr (I.tree state')));
         print_string "\n"
       end;
       really_run false state'
-  | Evalutils.IsValue ->
+  | IsValue ->
       if !quiet || first then begin
-        print_string (Evalutils.to_string (I.tree state));
+        print_string (to_string (getexpr (I.tree state)));
         print_string "\n"
       end
-  | Evalutils.Malformed s ->
+  | Malformed s ->
       print_string "Malformed AST node\n";
       print_string s;
       print_string "\n"
-  | Evalutils.Unimplemented s ->
+  | Unimplemented s ->
       print_string "Unimplemented AST node\n";
       print_string s;
       print_string "\n"

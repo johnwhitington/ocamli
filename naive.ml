@@ -194,5 +194,5 @@ let next ast =
       ExnUnimplemented s -> Unimplemented s
     | ExnMalformed s -> Malformed s
 
-let tree ast = ast
+let tree ast = makestructure ast
 

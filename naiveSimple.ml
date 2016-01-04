@@ -73,5 +73,5 @@ let next e =
   with
     _ -> Malformed "naiveSimple"
 
-let tree x = Tinyocaml.to_real_ocaml x
+let tree x = makestructure (Tinyocaml.to_real_ocaml x)
 

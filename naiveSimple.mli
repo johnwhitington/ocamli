@@ -8,5 +8,5 @@ val init : Parsetree.structure -> t
 val next : t -> t Evalutils.result
 
 (* The representation of the current state as a parse tree. *)
-val tree : t -> Parsetree.expression
+val tree : t -> Parsetree.structure
 
