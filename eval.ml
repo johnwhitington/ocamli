@@ -33,13 +33,13 @@ let rec really_run first state =
   match Naive.next state with
     Evalutils.Next state' ->
       if not !quiet then begin
-        print_string (Naive.repr state');
+        print_string (Evalutils.to_string (Naive.tree state'));
         print_string "\n"
       end;
       really_run false state'
   | Evalutils.IsValue ->
       if !quiet || first then begin
-        print_string (Naive.repr state);
+        print_string (Evalutils.to_string (Naive.tree state));
         print_string "\n"
       end
   | Evalutils.Malformed s ->

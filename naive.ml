@@ -194,4 +194,5 @@ let next ast =
       ExnUnimplemented s -> Unimplemented s
     | ExnMalformed s -> Malformed s
 
-let repr ast = to_string ast
+let tree ast = ast
+

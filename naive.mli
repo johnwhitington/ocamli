@@ -4,8 +4,9 @@ type t
 (* Initialise the evaluator with an OCaml ast *)
 val init : Parsetree.structure -> t
 
-(* Evaluate one step. None if some problem occurs *)
+(* Evaluate one step. None if some problem occurs. *)
 val next : t -> t Evalutils.result
 
-val repr : t -> string
+(* The representation of the current state as a parse tree. *)
+val tree : t -> Parsetree.expression
 

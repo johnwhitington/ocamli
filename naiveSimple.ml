@@ -48,9 +48,7 @@ let rec eval = function
 | If (cond, a, b) -> If (eval cond, a, b)
 | Let (n, v, e) -> if is_value v then substitute n v e else Let (n, eval v, e)
 | LetRec (n, Fun (var, body), e) ->
-    let v =
-      Fun (var, LetRec (n, Fun (var, body), body))
-    in
+    let v = Fun (var, LetRec (n, Fun (var, body), body)) in
       substitute n v e
 | LetRec (n, v, e) ->
     if is_value v then substitute n v e else LetRec (n, eval v, e)
