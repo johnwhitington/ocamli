@@ -19,11 +19,19 @@ type t =
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 
-let op_to_string = function
+let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
 
-let cmp_to_string = function
+let string_of_cmp = function
   LT -> "<" | EQ -> "=" | GT -> ">" | EQLT -> "<=" | EQGT -> ">=" | NEQ -> "<>"
+
+let op_of_string = function
+  "+" -> Add | "-" -> Sub | "*" -> Mul | "/" -> Div
+| _ -> failwith "op_of_string"
+
+let cmp_of_string = function
+  "<" -> LT | "=" -> EQ | ">" -> GT | "<=" -> EQLT | ">=" -> EQGT | "<>" -> NEQ
+| _ -> failwith "cmp_of_string"
 
 (* For debug only. Very over-parenthesised *)
 let rec to_string = function
@@ -31,13 +39,13 @@ let rec to_string = function
 | Bool b -> string_of_bool b
 | Var v -> v
 | Op (op, l, r) ->
-    Printf.sprintf "(%s %s %s)" (to_string l) (op_to_string op) (to_string r)
+    Printf.sprintf "(%s %s %s)" (to_string l) (string_of_op op) (to_string r)
 | And (l, r) ->
     Printf.sprintf "(%s && %s)" (to_string l) (to_string r)
 | Or (l, r) ->
     Printf.sprintf "(%s || %s)" (to_string l) (to_string r)
 | Cmp (cmp, l, r) ->
-    Printf.sprintf "(%s %s %s)" (to_string l) (cmp_to_string cmp) (to_string r)
+    Printf.sprintf "(%s %s %s)" (to_string l) (string_of_cmp cmp) (to_string r)
 | If (e, e1, e2) ->
     Printf.sprintf "if (%s) then (%s) else (%s)"
       (to_string e) (to_string e1) (to_string e2)
@@ -59,10 +67,10 @@ let rec to_real_ocaml_expression_desc = function
           None)
   | Var v ->
       Pexp_ident {txt = Longident.Lident v; loc = Location.none}
-  | Op (op, l, r) -> to_real_ocaml_apply l r (op_to_string op)
+  | Op (op, l, r) -> to_real_ocaml_apply l r (string_of_op op)
   | And (l, r) -> to_real_ocaml_apply l r "&&"
   | Or (l, r) -> to_real_ocaml_apply l r "||"
-  | Cmp (cmp, l, r) -> to_real_ocaml_apply l r (cmp_to_string cmp)
+  | Cmp (cmp, l, r) -> to_real_ocaml_apply l r (string_of_cmp cmp)
   | If (e, e1, e2) ->
       Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
   | Let (v, e, e') -> to_real_ocaml_let false v e e'
@@ -103,6 +111,38 @@ and to_real_ocaml_apply l r n =
 and to_real_ocaml x =
   Evalutils.with_desc (to_real_ocaml_expression_desc x)
 
-(* Convert from a parsetree to a t, assuming we can *)
-let of_real_ocaml x = failwith "unimplemented"
+exception UnknownNode of string
 
+(* Convert from a parsetree to a t, assuming we can *)
+let rec of_real_ocaml_expression_desc = function
+  Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
+| Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
+| Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
+| Pexp_ident {txt = Longident.Lident v} -> Var v
+| Pexp_ifthenelse (e, e1, Some e2) ->
+    If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
+| Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, e) ->
+    Fun (txt, of_real_ocaml e)
+| Pexp_let
+    (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
+       if r = Recursive
+         then LetRec (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
+         else Let (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
+| Pexp_apply (e, [(Nolabel, e')]) -> App (of_real_ocaml e, of_real_ocaml e')
+| Pexp_apply
+    ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
+     [(Nolabel, l); (Nolabel, r)]) ->
+       let e = of_real_ocaml l in
+       let e' = of_real_ocaml r in
+         begin match f with
+           "&&" -> And (e, e')
+         | "||" -> Or (e, e')
+         | ("*" | "+" | "-" | "/") as op  -> Op (op_of_string op, e, e')
+         | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
+             Cmp (cmp_of_string cmp , e, e')
+         | _ -> raise (UnknownNode "unknown binary function")
+         end
+| _ -> raise (UnknownNode "unknown node")
+
+and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
+ 

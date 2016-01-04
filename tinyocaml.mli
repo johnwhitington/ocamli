@@ -20,6 +20,8 @@ val to_string : t -> string
 
 val to_real_ocaml : t -> Parsetree.expression
 
+exception UnknownNode of string
+
 val of_real_ocaml : Parsetree.expression -> t
 
 
