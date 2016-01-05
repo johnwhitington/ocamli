@@ -113,6 +113,8 @@ and to_real_ocaml x =
 
 exception UnknownNode of string
 
+(* FIXME: Limit of currying is f x y for now *)
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
@@ -128,7 +130,6 @@ let rec of_real_ocaml_expression_desc = function
        if r = Recursive
          then LetRec (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
          else Let (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
-| Pexp_apply (e, [(Nolabel, e')]) -> App (of_real_ocaml e, of_real_ocaml e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
      [(Nolabel, l); (Nolabel, r)]) ->
@@ -140,8 +141,10 @@ let rec of_real_ocaml_expression_desc = function
          | ("*" | "+" | "-" | "/") as op  -> Op (op_of_string op, e, e')
          | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
              Cmp (cmp_of_string cmp , e, e')
-         | _ -> raise (UnknownNode "unknown binary function")
+         | _ -> App (App (Var f, e), e') 
          end
+| Pexp_apply (e, [(Nolabel, e')]) ->
+    App (of_real_ocaml e, of_real_ocaml e')
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc

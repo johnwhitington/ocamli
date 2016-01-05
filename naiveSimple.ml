@@ -68,8 +68,6 @@ let rec until_value e =
 let init x = Tinyocaml.of_real_ocaml (getexpr x)
 
 let next e =
-  print_string "NEXT\n";
-  flush stdout;
   try
     if is_value e then IsValue else Next (eval e) 
   with
