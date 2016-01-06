@@ -1,4 +1,4 @@
-SOURCES = evalutils.mli evalutils.ml tinyocaml.mli tinyocaml.ml tinyexamples.mli tinyexamples.ml naive.mli naive.ml naiveSimple.mli naiveSimple.ml cc.ml scc.ml ck.ml cek.ml secd.ml eval.ml
+SOURCES = evalutils.mli evalutils.ml tinyocaml.mli tinyocaml.ml tinyocamlUtils.mli tinyocamlUtils.ml tinyexamples.mli tinyexamples.ml naive.mli naive.ml naiveSimple.mli naiveSimple.ml naiveSimpleOneStep.mli naiveSimpleOneStep.ml cc.ml scc.ml ck.ml cek.ml secd.ml eval.ml
 
 PACKS = compiler-libs.common
 

@@ -1,4 +1,4 @@
-(* Uses the tiny-ocaml simple AST *)
+(* Uses the tiny-ocaml simple AST. Not step by step, but straight to value. *)
 open Tinyocaml
 open Evalutils
 
