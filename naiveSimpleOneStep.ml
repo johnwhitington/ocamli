@@ -17,33 +17,34 @@ let substitute = TinyocamlUtils.substitute
 (* Evaluate one step, assuming not already a value *)
 let rec eval = function
   Op (op, Int a, Int b) -> Int (calc op a b)
-| Op (op, Int a, b) -> Op (op, Int a, eval b)
-| Op (op, a, b) -> Op (op, eval a, b)
+| Op (op, a, b) -> eval (Op (op, eval a, eval b))
 | And (Bool false, _) -> Bool false
 | And (Bool true, Bool b) -> Bool b
 | And (Bool true, b) -> eval b
-| And (a, b) -> And (eval a, b)
+| And (a, b) -> eval (And (eval a, b))
 | Or (Bool true, _) -> Bool true
 | Or (Bool false, Bool b) -> Bool b
 | Or (Bool false, b) -> eval b
-| Or (a, b) -> And (eval a, b)
+| Or (a, b) -> eval (And (eval a, b))
 | Cmp (op, Int a, Int b) -> Bool (comp op a b)
-| Cmp (op, Int a, b) -> Cmp (op, Int a, eval b)
-| Cmp (op, a, b) -> Cmp (op, eval a, b)
-| If (Bool true, a, _) -> a
-| If (Bool false, _, b) -> b
-| If (cond, a, b) -> If (eval cond, a, b)
-| Let (n, v, e) -> if is_value v then substitute n v e else Let (n, eval v, e)
+| Cmp (op, a, b) -> eval (Cmp (op, eval a, eval b))
+| If (Bool true, a, _) -> eval a
+| If (Bool false, _, b) -> eval b
+| If (cond, a, b) -> eval (If (eval cond, a, b))
+| Let (n, v, e) ->
+    if is_value v
+      then eval (substitute n v e)
+      else eval (Let (n, eval v, e))
 | LetRec (n, Fun (var, body), e) ->
     let v = Fun (var, LetRec (n, Fun (var, body), body)) in
-      substitute n v e
+      eval (substitute n v e)
 | LetRec (n, v, e) ->
-    if is_value v then substitute n v e else LetRec (n, eval v, e)
+    if is_value v then eval (substitute n v e) else eval (LetRec (n, eval v, e))
 | App (Fun (n, body) as f, x) ->
-    if is_value x then substitute n x body else App (f, eval x)
-| App (f, x) -> App (eval f, x)
+    if is_value x then eval (substitute n x body) else eval (App (f, eval x))
+| App (f, x) -> eval (App (eval f, x))
 | Var _ -> failwith "Expression not closed: unknown variable"
-| Int _ | Bool _ | Fun _ -> failwith "Eval: already a value"
+| (Int _ | Bool _ | Fun _) as x -> x
  
 (* Evaluate all the way to a value. *)
 let rec until_value e =
