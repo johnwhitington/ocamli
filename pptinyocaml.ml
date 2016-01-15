@@ -45,7 +45,27 @@ let rec string_of_tiny_inner isleft parent node =
           lp (string_of_tiny_inner true (Some node) l)
           (Tinyocaml.string_of_op op)
           (string_of_tiny_inner false (Some node) r) rp
-  | _ -> failwith "unimplemented"
+  | Cmp (cmp, l, r) ->
+      let lp, rp = parens node parent isleft in
+        Printf.sprintf "%s%s %s %s%s"
+          lp (string_of_tiny_inner true (Some node) l)
+          (Tinyocaml.string_of_cmp cmp)
+          (string_of_tiny_inner false (Some node) r) rp
+  | And (l, r) ->
+      Printf.sprintf "(%s && %s)" (to_string l) (to_string r)
+  | Or (l, r) ->
+      Printf.sprintf "(%s || %s)" (to_string l) (to_string r)
+  | If (e, e1, e2) ->
+      Printf.sprintf "if (%s) then (%s) else (%s)"
+        (to_string e) (to_string e1) (to_string e2)
+  | Let (v, e, e') ->
+      Printf.sprintf "let %s = (%s) in (%s)" v (to_string e) (to_string e')
+  | LetRec (v, e, e') ->
+      Printf.sprintf "let rec %s = (%s) in (%s)" v (to_string e) (to_string e')
+  | Fun (v, e) ->
+      Printf.sprintf "fun %s -> (%s)" v (to_string e)
+  | App (e, e') ->
+      Printf.sprintf "(%s) (%s)" (to_string e) (to_string e')
 
 let string_of_tiny =
   string_of_tiny_inner true None
