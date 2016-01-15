@@ -21,6 +21,10 @@ type t =
 | Fun of (string * t)         (** fun x -> e *)
 | App of (t * t)              (** e e' *)
 
+val string_of_op : op -> string
+
+val string_of_cmp : cmp -> string
+
 (** Very basic prettyprinter, for debug only. *)
 val to_string : t -> string
 

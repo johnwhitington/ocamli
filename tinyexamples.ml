@@ -4,6 +4,17 @@ open Tinyocaml
 let arith =
   Op (Add, Int 1, Op (Mul, Int 2, Int 3))
 
+(* (1 + 2) * 3 *)
+let arithplus =
+  Op (Mul, Op (Add, Int 1, Int 2), Int 3)
+
+(* 1 + (2 + 3) *)
+let plusr =
+  Op (Add, Int 1, Op (Add, Int 2, Int 3))
+
+let plusl =
+  Op (Add, Op (Add, Int 1, Int 2), Int 3)
+
 (* true && false *)
 let logicaland =
   And (Bool true, Bool false)

@@ -1,0 +1,5 @@
+Pptinyocaml.string_of_tiny (Tinyexamples.arith);;
+Pptinyocaml.string_of_tiny (Tinyexamples.arithplus);;
+Pptinyocaml.string_of_tiny (Tinyexamples.plusl);;
+Pptinyocaml.string_of_tiny (Tinyexamples.plusr);;
+

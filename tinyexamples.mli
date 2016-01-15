@@ -1,4 +1,7 @@
 val arith : Tinyocaml.t
+val arithplus : Tinyocaml.t
+val plusl : Tinyocaml.t
+val plusr : Tinyocaml.t
 
 val logicaland : Tinyocaml.t
 

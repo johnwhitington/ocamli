@@ -3,5 +3,5 @@ let rec a m n =
   if n = 0 then a (m - 1) 1 else
   a (m - 1) (a m (n - 1))
 in
-  a 3 5
+  a 3 4
 
