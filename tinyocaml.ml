@@ -33,31 +33,6 @@ let cmp_of_string = function
   "<" -> LT | "=" -> EQ | ">" -> GT | "<=" -> EQLT | ">=" -> EQGT | "<>" -> NEQ
 | _ -> failwith "cmp_of_string"
 
-(* For debug only. Very over-parenthesised *)
-let rec to_string = function
-  Int i -> string_of_int i
-| Bool b -> string_of_bool b
-| Var v -> v
-| Op (op, l, r) ->
-    Printf.sprintf "(%s %s %s)" (to_string l) (string_of_op op) (to_string r)
-| And (l, r) ->
-    Printf.sprintf "(%s && %s)" (to_string l) (to_string r)
-| Or (l, r) ->
-    Printf.sprintf "(%s || %s)" (to_string l) (to_string r)
-| Cmp (cmp, l, r) ->
-    Printf.sprintf "(%s %s %s)" (to_string l) (string_of_cmp cmp) (to_string r)
-| If (e, e1, e2) ->
-    Printf.sprintf "if (%s) then (%s) else (%s)"
-      (to_string e) (to_string e1) (to_string e2)
-| Let (v, e, e') ->
-    Printf.sprintf "let %s = (%s) in (%s)" v (to_string e) (to_string e')
-| LetRec (v, e, e') ->
-    Printf.sprintf "let rec %s = (%s) in (%s)" v (to_string e) (to_string e')
-| Fun (v, e) ->
-    Printf.sprintf "fun %s -> (%s)" v (to_string e)
-| App (e, e') ->
-    Printf.sprintf "(%s) (%s)" (to_string e) (to_string e')
-
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
   | Int i -> Pexp_constant (PConst_int (string_of_int i, None)) 

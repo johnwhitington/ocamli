@@ -1,5 +1,27 @@
 open Tinyocaml
 
+(* if true then 1 else 2 *)
+let if1 = If (Bool true, Int 1, Int 2)
+(* if true then if true then 1 else 2 else 3 *)
+let if2 = If (Bool true, If (Bool true, Int 1, Int 2), Int 3)
+(* if true then 1 else if true then 2 else 3 *)
+let if3 = If (Bool true, Int 1, If (Bool true, Int 2, Int 3))
+(* if false then 1 else 2 + 2 *)
+let if4 = If (Bool false, Int 1, Op (Add, Int 2, Int 2))
+(* (if false then 1 else 2) + 2 *)
+let if5 = Op (Add, If (Bool false, Int 1, Int 2), Int 2)
+
+(* a && b && c *)
+let bool1 = And (Bool true, And (Bool true, Bool true))
+(* (a && b) && c *)
+let bool2 = And (And (Bool true, Bool true), Bool true)
+(* a || b || c *)
+let bool3 = Or (Bool true, Or (Bool true, Bool true))
+(* (a || b) || c *)
+let bool4 = Or (Or (Bool true, Bool true), Bool true)
+(* a && b || c *)
+let bool5 = Or (And (Bool true, Bool true), Bool true)
+
 (* 1 + 2 * 3 *)
 let arith =
   Op (Add, Int 1, Op (Mul, Int 2, Int 3))

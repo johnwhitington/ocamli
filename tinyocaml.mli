@@ -25,9 +25,6 @@ val string_of_op : op -> string
 
 val string_of_cmp : cmp -> string
 
-(** Very basic prettyprinter, for debug only. *)
-val to_string : t -> string
-
 (** Convert tiny ocaml to real ocaml. *)
 val to_real_ocaml : t -> Parsetree.expression
 

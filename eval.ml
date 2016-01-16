@@ -63,9 +63,7 @@ let () =
              [-machine <naive | cc | scc | ck | cek | secd>]\n";
   let module I =
     (val
-       (try
-         List.assoc !machine implementations
-        with
+       (try List.assoc !machine implementations with
          _ -> failwith "Unknown machine"
        ) : Evaluator)
   in
