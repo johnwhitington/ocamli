@@ -2,8 +2,9 @@ open Tinyocaml
 
 type assoc = L | R | N
 
-let assoc = function
-  Int _ | Bool _ | Var _ | If _ | Let _ | LetRec _ | Fun _ -> N
+let rec assoc = function
+  Control (_, x, _) -> assoc x
+| Int _ | Bool _ | Var _ | If _ | Let _ | LetRec _ | Fun _ -> N
 | Op _ | Cmp _ | App _ -> L
 | And _ | Or _ -> R
 
@@ -33,6 +34,7 @@ let parens node parent isleft =
 
 let rec string_of_tiny_inner isleft parent node =
   match node with
+  | Control (s, x, s') -> s ^ string_of_tiny_inner isleft parent x ^ s'
   | Int i -> string_of_int i
   | Bool b -> string_of_bool b
   | Var v -> v

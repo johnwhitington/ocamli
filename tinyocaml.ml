@@ -18,6 +18,7 @@ type t =
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
+| Control of (string * t * string) (* Control string for prettyprinting *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -35,6 +36,7 @@ let cmp_of_string = function
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
+  | Control (_, x, _) -> to_real_ocaml_expression_desc x
   | Int i -> Pexp_constant (PConst_int (string_of_int i, None)) 
   | Bool b ->
       Pexp_construct

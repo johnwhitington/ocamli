@@ -16,7 +16,8 @@ let substitute = TinyocamlUtils.substitute
 
 (* Evaluate one step, assuming not already a value *)
 let rec eval = function
-  Op (op, Int a, Int b) -> Int (calc op a b)
+| Control (_, x, _) -> eval x
+| Op (op, Int a, Int b) -> Int (calc op a b)
 | Op (op, Int a, b) -> Op (op, Int a, eval b)
 | Op (op, a, b) -> Op (op, eval a, b)
 | And (Bool false, _) -> Bool false
