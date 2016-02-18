@@ -66,8 +66,8 @@ let rec string_of_tiny_inner isleft parent node =
           (string_of_tiny_inner false (Some node) r) rp
   | If (e, e1, e2) ->
       let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%sif%s %s then %s else %s%s"
-          lp bold code_end
+        Printf.sprintf "%sif %s then %s else %s%s"
+          lp
           (string_of_tiny_inner false (Some node) e)
           (string_of_tiny_inner false (Some node) e1)
           (string_of_tiny_inner false (Some node) e2)

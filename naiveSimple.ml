@@ -2,6 +2,8 @@
 open Tinyocaml
 open Evalutils
 
+let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
+
 type t = Tinyocaml.t
 
 let calc = TinyocamlUtils.calc
@@ -13,6 +15,38 @@ let is_value = TinyocamlUtils.is_value
 
 (* Substitute a value for a name in an expresion *)
 let substitute = TinyocamlUtils.substitute
+
+(* If not a value, underline it as the next redex *)
+let underline x =
+  Control (ul, x, code_end)
+
+let rec underline_redex e =
+  match e with
+    Control (l, x, r) -> Control (l, underline_redex x, r)
+  | Op (_, Int _, Int _) -> underline e
+  | Op (op, Int a, b) -> Op (op, Int a, underline b)
+  | Op (op, a, b) -> Op (op, underline a, b)
+  | And (Bool false, _) -> underline e
+  | And (Bool true, Bool _) -> underline e
+  | And (Bool true, b) -> And (Bool true, underline b)
+  | And (a, b) -> And (underline a, b)
+  | Or (Bool true, _) -> underline e
+  | Or (Bool false, Bool b) -> underline e
+  | Or (Bool false, b) -> Or (Bool false, underline b)
+  | Cmp (_, Int _, Int _) -> underline e
+  | Cmp (op, Int a, b) -> Cmp (op, Int a, underline b)
+  | Cmp (op, a, b) -> Cmp (op, underline a, b)
+  | If (Bool _, _, _) -> underline e
+  | If (cond, a, b) -> If (underline cond, a, b)
+  | Let (n, v, e') ->
+      if is_value v then underline e else Let (n, underline v, e')
+  | LetRec (n, Fun (var, body), e) -> underline e
+  | LetRec (n, v, e') ->
+      if is_value v then underline e else Let (n, underline v, e')
+  | App (Fun f, x) ->
+      if is_value x then underline e else App (Fun f, underline x)
+  | App (f, x) -> App (underline f, x)
+  | _ -> e (* A value, so no redex *)
 
 (* Evaluate one step, assuming not already a value *)
 let rec eval = function
@@ -60,4 +94,4 @@ let next e =
 
 let tree x = makestructure (Tinyocaml.to_real_ocaml x)
 
-let to_string x = Pptinyocaml.string_of_tiny x 
+let to_string x = Pptinyocaml.string_of_tiny (underline_redex x) 
