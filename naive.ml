@@ -196,3 +196,4 @@ let next ast =
 
 let tree ast = makestructure ast
 
+let to_string = Evalutils.to_string

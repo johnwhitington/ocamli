@@ -12,6 +12,8 @@ let source = ref None
 
 let machine = ref "naive"
 
+let printer = ref "tiny"
+
 let setfile s =
   source := Some (FromFile s)
 
@@ -37,6 +39,7 @@ module type Evaluator =
     val init : Parsetree.structure -> t
     val next : t -> t Evalutils.result
     val tree : t -> Parsetree.structure
+    val to_string : t -> string
   end
 
 let implementations =
@@ -47,6 +50,7 @@ let implementations =
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
+   ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-e", Arg.String settext, " Evaluate the program text given");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)")]
 
@@ -60,7 +64,8 @@ let () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>
              [-quiet]
-             [-machine <naive | cc | scc | ck | cek | secd>]\n";
+             [-pp <ocaml | tiny>]
+             [-machine <naive | naiveSimple | naiveSimpleOneStep | cc | scc | ck | cek | secd>]\n";
   let module I =
     (val
        (try List.assoc !machine implementations with
@@ -71,13 +76,19 @@ let () =
     match I.next state with
       Next state' ->
         if not !quiet then begin
-          print_string (to_string (getexpr (I.tree state')));
+          if !printer = "tiny" then
+            print_string (I.to_string state')
+          else
+            print_string (to_string (getexpr (I.tree state')));
           print_string "\n"
         end;
         really_run false state'
     | IsValue ->
         if !quiet || first then begin
-          print_string (to_string (getexpr (I.tree state)));
+          if !printer = "tiny" then
+            print_string (I.to_string state)
+          else
+            print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
         end
     | Malformed s ->

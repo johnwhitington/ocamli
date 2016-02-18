@@ -1,5 +1,7 @@
 open Tinyocaml
 
+let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
+
 type assoc = L | R | N
 
 let rec assoc = function
@@ -64,8 +66,8 @@ let rec string_of_tiny_inner isleft parent node =
           (string_of_tiny_inner false (Some node) r) rp
   | If (e, e1, e2) ->
       let lp, rp = parens node parent isleft in
-        Printf.sprintf "%sif %s then %s else %s%s"
-          lp
+        Printf.sprintf "%s%sif%s %s then %s else %s%s"
+          lp bold code_end
           (string_of_tiny_inner false (Some node) e)
           (string_of_tiny_inner false (Some node) e1)
           (string_of_tiny_inner false (Some node) e2)

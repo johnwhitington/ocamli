@@ -10,3 +10,5 @@ val next : t -> t Evalutils.result
 (* The representation of the current state as a parse tree. *)
 val tree : t -> Parsetree.structure
 
+val to_string : t -> string
+
