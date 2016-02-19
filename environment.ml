@@ -94,7 +94,9 @@ let rec eval env = function
 | LetRec (n, v, e) ->
     if is_value v then substitute n v e else LetRec (n, eval env v, e)
 | App (Fun (n, body) as f, x) ->
-    if is_value x then substitute n x body else App (f, eval env x)
+    if is_value x
+      then Let (n, x, body) (*substitute n x body*)
+      else App (f, eval env x)
 | App (f, x) -> App (eval env f, x)
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
