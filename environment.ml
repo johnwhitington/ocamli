@@ -91,8 +91,6 @@ let rec eval env = function
 | LetRec (n, Fun (var, body), e) ->
     let v = Fun (var, LetRec (n, Fun (var, body), body)) in
       substitute n v e
-| LetRec (n, v, e) ->
-    if is_value v then substitute n v e else LetRec (n, eval env v, e)
 | App (Fun (n, body) as f, x) ->
     if is_value x
       then Let (n, x, body) (*substitute n x body*)
@@ -103,6 +101,7 @@ let rec eval env = function
 | (Int _ | Bool _ | Fun _) as e ->
     (* Value possibly under value-lets. Shed lets. *)
     raise (ValueUnderLets e)
+| _ -> failwith "malformed node"
  
 let init x = Tinyocaml.of_real_ocaml (getexpr x)
 
