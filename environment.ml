@@ -20,6 +20,8 @@ let substitute = TinyocamlUtils.substitute
 let underline x =
   Control (ul, x, code_end)
 
+exception UnderlineValueUnderLets
+
 let rec underline_redex e =
   match e with
     Control (l, x, r) -> Control (l, underline_redex x, r)
@@ -39,14 +41,22 @@ let rec underline_redex e =
   | If (Bool _, _, _) -> underline e
   | If (cond, a, b) -> If (underline cond, a, b)
   | Let (n, v, e') ->
-      if is_value v then underline e else Let (n, underline v, e')
+      if is_value v
+        then Let (n, v, underline_redex e')
+        else Let (n, underline v, e')
   | LetRec (n, Fun (var, body), e) -> underline e
   | LetRec (n, v, e') ->
       if is_value v then underline e else Let (n, underline v, e')
   | App (Fun f, x) ->
       if is_value x then underline e else App (Fun f, underline x)
   | App (f, x) -> App (underline f, x)
-  | _ -> e (* A value, so no redex *)
+  | Var _ -> underline e
+  | _ -> raise UnderlineValueUnderLets
+
+let underline_redex e =
+  if is_value e then e else
+    try underline_redex e with
+      UnderlineValueUnderLets -> underline e
 
 exception ValueUnderLets of Tinyocaml.t
 
