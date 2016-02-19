@@ -48,49 +48,60 @@ let rec underline_redex e =
   | App (f, x) -> App (underline f, x)
   | _ -> e (* A value, so no redex *)
 
+exception ValueUnderLets of Tinyocaml.t
+
 (* Evaluate one step, assuming not already a value *)
-let rec eval = function
-| Control (_, x, _) -> eval x
+let rec eval env = function
+| Control (_, x, _) -> eval env x
 | Op (op, Int a, Int b) -> Int (calc op a b)
-| Op (op, Int a, b) -> Op (op, Int a, eval b)
-| Op (op, a, b) -> Op (op, eval a, b)
+| Op (op, Int a, b) -> Op (op, Int a, eval env b)
+| Op (op, a, b) -> Op (op, eval env a, b)
 | And (Bool false, _) -> Bool false
 | And (Bool true, Bool b) -> Bool b
-| And (Bool true, b) -> eval b
-| And (a, b) -> And (eval a, b)
+| And (Bool true, b) -> eval env b
+| And (a, b) -> And (eval env a, b)
 | Or (Bool true, _) -> Bool true
 | Or (Bool false, Bool b) -> Bool b
-| Or (Bool false, b) -> eval b
-| Or (a, b) -> And (eval a, b)
+| Or (Bool false, b) -> eval env b
+| Or (a, b) -> And (eval env a, b)
 | Cmp (op, Int a, Int b) -> Bool (comp op a b)
-| Cmp (op, Int a, b) -> Cmp (op, Int a, eval b)
-| Cmp (op, a, b) -> Cmp (op, eval a, b)
+| Cmp (op, Int a, b) -> Cmp (op, Int a, eval env b)
+| Cmp (op, a, b) -> Cmp (op, eval env a, b)
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
-| If (cond, a, b) -> If (eval cond, a, b)
-| Let (n, v, e) -> if is_value v then substitute n v e else Let (n, eval v, e)
+| If (cond, a, b) -> If (eval env cond, a, b)
+| Let (n, v, e) ->
+    (* If a value, add to the environment, retain, and continue search for
+    redex.  Otherwise, evaluate its rhs one step *)
+    if is_value v
+    then
+      (Hashtbl.add env n v; Let (n, v, eval env e))
+    else
+      Let (n, eval env v, e)
 | LetRec (n, Fun (var, body), e) ->
     let v = Fun (var, LetRec (n, Fun (var, body), body)) in
       substitute n v e
 | LetRec (n, v, e) ->
-    if is_value v then substitute n v e else LetRec (n, eval v, e)
+    if is_value v then substitute n v e else LetRec (n, eval env v, e)
 | App (Fun (n, body) as f, x) ->
-    if is_value x then substitute n x body else App (f, eval x)
-| App (f, x) -> App (eval f, x)
-| Var _ -> failwith "Expression not closed: unknown variable"
-| Int _ | Bool _ | Fun _ -> failwith "Eval: already a value"
+    if is_value x then substitute n x body else App (f, eval env x)
+| App (f, x) -> App (eval env f, x)
+| Var v ->
+    begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
+| (Int _ | Bool _ | Fun _) as e ->
+    (* Value possibly under value-lets. Shed lets. *)
+    raise (ValueUnderLets e)
  
-(* Evaluate all the way to a value. *)
-let rec until_value e =
-  if is_value e then e else until_value (eval e)
-
 let init x = Tinyocaml.of_real_ocaml (getexpr x)
 
 let next e =
   try
-    if is_value e then IsValue else Next (eval e) 
+    if is_value e then IsValue else Next (eval (Hashtbl.create 100) e) 
   with
-    _ -> Malformed "naiveSimple"
+    ValueUnderLets e -> Next e
+  | x ->
+      Printf.printf "Error in environment %s\n" (Printexc.to_string x);
+      Malformed "environment"
 
 let tree x = makestructure (Tinyocaml.to_real_ocaml x)
 
