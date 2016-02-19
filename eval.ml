@@ -45,7 +45,8 @@ module type Evaluator =
 let implementations =
   [("naive", (module Naive : Evaluator));
    ("naiveSimple", (module NaiveSimple : Evaluator));
-   ("naiveSimpleOneStep", (module NaiveSimpleOneStep : Evaluator))]
+   ("naiveSimpleOneStep", (module NaiveSimpleOneStep : Evaluator));
+   ("environment", (module Environment : Evaluator))]
 
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
