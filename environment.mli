@@ -4,6 +4,8 @@ type t
 (* Initialise the evaluator with an OCaml ast *)
 val init : Parsetree.structure -> t
 
+val init_from_tinyocaml : Tinyocaml.t -> t
+
 (* Evaluate one step. None if some problem occurs. *)
 val next : t -> t Evalutils.result
 

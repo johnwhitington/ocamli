@@ -44,9 +44,8 @@ let rec underline_redex e =
       if is_value v
         then Let (n, v, underline_redex e')
         else Let (n, underline v, e')
-  | LetRec (n, Fun (var, body), e) -> underline e
-  | LetRec (n, v, e') ->
-      if is_value v then underline e else Let (n, underline v, e')
+  | LetRec (n, Fun (var, body), e) ->
+      LetRec (n, Fun (var, body), underline e)
   | App (Fun f, x) ->
       if is_value x then underline e else App (Fun f, underline x)
   | App (f, x) -> App (underline f, x)
@@ -81,29 +80,33 @@ let rec eval env = function
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval env cond, a, b)
 | Let (n, v, e) ->
-    (* If a value, add to the environment, retain, and continue search for
-    redex.  Otherwise, evaluate its rhs one step *)
-    if is_value v
-    then
-      (Hashtbl.add env n v; Let (n, v, eval env e))
+    (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
+    to the environment, retain, and continue search for redex.  If v not a
+    value, evaluate its rhs one step *)
+    if is_value v then
+      if is_value e then e else
+        (Hashtbl.add env n v; Let (n, v, eval env e))
     else
       Let (n, eval env v, e)
 | LetRec (n, Fun (var, body), e) ->
-    let v = Fun (var, LetRec (n, Fun (var, body), body)) in
-      substitute n v e
+    if is_value e then e else
+      begin
+        Hashtbl.add env n (Fun (var, body));
+        LetRec (n, Fun (var, body), eval env e)
+      end
 | App (Fun (n, body) as f, x) ->
     if is_value x
-      then Let (n, x, body) (*substitute n x body*)
+      then Let (n, x, body)
       else App (f, eval env x)
 | App (f, x) -> App (eval env f, x)
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
-| (Int _ | Bool _ | Fun _) as e ->
-    (* Value possibly under value-lets. Shed lets. *)
-    raise (ValueUnderLets e)
+| Int _ | Bool _ | Fun _ -> failwith "already a value"
 | _ -> failwith "malformed node"
  
 let init x = Tinyocaml.of_real_ocaml (getexpr x)
+
+let init_from_tinyocaml x = x
 
 let next e =
   try

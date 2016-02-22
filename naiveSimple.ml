@@ -40,9 +40,7 @@ let rec underline_redex e =
   | If (cond, a, b) -> If (underline cond, a, b)
   | Let (n, v, e') ->
       if is_value v then underline e else Let (n, underline v, e')
-  | LetRec (n, Fun (var, body), e) -> underline e
-  | LetRec (n, v, e') ->
-      if is_value v then underline e else Let (n, underline v, e')
+  | LetRec (n, Fun (var, body), e) -> LetRec (n, Fun (var, body), underline e)
   | App (Fun f, x) ->
       if is_value x then underline e else App (Fun f, underline x)
   | App (f, x) -> App (underline f, x)
