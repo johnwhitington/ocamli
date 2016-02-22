@@ -85,7 +85,7 @@ let () =
         end;
         really_run false state'
     | IsValue ->
-        if !quiet || first then begin
+        if !quiet then begin
           if !printer = "tiny" then
             print_string (I.to_string state)
           else
@@ -103,6 +103,15 @@ let () =
   in
    let run code =
     let state = I.init (ast code) in
+      (* Print initial state, if not a value *)
+      if not !quiet then
+        begin
+          if !printer = "tiny" then
+            print_string (I.to_string state)
+          else
+            print_string (to_string (getexpr (I.tree state)));
+          print_string "\n"
+        end;
       really_run true state
    in
       try
