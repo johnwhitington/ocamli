@@ -2,8 +2,6 @@
 open Tinyocaml
 open Evalutils
 
-let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
-
 type t = Tinyocaml.t
 
 let calc = TinyocamlUtils.calc
@@ -15,49 +13,6 @@ let is_value = TinyocamlUtils.is_value
 
 (* Substitute a value for a name in an expresion *)
 let substitute = TinyocamlUtils.substitute
-
-(* If not a value, underline it as the next redex *)
-let underline x =
-  Control (ul, x, code_end)
-
-exception UnderlineValueUnderLets
-
-let rec underline_redex e =
-  match e with
-    Control (l, x, r) -> Control (l, underline_redex x, r)
-  | Op (_, Int _, Int _) -> underline e
-  | Op (op, Int a, b) -> Op (op, Int a, underline_redex b)
-  | Op (op, a, b) -> Op (op, underline_redex a, b)
-  | And (Bool false, _) -> underline e
-  | And (Bool true, Bool _) -> underline e
-  | And (Bool true, b) -> And (Bool true, underline_redex b)
-  | And (a, b) -> And (underline_redex a, b)
-  | Or (Bool true, _) -> underline e
-  | Or (Bool false, Bool b) -> underline e
-  | Or (Bool false, b) -> Or (Bool false, underline_redex b)
-  | Cmp (_, Int _, Int _) -> underline e
-  | Cmp (op, Int a, b) -> Cmp (op, Int a, underline_redex b)
-  | Cmp (op, a, b) -> Cmp (op, underline_redex a, b)
-  | If (Bool _, _, _) -> underline e
-  | If (cond, a, b) -> If (underline_redex cond, a, b)
-  | Let (n, v, e') ->
-      if is_value v
-        then Let (n, v, underline_redex e')
-        else Let (n, underline_redex v, e')
-  | LetRec (n, Fun (var, body), e') ->
-      LetRec (n, Fun (var, body), underline_redex e')
-  | App (Fun f, x) ->
-      if is_value x then underline e else App (Fun f, underline_redex x)
-  | App (f, x) -> App (underline_redex f, x)
-  | Var _ -> underline e
-  | _ -> raise UnderlineValueUnderLets
-
-let underline_redex e =
-  if is_value e then e else
-    try underline_redex e with
-      UnderlineValueUnderLets -> underline e
-
-exception ValueUnderLets of Tinyocaml.t
 
 (* Evaluate one step, assuming not already a value *)
 let rec eval env = function
@@ -112,11 +67,10 @@ let next e =
   try
     if is_value e then IsValue else Next (eval (Hashtbl.create 100) e) 
   with
-    ValueUnderLets e -> Next e
-  | x ->
+    x ->
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
       Malformed "environment"
 
 let tree x = makestructure (Tinyocaml.to_real_ocaml x)
 
-let to_string x = Pptinyocaml.string_of_tiny (underline_redex x) 
+let to_string x = Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
