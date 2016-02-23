@@ -33,39 +33,42 @@ let underline x =
   Control (ul, x, code_end)
 
 exception UnderlineValueUnderLets
+exception UnderlineValueUnderLets2
 
 let rec underline_redex e =
-  match e with
-    Control (l, x, r) -> Control (l, underline_redex x, r)
-  | Op (_, Int _, Int _) -> underline e
-  | Op (op, Int a, b) -> Op (op, Int a, underline_redex b)
-  | Op (op, a, b) -> Op (op, underline_redex a, b)
-  | And (Bool false, _) -> underline e
-  | And (Bool true, Bool _) -> underline e
-  | And (Bool true, b) -> And (Bool true, underline_redex b)
-  | And (a, b) -> And (underline_redex a, b)
-  | Or (Bool true, _) -> underline e
-  | Or (Bool false, Bool b) -> underline e
-  | Or (Bool false, b) -> Or (Bool false, underline_redex b)
-  | Cmp (_, Int _, Int _) -> underline e
-  | Cmp (op, Int a, b) -> Cmp (op, Int a, underline_redex b)
-  | Cmp (op, a, b) -> Cmp (op, underline_redex a, b)
-  | If (Bool _, _, _) -> underline e
-  | If (cond, a, b) -> If (underline_redex cond, a, b)
-  | Let (n, v, e') ->
-      if is_value v
-        then Let (n, v, underline_redex e')
-        else Let (n, underline_redex v, e')
-  | LetRec (n, Fun (var, body), e') ->
-      LetRec (n, Fun (var, body), underline_redex e')
-  | App (Fun f, x) ->
-      if is_value x then underline e else App (Fun f, underline_redex x)
-  | App (f, x) -> App (underline_redex f, x)
-  | Var _ -> underline e
-  | _ -> raise UnderlineValueUnderLets
+  try
+    match e with
+      Control (l, x, r) -> Control (l, underline_redex x, r)
+    | Op (_, Int _, Int _) -> underline e
+    | Op (op, Int a, b) -> Op (op, Int a, underline_redex b)
+    | Op (op, a, b) -> Op (op, underline_redex a, b)
+    | And (Bool false, _) -> underline e
+    | And (Bool true, Bool _) -> underline e
+    | And (Bool true, b) -> And (Bool true, underline_redex b)
+    | And (a, b) -> And (underline_redex a, b)
+    | Or (Bool true, _) -> underline e
+    | Or (Bool false, Bool b) -> underline e
+    | Or (Bool false, b) -> Or (Bool false, underline_redex b)
+    | Cmp (_, Int _, Int _) -> underline e
+    | Cmp (op, Int a, b) -> Cmp (op, Int a, underline_redex b)
+    | Cmp (op, a, b) -> Cmp (op, underline_redex a, b)
+    | If (Bool _, _, _) -> underline e
+    | If (cond, a, b) -> If (underline_redex cond, a, b)
+    | Let (n, v, e') ->
+        if is_value v
+          then Let (n, v, underline_redex e')
+          else Let (n, underline_redex v, e')
+    | LetRec (n, Fun (var, body), e') ->
+        LetRec (n, Fun (var, body), underline_redex e')
+    | App (Fun f, x) ->
+        if is_value x then underline e else App (Fun f, underline_redex x)
+    | App (f, x) -> App (underline_redex f, x)
+    | Var _ -> underline e
+    | _ -> raise UnderlineValueUnderLets
+  with
+    UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
+  | UnderlineValueUnderLets2 -> underline e
 
 let underline_redex e =
-  if is_value e then e else
-    try underline_redex e with
-      UnderlineValueUnderLets -> underline e
+  if is_value e then e else underline_redex e
 

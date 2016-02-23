@@ -14,6 +14,17 @@ let is_value = TinyocamlUtils.is_value
 (* Substitute a value for a name in an expresion *)
 let substitute = TinyocamlUtils.substitute
 
+let rec appears var = function
+  Var v when v = var -> true
+| Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b) ->
+    appears var a || appears var b
+| If (a, b, c) -> appears var a || appears var b
+| Control (_, x, _) -> appears var x
+| (Let (v, e, e') | LetRec (v, e, e')) ->
+    v <> var && (appears var e || appears var e')
+| Fun (v, e) -> v <> var && appears var e
+| Int _ | Bool _ | Var _ -> false
+
 (* Evaluate one step, assuming not already a value *)
 let rec eval env = function
 | Control (_, x, _) -> eval env x
@@ -38,8 +49,19 @@ let rec eval env = function
     (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
     to the environment, retain, and continue search for redex.  If v not a
     value, evaluate its rhs one step *)
+    (* In fact, we must check to see if the value is **closed**. For example
+         let x = 1 in fun y -> x + y
+         fun y -> let x = 1 in x + y
+     *)
     if is_value v then
-      if is_value e then e else
+      if is_value e then
+        if appears n e then
+          match e with
+            Fun (fv, body) ->
+              if fv = n then e else Fun (fv, Let (n, v, body))
+          | _ -> failwith "should not be here / eval Let (n, v, e)"
+        else e
+      else
         (Hashtbl.add env n v; Let (n, v, eval env e))
     else
       Let (n, eval env v, e)
