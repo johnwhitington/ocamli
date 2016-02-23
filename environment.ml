@@ -53,13 +53,23 @@ let rec eval env = function
     if is_value x
       then Let (n, x, body)
       else App (f, eval env x)
+| App (Var v, x) ->
+    begin match Hashtbl.find env v with
+      Fun (n, body) ->
+        if is_value x then
+          Let (n, x, body)
+        else
+          App (Var v, eval env x)
+    | _ -> failwith "maformed App"
+    end
 | App (f, x) -> App (eval env f, x)
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ -> failwith "already a value"
 | _ -> failwith "malformed node"
  
-let init x = Tinyocaml.of_real_ocaml (getexpr x)
+let init x =
+  Tinyocaml.of_real_ocaml (getexpr x)
 
 let init_from_tinyocaml x = x
 
@@ -71,6 +81,8 @@ let next e =
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
       Malformed "environment"
 
-let tree x = makestructure (Tinyocaml.to_real_ocaml x)
+let tree x =
+  makestructure (Tinyocaml.to_real_ocaml x)
 
-let to_string x = Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
+let to_string x =
+  Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
