@@ -37,3 +37,5 @@ exception UnknownNode of string
 the given program *)
 val of_real_ocaml : Parsetree.expression -> t
 
+val recurse : (t -> t) -> t -> t
+

@@ -39,8 +39,8 @@ let rec underline_redex e =
   try
     match e with
       Control (l, x, r) -> Control (l, underline_redex x, r)
-    | Op (_, Int _, Int _) -> underline e
-    | Op (op, Int a, b) -> Op (op, Int a, underline_redex b)
+    | Op (_, (Int _ | Var _), (Int _ | Var _)) -> underline e
+    | Op (op, ((Int _ | Var _) as a), b) -> Op (op, a, underline_redex b)
     | Op (op, a, b) -> Op (op, underline_redex a, b)
     | And (Bool false, _) -> underline e
     | And (Bool true, Bool _) -> underline e
@@ -49,8 +49,8 @@ let rec underline_redex e =
     | Or (Bool true, _) -> underline e
     | Or (Bool false, Bool b) -> underline e
     | Or (Bool false, b) -> Or (Bool false, underline_redex b)
-    | Cmp (_, Int _, Int _) -> underline e
-    | Cmp (op, Int a, b) -> Cmp (op, Int a, underline_redex b)
+    | Cmp (_, (Int _ | Var _), (Int _ | Var _)) -> underline e
+    | Cmp (op, ((Int _ | Var _) as a), b) -> Cmp (op, a, underline_redex b)
     | Cmp (op, a, b) -> Cmp (op, underline_redex a, b)
     | If (Bool _, _, _) -> underline e
     | If (cond, a, b) -> If (underline_redex cond, a, b)
@@ -62,6 +62,8 @@ let rec underline_redex e =
         LetRec (n, Fun (var, body), underline_redex e')
     | App (Fun f, x) ->
         if is_value x then underline e else App (Fun f, underline_redex x)
+    | App (Var v, x) ->
+        if is_value x then underline e else App (Var v, underline_redex x)
     | App (f, x) -> App (underline_redex f, x)
     | Var _ -> underline e
     | _ -> raise UnderlineValueUnderLets

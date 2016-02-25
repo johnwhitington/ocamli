@@ -127,3 +127,16 @@ let rec of_real_ocaml_expression_desc = function
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
  
 
+(* Recurse over the tinyocaml data type *)
+let rec recurse f = function
+  Op (op, a, b) -> Op (op, f a, f b)
+| And (a, b) -> And (f a, f b)
+| Or (a, b) -> Or (f a, f b)
+| Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
+| If (e, e1, e2) -> If (f e, f e1, f e2)
+| Let (n, v, e) | LetRec (n, v, e) -> Let (n, f v, f e)
+| Fun (x, a) -> Fun (x, f a)
+| App (a, b) -> App (f a, f b)
+| Control (l, x, r) -> Control (l, f x, r)
+| (Bool _ | Var _ | Int _) as x -> x
+

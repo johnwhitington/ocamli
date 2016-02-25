@@ -14,16 +14,27 @@ let is_value = TinyocamlUtils.is_value
 (* Substitute a value for a name in an expresion *)
 let substitute = TinyocamlUtils.substitute
 
+(* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b) ->
     appears var a || appears var b
-| If (a, b, c) -> appears var a || appears var b
+| If (a, b, c) -> appears var a || appears var b || appears var c
 | Control (_, x, _) -> appears var x
-| (Let (v, e, e') | LetRec (v, e, e')) ->
+| Let (v, e, e') ->
+    appears var e || v <> var && appears var e'
+| LetRec (v, e, e') ->
     v <> var && (appears var e || appears var e')
 | Fun (v, e) -> v <> var && appears var e
 | Int _ | Bool _ | Var _ -> false
+
+let rec collect_unused_lets = function
+  Let (n, v, e) | LetRec (n, v, e) ->
+    (* Must be a value: side effects *)
+    if is_value v && not (appears n e)
+      then collect_unused_lets e
+      else Let (n, collect_unused_lets v, collect_unused_lets e)
+| x -> Tinyocaml.recurse collect_unused_lets x
 
 (* Evaluate one step, assuming not already a value *)
 let rec eval env = function
@@ -97,7 +108,9 @@ let init_from_tinyocaml x = x
 
 let next e =
   try
-    if is_value e then IsValue else Next (eval (Hashtbl.create 100) e) 
+    if is_value e
+      then IsValue
+      else Next (collect_unused_lets (eval (Hashtbl.create 100) e))
   with
     x ->
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
