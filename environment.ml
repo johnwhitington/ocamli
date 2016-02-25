@@ -29,11 +29,16 @@ let rec appears var = function
 | Int _ | Bool _ | Var _ -> false
 
 let rec collect_unused_lets = function
-  Let (n, v, e) | LetRec (n, v, e) ->
+  Let (n, v, e) ->
     (* Must be a value: side effects *)
     if is_value v && not (appears n e)
       then collect_unused_lets e
       else Let (n, collect_unused_lets v, collect_unused_lets e)
+| LetRec (n, v, e) ->
+    (* Must be a value: side effects *)
+    if is_value v && not (appears n e)
+      then collect_unused_lets e
+      else LetRec (n, collect_unused_lets v, collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
 (* Evaluate one step, assuming not already a value *)
@@ -121,3 +126,6 @@ let tree x =
 
 let to_string x =
   Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
+
+let tiny x = TinyocamlUtils.underline_redex x
+

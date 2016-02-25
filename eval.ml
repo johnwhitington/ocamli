@@ -10,7 +10,7 @@ type mode =
 
 let source = ref None
 
-let machine = ref "naive"
+let machine = ref "environment"
 
 let printer = ref "tiny"
 
@@ -39,6 +39,7 @@ module type Evaluator =
     val init : Parsetree.structure -> t
     val next : t -> t Evalutils.result
     val tree : t -> Parsetree.structure
+    val tiny : t -> Tinyocaml.t
     val to_string : t -> string
   end
 
@@ -48,18 +49,27 @@ let implementations =
    ("naiveSimpleOneStep", (module NaiveSimpleOneStep : Evaluator));
    ("environment", (module Environment : Evaluator))]
 
+let remove_recs = ref []
+
+let add_remove_rec x =
+  remove_recs := x::!remove_recs
+
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-e", Arg.String settext, " Evaluate the program text given");
-   ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)")]
+   ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
+   ("-remove-rec", Arg.String add_remove_rec, " No not print the given recursive function")]
 
 let load_code () =
   match !source with
     Some (FromFile s) -> Some (load_file s)
   | Some (FromText s) -> Some s
   | None -> None
+
+let string_of_tiny x =
+  Pptinyocaml.string_of_tiny ~remove_recs:!remove_recs x
 
 let () =
   Arg.parse argspec setfile
@@ -78,7 +88,7 @@ let () =
       Next state' ->
         if not !quiet then begin
           if !printer = "tiny" then
-            print_string (I.to_string state')
+            print_string (string_of_tiny (I.tiny state'))
           else
             print_string (to_string (getexpr (I.tree state')));
           print_string "\n"
@@ -87,7 +97,7 @@ let () =
     | IsValue ->
         if !quiet then begin
           if !printer = "tiny" then
-            print_string (I.to_string state)
+            print_string (string_of_tiny (I.tiny state))
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
@@ -107,7 +117,7 @@ let () =
       if not !quiet then
         begin
           if !printer = "tiny" then
-            print_string (I.to_string state)
+            print_string (string_of_tiny (I.tiny state))
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"

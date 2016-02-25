@@ -15,3 +15,5 @@ val tree : t -> Parsetree.structure
 (* The prettyprinted string of the current state *)
 val to_string : t -> string
 
+val tiny : t -> Tinyocaml.t
+

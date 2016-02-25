@@ -12,3 +12,5 @@ val tree : t -> Parsetree.structure
 
 val to_string : t -> string
 
+val tiny : t -> Tinyocaml.t
+
