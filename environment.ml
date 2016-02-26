@@ -42,20 +42,48 @@ let rec collect_unused_lets = function
 | x -> Tinyocaml.recurse collect_unused_lets x
 
 (* Evaluate one step, assuming not already a value *)
+let lookup_int_var env v =
+  match Hashtbl.find env v with
+    Int i -> i
+  | _ -> failwith "comparison not an integer"
+
+let last = ref Unknown
+
 let rec eval env = function
 | Control (_, x, _) -> eval env x
-| Op (op, Int a, Int b) -> Int (calc op a b)
+| Op (op, Int a, Int b) ->
+    last := Arith;
+    Int (calc op a b)
 | Op (op, Int a, b) -> Op (op, Int a, eval env b)
 | Op (op, a, b) -> Op (op, eval env a, b)
-| And (Bool false, _) -> Bool false
-| And (Bool true, Bool b) -> Bool b
+| And (Bool false, _) ->
+    last := Boolean;
+    Bool false
+| And (Bool true, Bool b) ->
+    last := Boolean;
+    Bool b
 | And (Bool true, b) -> eval env b
 | And (a, b) -> And (eval env a, b)
-| Or (Bool true, _) -> Bool true
-| Or (Bool false, Bool b) -> Bool b
+| Or (Bool true, _) ->
+    last := Boolean;
+    Bool true
+| Or (Bool false, Bool b) ->
+    last := Boolean;
+    Bool b
 | Or (Bool false, b) -> eval env b
 | Or (a, b) -> And (eval env a, b)
-| Cmp (op, Int a, Int b) -> Bool (comp op a b)
+| Cmp (op, Int a, Int b) ->
+    last := Comparison;
+    Bool (comp op a b)
+| Cmp (op, Var a, Int b) ->
+    last := Comparison;
+    Bool (comp op (lookup_int_var env a) b)
+| Cmp (op, Int a, Var b) ->
+    last := Comparison;
+    Bool (comp op a (lookup_int_var env b))
+| Cmp (op, Var a, Var b) ->
+    last := Comparison;
+    Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval env b)
 | Cmp (op, a, b) -> Cmp (op, eval env a, b)
 | If (Bool true, a, _) -> a
@@ -112,6 +140,7 @@ let init x =
 let init_from_tinyocaml x = x
 
 let next e =
+  last := Unknown;
   try
     if is_value e
       then IsValue
@@ -128,4 +157,6 @@ let to_string x =
   Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
 
 let tiny x = TinyocamlUtils.underline_redex x
+
+let last x = !last
 

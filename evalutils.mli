@@ -9,6 +9,13 @@ exception ExnUnimplemented of string
 
 exception ExnMalformed of string
 
+type last_op =
+    Unknown
+  | Arith
+  | Boolean
+  | Comparison
+  | IfBool
+
 val unimp : string -> 'a
 
 val malformed : string -> 'a

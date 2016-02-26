@@ -11,6 +11,13 @@ type 'a result =
 exception ExnUnimplemented of string
 exception ExnMalformed of string
 
+type last_op =
+    Unknown
+  | Arith
+  | Boolean
+  | Comparison
+  | IfBool
+
 let unimp s = raise (ExnUnimplemented s)
 let malformed s = raise (ExnMalformed s)
 

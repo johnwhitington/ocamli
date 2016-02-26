@@ -199,3 +199,6 @@ let tree ast = makestructure ast
 let tiny ast = Tinyocaml.of_real_ocaml ast
 
 let to_string = Evalutils.to_string
+
+let last () = Unknown
+

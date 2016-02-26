@@ -15,3 +15,5 @@ val to_string : t -> string
 
 val tiny : t -> Tinyocaml.t
 
+val last : unit -> Evalutils.last_op
+

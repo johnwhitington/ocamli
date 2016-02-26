@@ -41,6 +41,7 @@ module type Evaluator =
     val tree : t -> Parsetree.structure
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
+    val last : unit -> Evalutils.last_op
   end
 
 let implementations =
