@@ -14,6 +14,8 @@ let machine = ref "environment"
 
 let printer = ref "tiny"
 
+let show_simple_arithmetic = ref true
+
 let setfile s =
   source := Some (FromFile s)
 
@@ -61,7 +63,8 @@ let argspec =
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-e", Arg.String settext, " Evaluate the program text given");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
-   ("-remove-rec", Arg.String add_remove_rec, " No not print the given recursive function")]
+   ("-remove-rec", Arg.String add_remove_rec, " No not print the given recursive function");
+   ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic")]
 
 let load_code () =
   match !source with
@@ -87,13 +90,17 @@ let () =
   let rec really_run first state =
     match I.next state with
       Next state' ->
-        if not !quiet then begin
-          if !printer = "tiny" then
-            print_string (string_of_tiny (I.tiny state'))
-          else
-            print_string (to_string (getexpr (I.tree state')));
-          print_string "\n"
-        end;
+        if
+          not !quiet &&
+          (I.last () <> Arith || !show_simple_arithmetic || TinyocamlUtils.is_value (I.tiny state'))
+        then
+          begin
+            if !printer = "tiny" then
+              print_string (string_of_tiny (I.tiny state'))
+            else
+              print_string (to_string (getexpr (I.tree state')));
+            print_string "\n"
+          end;
         really_run false state'
     | IsValue ->
         if !quiet then begin
