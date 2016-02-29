@@ -6,7 +6,8 @@ type op = Add | Sub | Mul | Div
 type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type t =
-  Int of int                  (* 1 *)
+  Unit                        (* () *)
+| Int of int                  (* 1 *)
 | Bool of bool                (* false *)
 | Var of string               (* x *)
 | Op of (op * t * t)          (* + - / * *)
@@ -18,7 +19,7 @@ type t =
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
-| Seq of (t * t)         (* e; e *)
+| Seq of (t * t)              (* e; e *)
 | Control of (string * t * string) (* Control string for prettyprinting *)
 
 let string_of_op = function
@@ -38,6 +39,7 @@ let cmp_of_string = function
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
   | Control (_, x, _) -> to_real_ocaml_expression_desc x
+  | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
   | Int i -> Pexp_constant (PConst_int (string_of_int i, None)) 
   | Bool b ->
       Pexp_construct
@@ -98,6 +100,7 @@ exception UnknownNode of string
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
+| Pexp_construct ({txt = Longident.Lident "()"}, _) -> Unit
 | Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
 | Pexp_ident {txt = Longident.Lident v} -> Var v
@@ -143,5 +146,5 @@ let rec recurse f = function
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
 | Control (l, x, r) -> Control (l, f x, r)
-| (Bool _ | Var _ | Int _) as x -> x
+| (Bool _ | Var _ | Int _ | Unit) as x -> x
 

@@ -4,8 +4,8 @@ PACKS = compiler-libs.common
 
 RESULT = eval
 
-OCAMLNCFLAGS = -annot -g -w -3
-OCAMLBCFLAGS = -annot -g -w -3
+OCAMLNCFLAGS = -safe-string -annot -g -w -3
+OCAMLBCFLAGS = -safe-string -annot -g -w -3
 OCAMLLDFLAGS = -g
 
 all : native-code

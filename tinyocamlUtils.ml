@@ -22,9 +22,9 @@ let rec substitute n v = function
 | App (f, x) -> App (substitute n v f, substitute n v x)
 | x -> x
 
-(* Predicate on value-ness of expressions. Var _ is here for convenience *)
+(* Predicate on value-ness of expressions. *)
 let is_value = function
-  Int _ | Bool _ | Fun _ -> true | _ -> false
+  Unit | Int _ | Bool _ | Fun _ -> true | _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
@@ -65,6 +65,8 @@ let rec underline_redex e =
     | App (Var v, x) ->
         if is_value x then underline e else App (Var v, underline_redex x)
     | App (f, x) -> App (underline_redex f, x)
+    | Seq (a, b) ->
+        if is_value a then underline e else Seq (underline_redex a, b)
     | Var _ -> underline e
     | _ -> raise UnderlineValueUnderLets
   with

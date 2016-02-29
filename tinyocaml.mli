@@ -8,7 +8,8 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 (** The type of tiny-ocaml programs *)
 type t =
-  Int of int                  (** 1 *)
+  Unit                        (** () *)
+| Int of int                  (** 1 *)
 | Bool of bool                (** false *)
 | Var of string               (** x *)
 | Op of (op * t * t)          (** + - / * *)

@@ -28,7 +28,7 @@ let load_file f =
   let s = String.create n in
   really_input ic s 0 n;
   close_in ic;
-  s
+  Bytes.to_string s
 
 (* Main loop. Get the right abstract machine module, and keep calling it until
 IsValue or Malformed or Unimplemented *)

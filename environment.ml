@@ -27,7 +27,7 @@ let rec appears var = function
 | LetRec (v, e, e') ->
     v <> var && (appears var e || appears var e')
 | Fun (v, e) -> v <> var && appears var e
-| Int _ | Bool _ | Var _ -> false
+| Int _ | Bool _ | Var _ | Unit -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -134,7 +134,7 @@ let rec eval env = function
     if is_value e then e' else Seq (eval env e, e')
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
-| Int _ | Bool _ | Fun _ -> failwith "already a value"
+| Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"
 | _ -> failwith "malformed node"
  
 let init x =
