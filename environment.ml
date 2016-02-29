@@ -17,7 +17,8 @@ let substitute = TinyocamlUtils.substitute
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true
-| Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b) ->
+| Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
+| Seq (a, b) ->
     appears var a || appears var b
 | If (a, b, c) -> appears var a || appears var b || appears var c
 | Control (_, x, _) -> appears var x
@@ -129,6 +130,8 @@ let rec eval env = function
     | _ -> failwith "maformed App"
     end
 | App (f, x) -> App (eval env f, x)
+| Seq (e, e') ->
+    if is_value e then e' else Seq (eval env e, e')
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ -> failwith "already a value"

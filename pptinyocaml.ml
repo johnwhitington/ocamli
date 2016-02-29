@@ -8,7 +8,7 @@ let rec assoc = function
   Control (_, x, _) -> assoc x
 | Int _ | Bool _ | Var _ | If _ | Let _ | LetRec _ | Fun _ -> N
 | Op _ | Cmp _ | App _ -> L
-| And _ | Or _ -> R
+| And _ | Or _ | Seq _ -> R
 
 let prec = function
   App _ -> 100
@@ -93,6 +93,13 @@ let rec string_of_tiny_inner isleft parent node =
   | App (e, e') ->
       let lp, rp = parens node parent isleft in
         Printf.sprintf "%s%s %s%s"
+          lp
+          (string_of_tiny_inner false (Some node) e)
+          (string_of_tiny_inner false (Some node) e')
+          rp
+  | Seq (e, e') ->
+      let lp, rp = parens node parent isleft in
+        Printf.sprintf "%s%s; %s%s"
           lp
           (string_of_tiny_inner false (Some node) e)
           (string_of_tiny_inner false (Some node) e')

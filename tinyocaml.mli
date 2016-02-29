@@ -20,6 +20,7 @@ type t =
 | LetRec of (string * t * t)  (** let rec x = e in e' *)
 | Fun of (string * t)         (** fun x -> e *)
 | App of (t * t)              (** e e' *)
+| Seq of (t * t)         (** e; e *)
 | Control of (string * t * string) (** Control string for prettyprinting *)
 
 val string_of_op : op -> string

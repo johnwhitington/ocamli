@@ -18,6 +18,7 @@ type t =
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
+| Seq of (t * t)         (* e; e *)
 | Control of (string * t * string) (* Control string for prettyprinting *)
 
 let string_of_op = function
@@ -61,6 +62,8 @@ let rec to_real_ocaml_expression_desc = function
         Pexp_fun (Nolabel, None, pattern, to_real_ocaml e)
   | App (e, e') ->
       Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
+  | Seq (e, e') ->
+      Pexp_sequence (to_real_ocaml e, to_real_ocaml e') 
 
 and to_real_ocaml_let r v e e' =
   let binding =
@@ -122,11 +125,12 @@ let rec of_real_ocaml_expression_desc = function
          end
 | Pexp_apply (e, [(Nolabel, e')]) ->
     App (of_real_ocaml e, of_real_ocaml e')
+| Pexp_sequence (e, e') ->
+    Seq (of_real_ocaml e, of_real_ocaml e')
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
  
-
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
   Op (op, a, b) -> Op (op, f a, f b)
@@ -137,6 +141,7 @@ let rec recurse f = function
 | Let (n, v, e) | LetRec (n, v, e) -> Let (n, f v, f e)
 | Fun (x, a) -> Fun (x, f a)
 | App (a, b) -> App (f a, f b)
+| Seq (a, b) -> Seq (f a, f b)
 | Control (l, x, r) -> Control (l, f x, r)
 | (Bool _ | Var _ | Int _) as x -> x
 
