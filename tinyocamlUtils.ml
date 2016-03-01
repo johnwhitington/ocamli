@@ -87,7 +87,7 @@ let rec underline_redex e =
 and underline_first_non_value r = function
   [] -> List.rev r
 | h::t ->
-    if is_value h
+    if not (is_value h)
       then List.rev r @ [underline h] @ t
       else underline_first_non_value (h::r) t
 

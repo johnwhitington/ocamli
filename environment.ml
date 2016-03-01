@@ -139,13 +139,22 @@ let rec eval env = function
 | Seq (e, e') ->
     if is_value e then e' else Seq (eval env e, e')
 | Record items ->
-    (* If all expressions are values, complain it's already a value *)
-    (* Otherwise, evaluate the first non-value we find *)
+    (* Evaluate the first non-value we find *)
+    let names, vals = List.split items in
+    let val_contents = List.map ( ! ) vals in
+    let evaluated = List.map ref (eval_first_non_value env [] val_contents) in
+      Record (List.combine names evaluated)
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"
-(*| _ -> failwith "malformed node"*)
  
+and eval_first_non_value env r = function
+  [] -> List.rev r
+| h::t ->
+    if not (is_value h)
+      then List.rev r @ [eval env h] @ t
+      else eval_first_non_value env (h::r) t
+
 let init x =
   Tinyocaml.of_real_ocaml (getexpr x)
 
