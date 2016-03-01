@@ -12,6 +12,7 @@ type t =
 | Int of int                  (** 1 *)
 | Bool of bool                (** false *)
 | Var of string               (** x *)
+| Record of (string * t ref) list  (* Records. Boolean is mutability *)
 | Op of (op * t * t)          (** + - / * *)
 | And of (t * t)              (** && *)
 | Or of (t * t)               (** || *)

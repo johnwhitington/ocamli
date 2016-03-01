@@ -23,8 +23,13 @@ let rec substitute n v = function
 | x -> x
 
 (* Predicate on value-ness of expressions. *)
-let is_value = function
-  Unit | Int _ | Bool _ | Fun _ -> true | _ -> false
+let rec is_value = function
+  Unit | Int _ | Bool _ | Fun _ -> true
+| Record items when
+    List.fold_left
+      ( && ) true
+      (List.map is_value (List.map (fun (_, {contents = e}) -> e) items)) -> true
+| _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
@@ -68,10 +73,23 @@ let rec underline_redex e =
     | Seq (a, b) ->
         if is_value a then underline e else Seq (underline_redex a, b)
     | Var _ -> underline e
+    | Record items ->
+       (* Must be a non-value, so we must be able to find one which isn't a value *)
+       let names, vals = List.split items in
+       let vals_contents = List.map ( ! ) vals in
+       let underlined = List.map ref (underline_first_non_value [] vals_contents) in
+         Record (List.combine names underlined)
     | _ -> raise UnderlineValueUnderLets
   with
     UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
   | UnderlineValueUnderLets2 -> underline e
+
+and underline_first_non_value r = function
+  [] -> List.rev r
+| h::t ->
+    if is_value h
+      then List.rev r @ [underline h] @ t
+      else underline_first_non_value (h::r) t
 
 let underline_redex e =
   if is_value e then e else underline_redex e

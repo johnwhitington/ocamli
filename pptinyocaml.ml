@@ -6,9 +6,9 @@ type assoc = L | R | N
 
 let rec assoc = function
   Control (_, x, _) -> assoc x
-| Unit | Int _ | Bool _ | Var _ | If _ | Let _ | LetRec _ | Fun _ -> N
 | Op _ | Cmp _ | App _ -> L
 | And _ | Or _ | Seq _ -> R
+| _ -> N
 
 let prec = function
   App _ -> 100
@@ -105,6 +105,15 @@ let rec string_of_tiny_inner isleft parent node =
           (string_of_tiny_inner false (Some node) e)
           (string_of_tiny_inner false (Some node) e')
           rp
+  | Record items ->
+      let lp, rp = parens node parent isleft in
+        Printf.sprintf "%s{%s}%s"
+          lp
+          (List.fold_left ( ^ ) "" (List.map string_of_record_entry items))
+          rp;
+
+and string_of_record_entry (n, {contents = e}) =
+  Printf.sprintf "%s = %s" n (string_of_tiny_inner false None e)
 
 let rec remove_named_recursive_functions fns = function
   LetRec (n, v, e) ->

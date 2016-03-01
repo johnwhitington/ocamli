@@ -10,6 +10,7 @@ type t =
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
 | Var of string               (* x *)
+| Record of (string * t ref) list  (* Records. *)
 | Op of (op * t * t)          (* + - / * *)
 | And of (t * t)              (* && *)
 | Or of (t * t)               (* || *)
@@ -97,6 +98,8 @@ exception UnknownNode of string
 
 (* FIXME: Limit of currying is f x y for now *)
 
+
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
@@ -130,7 +133,13 @@ let rec of_real_ocaml_expression_desc = function
     App (of_real_ocaml e, of_real_ocaml e')
 | Pexp_sequence (e, e') ->
     Seq (of_real_ocaml e, of_real_ocaml e')
+| Pexp_record (items, _) ->
+    Record (List.map of_real_ocaml_record_entry items)
 | _ -> raise (UnknownNode "unknown node")
+
+and of_real_ocaml_record_entry = function
+  ({txt = Longident.Lident n}, e) -> (n, ref (of_real_ocaml e))
+| _ -> raise (UnknownNode "unknown record entry type")
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
  

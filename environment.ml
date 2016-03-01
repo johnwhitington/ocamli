@@ -27,6 +27,11 @@ let rec appears var = function
 | LetRec (v, e, e') ->
     v <> var && (appears var e || appears var e')
 | Fun (v, e) -> v <> var && appears var e
+| Record items ->
+    List.fold_left
+      ( || )
+      false
+      (List.map (fun (_, {contents = e}) -> appears var e) items)
 | Int _ | Bool _ | Var _ | Unit -> false
 
 let rec collect_unused_lets = function
@@ -116,6 +121,7 @@ let rec eval env = function
         Hashtbl.add env n (Fun (var, body));
         LetRec (n, Fun (var, body), eval env e)
       end
+| LetRec _ -> failwith "malformed letrec"
 | App (Fun (n, body) as f, x) ->
     if is_value x
       then Let (n, x, body)
@@ -132,10 +138,13 @@ let rec eval env = function
 | App (f, x) -> App (eval env f, x)
 | Seq (e, e') ->
     if is_value e then e' else Seq (eval env e, e')
+| Record items ->
+    (* If all expressions are values, complain it's already a value *)
+    (* Otherwise, evaluate the first non-value we find *)
 | Var v ->
     begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"
-| _ -> failwith "malformed node"
+(*| _ -> failwith "malformed node"*)
  
 let init x =
   Tinyocaml.of_real_ocaml (getexpr x)
