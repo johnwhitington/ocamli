@@ -49,11 +49,18 @@ let rec collect_unused_lets = function
 
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
-  match Hashtbl.find env v with
+  match List.assoc v env with
     Int i -> i
   | _ -> failwith "comparison not an integer"
 
 let last = ref Unknown
+
+let make_tiny s = Unit
+
+let initial_environment =
+  ["ref", make_tiny "fun x -> {contents = x}";
+   "!", make_tiny "fun x -> x.contents";
+   ":=", make_tiny "fun a -> fun b -> a.contents <- b"]
 
 let rec eval env = function
 | Control (_, x, _) -> eval env x
@@ -112,22 +119,19 @@ let rec eval env = function
           | _ -> failwith "should not be here / eval Let (n, v, e)"
         else e
       else
-        (Hashtbl.add env n v; Let (n, v, eval env e))
+        Let (n, v, eval ((n, v)::env) e)
     else
       Let (n, eval env v, e)
 | LetRec (n, Fun (var, body), e) ->
     if is_value e then e else
-      begin
-        Hashtbl.add env n (Fun (var, body));
-        LetRec (n, Fun (var, body), eval env e)
-      end
+      LetRec (n, Fun (var, body), eval ((n, Fun (var, body))::env) e)
 | LetRec _ -> failwith "malformed letrec"
 | App (Fun (n, body) as f, x) ->
     if is_value x
       then Let (n, x, body)
       else App (f, eval env x)
 | App (Var v, x) ->
-    begin match Hashtbl.find env v with
+    begin match List.assoc v env with
       Fun (n, body) ->
         if is_value x then
           Let (n, x, body)
@@ -145,7 +149,7 @@ let rec eval env = function
     let evaluated = List.map ref (eval_first_non_value env [] val_contents) in
       Record (List.combine names evaluated)
 | Var v ->
-    begin try Hashtbl.find env v with Not_found -> failwith "Var not found" end
+    begin try List.assoc v env with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"
  
 and eval_first_non_value env r = function
@@ -165,7 +169,7 @@ let next e =
   try
     if is_value e
       then IsValue
-      else Next (collect_unused_lets (eval (Hashtbl.create 100) e))
+      else Next (collect_unused_lets (eval initial_environment e))
   with
     x ->
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
