@@ -7,16 +7,18 @@ type assoc = L | R | N
 let rec assoc = function
   Control (_, x, _) -> assoc x
 | Op _ | Cmp _ | App _ -> L
-| And _ | Or _ | Seq _ -> R
+| And _ | Or _ | Seq _ | SetField _ -> R
 | _ -> N
 
 let prec = function
-  App _ -> 100
+  Field _ -> 110
+| App _ -> 100
 | Op ((Mul | Div), _, _) -> 90
 | Op (_, _, _) -> 80
 | Cmp _ -> 70
 | And _ -> 65
 | Or _ -> 60
+| SetField _ -> 55
 | If _ -> 50
 | Fun _ | Let _ | LetRec _ -> 10
 | _ -> max_int
@@ -35,6 +37,7 @@ let parens node parent isleft =
         ("(", ")")
 
 let rec string_of_tiny_inner isleft parent node =
+  let lp, rp = parens node parent isleft in
   match node with
   | Control (s, x, s') -> s ^ string_of_tiny_inner isleft parent x ^ s'
   | Unit -> "()"
@@ -42,75 +45,74 @@ let rec string_of_tiny_inner isleft parent node =
   | Bool b -> string_of_bool b
   | Var v -> v
   | Op (op, l, r) ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%s %s %s%s"
-          lp (string_of_tiny_inner true (Some node) l)
-          (Tinyocaml.string_of_op op)
-          (string_of_tiny_inner false (Some node) r) rp
+      Printf.sprintf "%s%s %s %s%s"
+        lp (string_of_tiny_inner true (Some node) l)
+        (Tinyocaml.string_of_op op)
+        (string_of_tiny_inner false (Some node) r) rp
   | Cmp (cmp, l, r) ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%s %s %s%s"
-          lp (string_of_tiny_inner true (Some node) l)
-          (Tinyocaml.string_of_cmp cmp)
-          (string_of_tiny_inner false (Some node) r) rp
+      Printf.sprintf "%s%s %s %s%s"
+        lp (string_of_tiny_inner true (Some node) l)
+        (Tinyocaml.string_of_cmp cmp)
+        (string_of_tiny_inner false (Some node) r) rp
   | And (l, r) ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%s %s %s%s"
-          lp (string_of_tiny_inner true (Some node) l)
-          "&&"
-          (string_of_tiny_inner false (Some node) r) rp
+      Printf.sprintf "%s%s %s %s%s"
+        lp (string_of_tiny_inner true (Some node) l)
+        "&&"
+        (string_of_tiny_inner false (Some node) r) rp
   | Or (l, r) ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%s %s %s%s"
-          lp (string_of_tiny_inner true (Some node) l)
-          "||"
-          (string_of_tiny_inner false (Some node) r) rp
+      Printf.sprintf "%s%s %s %s%s"
+        lp (string_of_tiny_inner true (Some node) l)
+        "||"
+        (string_of_tiny_inner false (Some node) r) rp
   | If (e, e1, e2) ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%sif %s then %s else %s%s"
-          lp
-          (string_of_tiny_inner false (Some node) e)
-          (string_of_tiny_inner false (Some node) e1)
-          (string_of_tiny_inner false (Some node) e2)
-          rp
+      Printf.sprintf "%sif %s then %s else %s%s"
+        lp
+        (string_of_tiny_inner false (Some node) e)
+        (string_of_tiny_inner false (Some node) e1)
+        (string_of_tiny_inner false (Some node) e2)
+        rp
   | Let (v, e, e') ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%slet %s = %s in %s%s"
+      Printf.sprintf "%slet %s = %s in %s%s"
         lp v
         (string_of_tiny_inner false (Some node) e)
         (string_of_tiny_inner false (Some node) e')
         rp
   | LetRec (v, e, e') ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%slet rec %s = %s in %s%s"
+      Printf.sprintf "%slet rec %s = %s in %s%s"
         lp v
         (string_of_tiny_inner false (Some node) e)
         (string_of_tiny_inner false (Some node) e')
         rp
   | Fun (v, e) ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%sfun %s -> %s%s"
-          lp v (string_of_tiny_inner false (Some node) e) rp
+      Printf.sprintf "%sfun %s -> %s%s"
+        lp v (string_of_tiny_inner false (Some node) e) rp
   | App (e, e') ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%s %s%s"
-          lp
-          (string_of_tiny_inner false (Some node) e)
-          (string_of_tiny_inner false (Some node) e')
-          rp
+      Printf.sprintf "%s%s %s%s"
+        lp
+        (string_of_tiny_inner false (Some node) e)
+        (string_of_tiny_inner false (Some node) e')
+        rp
   | Seq (e, e') ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s%s; %s%s"
-          lp
-          (string_of_tiny_inner false (Some node) e)
-          (string_of_tiny_inner false (Some node) e')
-          rp
+      Printf.sprintf "%s%s; %s%s"
+        lp
+        (string_of_tiny_inner false (Some node) e)
+        (string_of_tiny_inner false (Some node) e')
+        rp
   | Record items ->
-      let lp, rp = parens node parent isleft in
-        Printf.sprintf "%s{%s}%s"
-          lp
-          (List.fold_left ( ^ ) "" (List.map string_of_record_entry items))
-          rp;
+      Printf.sprintf "%s{%s}%s"
+        lp
+        (List.fold_left ( ^ ) "" (List.map string_of_record_entry items))
+        rp
+  | Field (e, n) ->
+      Printf.sprintf "%s%s.%s%s"
+        lp (string_of_tiny_inner false (Some node) e) n rp
+  | SetField (e, n, e') ->
+      Printf.sprintf "%s%s.%s <- %s%s"
+        lp
+        (string_of_tiny_inner false (Some node) e)
+        n
+        (string_of_tiny_inner false (Some node) e')
+        rp
 
 and string_of_record_entry (n, {contents = e}) =
   Printf.sprintf "%s = %s" n (string_of_tiny_inner false None e)

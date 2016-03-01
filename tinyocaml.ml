@@ -21,6 +21,8 @@ type t =
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
+| Field of t * string         (* e.y *)
+| SetField of t * string * t  (* e.y <- e' *)
 | Control of (string * t * string) (* Control string for prettyprinting *)
 
 let string_of_op = function
@@ -133,6 +135,10 @@ let rec of_real_ocaml_expression_desc = function
     Seq (of_real_ocaml e, of_real_ocaml e')
 | Pexp_record (items, _) ->
     Record (List.map of_real_ocaml_record_entry items)
+| Pexp_field (e, {txt = Longident.Lident n}) ->
+    Field (of_real_ocaml e, n)
+| Pexp_setfield (e, {txt = Longident.Lident n}, e') ->
+    SetField (of_real_ocaml e, n, of_real_ocaml e')
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_record_entry = function
@@ -159,4 +165,6 @@ let rec recurse f = function
     let vals_contents = List.map ( ! ) vals in
     let vals' = List.map ref (List.map (recurse f) vals_contents) in
       Record (List.combine names vals')
+| Field (a, n) -> Field (recurse f a, n)
+| SetField (a, n, b) -> SetField (recurse f a, n, recurse f b)
 
