@@ -6,6 +6,10 @@ type op = Add | Sub | Mul | Div
 (** Comparison operators *)
 type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
+type ex = string (* for now *)
+
+type patmatch = string (* for now *)
+
 (** The type of tiny-ocaml programs *)
 type t =
   Unit                        (** () *)
@@ -25,6 +29,8 @@ type t =
 | Seq of (t * t)              (** e; e *)
 | Field of t * string         (** e.y *)
 | SetField of t * string * t  (** e.y <- e' *)
+| Raise of ex                 (** raise e *)
+| TryWith of t * patmatch     (** try e with ... *)
 | Control of (string * t * string) (** Control string for prettyprinting *)
 
 val string_of_op : op -> string

@@ -31,7 +31,7 @@ let rec appears var = function
       (List.map (fun (_, {contents = e}) -> appears var e) items)
 | Field (e, n) -> appears var e
 | SetField (e, n, e') -> appears var e || appears var e'
-| Int _ | Bool _ | Var _ | Unit -> false
+| Int _ | Bool _ | Var _ | Unit | Raise _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -61,6 +61,8 @@ let initial_environment =
   ["ref", make_tiny "fun x -> {contents = x}";
    "!", make_tiny "fun x -> x.contents";
    ":=", make_tiny "fun a -> fun b -> a.contents <- b"]
+
+exception ExceptionRaised of string
 
 let rec eval env = function
 | Control (_, x, _) -> eval env x
@@ -153,6 +155,8 @@ let rec eval env = function
       else SetField (Record items, n, eval env e)
 | SetField (e, n, e') ->
     SetField (eval env e, n, e')
+| Raise e ->
+    raise (ExceptionRaised e)
 | Var v ->
     begin try List.assoc v env with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"

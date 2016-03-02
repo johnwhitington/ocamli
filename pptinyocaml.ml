@@ -113,6 +113,8 @@ let rec string_of_tiny_inner isleft parent node =
         n
         (string_of_tiny_inner false (Some node) e')
         rp
+  | Raise e ->
+      Printf.sprintf "%sraise %s%s" lp e rp
 
 and string_of_record_entry (n, {contents = e}) =
   Printf.sprintf "%s = %s" n (string_of_tiny_inner false None e)

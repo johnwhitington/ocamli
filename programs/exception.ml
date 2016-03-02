@@ -1,5 +1,2 @@
-exception E
-
-let _ =
-  try raise E with E -> 4
+try raise Exit with Exit -> 4
 

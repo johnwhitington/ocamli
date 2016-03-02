@@ -5,6 +5,10 @@ type op = Add | Sub | Mul | Div
 
 type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
+type ex = string (* for now *)
+
+type patmatch = string (* for now *)
+
 type t =
   Unit                        (* () *)
 | Int of int                  (* 1 *)
@@ -23,6 +27,8 @@ type t =
 | Seq of (t * t)              (* e; e *)
 | Field of t * string         (* e.y *)
 | SetField of t * string * t  (* e.y <- e' *)
+| Raise of ex                 (** raise e *)
+| TryWith of t * patmatch     (** try e with ... *)
 | Control of (string * t * string) (* Control string for prettyprinting *)
 
 let string_of_op = function
@@ -116,6 +122,12 @@ let rec of_real_ocaml_expression_desc = function
        if r = Recursive
          then LetRec (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
          else Let (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
+(* This is raise. We special case for now, since we don't have exception
+ * definitions *)
+| Pexp_apply
+    ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
+     [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, _)})]) ->
+       Raise s
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
      [(Nolabel, l); (Nolabel, r)]) ->
@@ -165,4 +177,5 @@ let rec recurse f = function
     Record items
 | Field (a, n) -> Field (recurse f a, n)
 | SetField (a, n, b) -> SetField (recurse f a, n, recurse f b)
+| Raise s -> Raise s
 
