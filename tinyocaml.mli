@@ -8,10 +8,10 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type ex = string (* for now *)
 
-type patmatch = string (* for now *)
+type patmatch = string * t (* for now *)
 
 (** The type of tiny-ocaml programs *)
-type t =
+and t =
   Unit                        (** () *)
 | Int of int                  (** 1 *)
 | Bool of bool                (** false *)

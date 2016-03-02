@@ -7,9 +7,9 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type ex = string (* for now *)
 
-type patmatch = string (* for now *)
+type patmatch = string * t (* for now *)
 
-type t =
+and t =
   Unit                        (* () *)
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
@@ -151,6 +151,10 @@ let rec of_real_ocaml_expression_desc = function
     Field (of_real_ocaml e, n)
 | Pexp_setfield (e, {txt = Longident.Lident n}, e') ->
     SetField (of_real_ocaml e, n, of_real_ocaml e')
+| Pexp_try
+    (e, [{pc_lhs = {ppat_desc = Ppat_construct ({txt = Longident.Lident n}, _)}; pc_rhs}])
+  ->
+    TryWith (of_real_ocaml e, (n, of_real_ocaml pc_rhs))
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_record_entry = function
@@ -178,4 +182,5 @@ let rec recurse f = function
 | Field (a, n) -> Field (recurse f a, n)
 | SetField (a, n, b) -> SetField (recurse f a, n, recurse f b)
 | Raise s -> Raise s
+| TryWith (a, s) -> TryWith (recurse f a, s)
 

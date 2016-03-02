@@ -84,6 +84,8 @@ let rec underline_redex e =
         else
           SetField (underline a, n, b)
     | Raise _ -> underline e
+    | TryWith (a, (s, b)) ->
+        if is_value e then underline e else TryWith (underline a, (s, b))
     | _ -> raise UnderlineValueUnderLets
   with
     UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
