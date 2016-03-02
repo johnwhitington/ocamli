@@ -54,7 +54,8 @@ let lookup_int_var env v =
 
 let last = ref Unknown
 
-let make_tiny s = Unit
+let make_tiny s =
+  s |> Lexing.from_string |> Parse.implementation |> getexpr |> Tinyocaml.of_real_ocaml
 
 let initial_environment =
   ["ref", make_tiny "fun x -> {contents = x}";
