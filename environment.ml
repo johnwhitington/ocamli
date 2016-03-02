@@ -179,7 +179,10 @@ let next e =
       then IsValue
       else Next (collect_unused_lets (eval initial_environment e))
   with
-    x ->
+    ExceptionRaised s ->
+      Printf.printf "Exception reached top level: %s\n" s;
+      IsValue
+  | x ->
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
       Malformed "environment"
 
