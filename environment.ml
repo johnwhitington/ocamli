@@ -11,9 +11,6 @@ let comp = TinyocamlUtils.comp
 (* Predicate on value-ness of expressions. Var _ is here for convenience *)
 let is_value = TinyocamlUtils.is_value
 
-(* Substitute a value for a name in an expresion *)
-let substitute = TinyocamlUtils.substitute
-
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true
@@ -145,11 +142,8 @@ let rec eval env = function
 | Seq (e, e') ->
     if is_value e then e' else Seq (eval env e, e')
 | Record items ->
-    (* Evaluate the first non-value we find *)
-    let names, vals = List.split items in
-    let val_contents = List.map ( ! ) vals in
-    let evaluated = List.map ref (eval_first_non_value env [] val_contents) in
-      Record (List.combine names evaluated)
+    eval_first_non_value_record_item env items;
+    Record items
 | Field (Record items, n) -> !(List.assoc n items)
 | Field (e, n) -> Field (eval env e, n)
 | SetField (Record items, n, e) ->
@@ -162,12 +156,11 @@ let rec eval env = function
     begin try List.assoc v env with Not_found -> failwith "Var not found" end
 | Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"
  
-and eval_first_non_value env r = function
-  [] -> List.rev r
-| h::t ->
-    if not (is_value h)
-      then List.rev r @ [eval env h] @ t
-      else eval_first_non_value env (h::r) t
+and eval_first_non_value_record_item env items =
+  try
+    List.iter (fun (_, v) -> if not (is_value !v) then v := eval env !v) items
+  with
+    Exit -> ()
 
 let init x =
   Tinyocaml.of_real_ocaml (getexpr x)

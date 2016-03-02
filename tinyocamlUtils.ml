@@ -74,10 +74,8 @@ let rec underline_redex e =
         if is_value a then underline e else Seq (underline_redex a, b)
     | Var _ -> underline e
     | Record items ->
-       let names, vals = List.split items in
-       let vals_contents = List.map ( ! ) vals in
-       let underlined = List.map ref (underline_first_non_value [] vals_contents) in
-         Record (List.combine names underlined)
+        underline_first_non_value items;
+        Record items
     | Field (a, n) ->
         if is_value a then underline e else Field (underline a, n)
     | SetField (a, n, b) ->
@@ -90,12 +88,11 @@ let rec underline_redex e =
     UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
   | UnderlineValueUnderLets2 -> underline e
 
-and underline_first_non_value r = function
-  [] -> List.rev r
-| h::t ->
-    if not (is_value h)
-      then List.rev r @ [underline h] @ t
-      else underline_first_non_value (h::r) t
+and underline_first_non_value items =
+  try
+    List.iter (fun (_, v) -> if not (is_value !v) then v := underline !v) items
+  with
+    Exit -> ()
 
 let underline_redex e =
   if is_value e then e else underline_redex e

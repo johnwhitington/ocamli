@@ -161,10 +161,8 @@ let rec recurse f = function
 | Control (l, x, r) -> Control (l, f x, r)
 | (Bool _ | Var _ | Int _ | Unit) as x -> x
 | Record items ->
-    let names, vals = List.split items in
-    let vals_contents = List.map ( ! ) vals in
-    let vals' = List.map ref (List.map (recurse f) vals_contents) in
-      Record (List.combine names vals')
+    List.iter (fun (k, v) -> v := recurse f !v) items;
+    Record items
 | Field (a, n) -> Field (recurse f a, n)
 | SetField (a, n, b) -> SetField (recurse f a, n, recurse f b)
 
