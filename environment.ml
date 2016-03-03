@@ -18,7 +18,7 @@ let rec appears var = function
 | Seq (a, b) ->
     appears var a || appears var b
 | If (a, b, c) -> appears var a || appears var b || appears var c
-| Control (_, x, _) -> appears var x
+| Control (_, x) -> appears var x
 | Let (v, e, e') ->
     appears var e || v <> var && appears var e'
 | LetRec (v, e, e') ->
@@ -66,7 +66,7 @@ let initial_environment =
 exception ExceptionRaised of string
 
 let rec eval env = function
-| Control (_, x, _) -> eval env x
+| Control (_, x) -> eval env x
 | Op (op, Int a, Int b) ->
     last := Arith;
     Int (calc op a b)

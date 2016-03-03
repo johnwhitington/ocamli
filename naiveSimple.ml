@@ -18,11 +18,11 @@ let substitute = TinyocamlUtils.substitute
 
 (* If not a value, underline it as the next redex *)
 let underline x =
-  Control (ul, x, code_end)
+  Control (Underline, x)
 
 let rec underline_redex e =
   match e with
-    Control (l, x, r) -> Control (l, underline_redex x, r)
+    Control (c, x) -> Control (c, underline_redex x)
   | Op (_, Int _, Int _) -> underline e
   | Op (op, Int a, b) -> Op (op, Int a, underline b)
   | Op (op, a, b) -> Op (op, underline a, b)
@@ -48,7 +48,7 @@ let rec underline_redex e =
 
 (* Evaluate one step, assuming not already a value *)
 let rec eval = function
-| Control (_, x, _) -> eval x
+| Control (_, x) -> eval x
 | Op (op, Int a, Int b) -> Int (calc op a b)
 | Op (op, Int a, b) -> Op (op, Int a, eval b)
 | Op (op, a, b) -> Op (op, eval a, b)

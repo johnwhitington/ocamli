@@ -7,6 +7,8 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type ex = string (* for now *)
 
+type control = Underline | Bold | Pervasive
+
 type patmatch = string * t (* for now *)
 
 and t =
@@ -25,11 +27,11 @@ and t =
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
-| Field of t * string         (* e.y *)
-| SetField of t * string * t  (* e.y <- e' *)
+| Field of (t * string)       (* e.y *)
+| SetField of (t * string * t)(* e.y <- e' *)
 | Raise of ex                 (** raise e *)
-| TryWith of t * patmatch     (** try e with ... *)
-| Control of (string * t * string) (* Control string for prettyprinting *)
+| TryWith of (t * patmatch)   (** try e with ... *)
+| Control of (control * t)    (* Control string for prettyprinting *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -47,7 +49,7 @@ let cmp_of_string = function
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
-  | Control (_, x, _) -> to_real_ocaml_expression_desc x
+  | Control (_, x) -> to_real_ocaml_expression_desc x
   | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
   | Int i -> Pexp_constant (PConst_int (string_of_int i, None)) 
   | Bool b ->
@@ -174,7 +176,7 @@ let rec recurse f = function
 | Fun (x, a) -> Fun (x, f a)
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
-| Control (l, x, r) -> Control (l, f x, r)
+| Control (c, x) -> Control (c, f x)
 | (Bool _ | Var _ | Int _ | Unit) as x -> x
 | Record items ->
     List.iter (fun (k, v) -> v := recurse f !v) items;

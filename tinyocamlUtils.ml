@@ -35,7 +35,7 @@ let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
 (* If not a value, underline it as the next redex *)
 let underline x =
-  Control (ul, x, code_end)
+  Control (Underline, x)
 
 exception UnderlineValueUnderLets
 exception UnderlineValueUnderLets2
@@ -43,7 +43,7 @@ exception UnderlineValueUnderLets2
 let rec underline_redex e =
   try
     match e with
-      Control (l, x, r) -> Control (l, underline_redex x, r)
+      Control (c, x) -> Control (c, underline_redex x)
     | Op (_, (Int _ | Var _), (Int _ | Var _)) -> underline e
     | Op (op, ((Int _ | Var _) as a), b) -> Op (op, a, underline_redex b)
     | Op (op, a, b) -> Op (op, underline_redex a, b)

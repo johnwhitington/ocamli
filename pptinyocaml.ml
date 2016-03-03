@@ -5,7 +5,7 @@ let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 type assoc = L | R | N
 
 let rec assoc = function
-  Control (_, x, _) -> assoc x
+  Control (_, x) -> assoc x
 | Op _ | Cmp _ | App _ -> L
 | And _ | Or _ | Seq _ | SetField _ -> R
 | _ -> N
@@ -39,7 +39,7 @@ let parens node parent isleft =
 let rec string_of_tiny_inner isleft parent node =
   let lp, rp = parens node parent isleft in
   match node with
-  | Control (s, x, s') -> s ^ string_of_tiny_inner isleft parent x ^ s'
+  | Control (Underline, x) -> ul ^ string_of_tiny_inner isleft parent x ^ code_end
   | Unit -> "()"
   | Int i -> string_of_int i
   | Bool b -> string_of_bool b

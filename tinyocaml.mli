@@ -8,30 +8,32 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type ex = string (* for now *)
 
+type control = Underline | Bold | Pervasive
+
 type patmatch = string * t (* for now *)
 
 (** The type of tiny-ocaml programs *)
 and t =
-  Unit                        (** () *)
-| Int of int                  (** 1 *)
-| Bool of bool                (** false *)
-| Var of string               (** x *)
-| Record of (string * t ref) list  (* Records. Boolean is mutability *)
-| Op of (op * t * t)          (** + - / * *)
-| And of (t * t)              (** && *)
-| Or of (t * t)               (** || *)
-| Cmp of (cmp * t * t)        (** < > <> = <= >= *)
-| If of (t * t * t)           (** if e then e1 else e2 *)
-| Let of (string * t * t)     (** let x = e in e' *)
-| LetRec of (string * t * t)  (** let rec x = e in e' *)
-| Fun of (string * t)         (** fun x -> e *)
-| App of (t * t)              (** e e' *)
-| Seq of (t * t)              (** e; e *)
-| Field of t * string         (** e.y *)
-| SetField of t * string * t  (** e.y <- e' *)
-| Raise of ex                 (** raise e *)
-| TryWith of t * patmatch     (** try e with ... *)
-| Control of (string * t * string) (** Control string for prettyprinting *)
+  Unit                         (** () *)
+| Int of int                   (** 1 *)
+| Bool of bool                 (** false *)
+| Var of string                (** x *)
+| Record of (string * t ref) list (* Records. Boolean is mutability *)
+| Op of (op * t * t)           (** + - / * *)
+| And of (t * t)               (** && *)
+| Or of (t * t)                (** || *)
+| Cmp of (cmp * t * t)         (** < > <> = <= >= *)
+| If of (t * t * t)            (** if e then e1 else e2 *)
+| Let of (string * t * t)      (** let x = e in e' *)
+| LetRec of (string * t * t)   (** let rec x = e in e' *)
+| Fun of (string * t)          (** fun x -> e *)
+| App of (t * t)               (** e e' *)
+| Seq of (t * t)               (** e; e *)
+| Field of (t * string)        (** e.y *)
+| SetField of (t * string * t) (** e.y <- e' *)
+| Raise of ex                  (** raise e *)
+| TryWith of (t * patmatch)    (** try e with ... *)
+| Control of (control * t)     (** Control code *)
 
 val string_of_op : op -> string
 
