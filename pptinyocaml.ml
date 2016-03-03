@@ -40,9 +40,13 @@ let rec string_of_tiny_inner isleft parent node =
   let lp, rp = parens node parent isleft in
   match node with
   | Control (Underline, x) -> ul ^ string_of_tiny_inner isleft parent x ^ code_end
+  | Control (Pervasive, _) -> ""
   | Unit -> "()"
   | Int i -> string_of_int i
   | Bool b -> string_of_bool b
+  | String s -> "\"" ^ String.escaped s ^ "\""
+  | OutChannel s -> "<out_channel>"
+  | CallBuiltIn (args, fn) -> "<call_built_in>"
   | Var v -> v
   | Op (op, l, r) ->
       Printf.sprintf "%s%s %s %s%s"

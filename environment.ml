@@ -25,14 +25,12 @@ let rec appears var = function
     v <> var && (appears var e || appears var e')
 | Fun (v, e) -> v <> var && appears var e
 | Record items ->
-    List.fold_left
-      ( || )
-      false
-      (List.map (fun (_, {contents = e}) -> appears var e) items)
+    List.exists (fun (_, {contents = e}) -> appears var e) items
 | Field (e, n) -> appears var e
 | SetField (e, n, e') -> appears var e || appears var e'
-| TryWith (e, (s, e')) -> appears var e || appears var e' 
-| Int _ | Bool _ | Var _ | Unit | Raise _ -> false
+| TryWith (e, (s, e')) -> appears var e || appears var e'
+| CallBuiltIn (args, _) -> List.exists (appears var) args
+| Int _ | Bool _ | Var _ | Unit | Raise _ | OutChannel _ | String _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -58,10 +56,21 @@ let last = ref Unknown
 let make_tiny s =
   s |> Lexing.from_string |> Parse.implementation |> getexpr |> Tinyocaml.of_real_ocaml
 
+(* This contains externals from Core / Pervasives *)
+let builtin_output_string = function
+  [OutChannel c; String s] -> output_string c s; Unit
+| _ -> failwith "builtin_output_string"
+
+let builtins =
+  ["output_string",
+      Fun ("channel", Fun ("str", CallBuiltIn ([Var "channel"; Var "str"], builtin_output_string)))]
+
+(* This contains pure ocaml functions for things in Core / Pervasives *)
 let initial_environment =
   ["ref", make_tiny "fun x -> {contents = x}";
    "!", make_tiny "fun x -> x.contents";
-   ":=", make_tiny "fun a -> fun b -> a.contents <- b"]
+   ":=", make_tiny "fun a -> fun b -> a.contents <- b";
+   "print_string", make_tiny "fun x -> output_string stdout x"]
 
 exception ExceptionRaised of string
 
@@ -140,6 +149,8 @@ let rec eval env = function
           Let (n, x, body)
         else
           App (Var v, eval env x)
+    | exception Not_found ->
+        eval env (App (List.assoc v builtins, x))
     | _ -> failwith "maformed App"
     end
 | App (f, x) -> App (eval env f, x)
@@ -164,10 +175,21 @@ let rec eval env = function
         ExceptionRaised x when x = s ->
           e'
       end
+| CallBuiltIn (args, fn) ->
+    if List.for_all is_value args
+      then fn args
+      else CallBuiltIn (eval_first_non_value_item env [] args, fn)
 | Var v ->
     begin try List.assoc v env with Not_found -> failwith "Var not found" end
-| Int _ | Bool _ | Fun _ | Unit -> failwith "already a value"
- 
+| Int _ | Bool _ | Fun _ | Unit | OutChannel _ | String _ -> failwith "already a value"
+
+and eval_first_non_value_item env r = function
+  [] -> List.rev r
+| h::t ->
+    if is_value h
+      then eval_first_non_value_item env (h::r) t
+      else List.rev r @ [eval env h] @ t
+
 and eval_first_non_value_record_item env items =
   try
     List.iter (fun (_, v) -> if not (is_value !v) then v := eval env !v) items

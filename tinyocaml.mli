@@ -17,6 +17,8 @@ and t =
   Unit                         (** () *)
 | Int of int                   (** 1 *)
 | Bool of bool                 (** false *)
+| String of string            (* "foo" *)
+| OutChannel of out_channel   (* e.g stdout *) 
 | Var of string                (** x *)
 | Record of (string * t ref) list (* Records. Boolean is mutability *)
 | Op of (op * t * t)           (** + - / * *)
@@ -34,6 +36,7 @@ and t =
 | Raise of ex                  (** raise e *)
 | TryWith of (t * patmatch)    (** try e with ... *)
 | Control of (control * t)     (** Control code *)
+| CallBuiltIn of (t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 
 val string_of_op : op -> string
 

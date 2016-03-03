@@ -24,11 +24,9 @@ let rec substitute n v = function
 
 (* Predicate on value-ness of expressions. *)
 let rec is_value = function
-  Unit | Int _ | Bool _ | Fun _ -> true
+  Unit | Int _ | Bool _ | Fun _ | OutChannel _ | String _ -> true
 | Record items when
-    List.fold_left
-      ( && ) true
-      (List.map is_value (List.map (fun (_, {contents = e}) -> e) items)) -> true
+    List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
@@ -74,7 +72,7 @@ let rec underline_redex e =
         if is_value a then underline e else Seq (underline_redex a, b)
     | Var _ -> underline e
     | Record items ->
-        underline_first_non_value items;
+        underline_first_non_value_ref items;
         Record items
     | Field (a, n) ->
         if is_value a then underline e else Field (underline a, n)
@@ -86,12 +84,24 @@ let rec underline_redex e =
     | Raise _ -> underline e
     | TryWith (a, (s, b)) ->
         if is_value e then underline e else TryWith (underline a, (s, b))
-    | _ -> raise UnderlineValueUnderLets
+    | CallBuiltIn (args, fn) ->
+        if List.for_all is_value args
+          then underline e
+          else CallBuiltIn (underline_first_non_value args, fn)
+    | _ ->
+        raise UnderlineValueUnderLets
   with
     UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
   | UnderlineValueUnderLets2 -> underline e
 
-and underline_first_non_value items =
+and underline_first_non_value = function
+  [] -> []
+| h::t ->
+    if is_value h
+      then h::underline_first_non_value t
+      else underline h::t
+
+and underline_first_non_value_ref items =
   try
     List.iter (fun (_, v) -> if not (is_value !v) then v := underline !v) items
   with

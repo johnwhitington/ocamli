@@ -15,6 +15,8 @@ and t =
   Unit                        (* () *)
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
+| String of string            (* "foo" *)
+| OutChannel of out_channel   (* e.g stdout *) 
 | Var of string               (* x *)
 | Record of (string * t ref) list  (* Records. *)
 | Op of (op * t * t)          (* + - / * *)
@@ -32,6 +34,7 @@ and t =
 | Raise of ex                 (** raise e *)
 | TryWith of (t * patmatch)   (** try e with ... *)
 | Control of (control * t)    (* Control string for prettyprinting *)
+| CallBuiltIn of (t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -111,9 +114,12 @@ exception UnknownNode of string
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
+| Pexp_constant (PConst_string (s, None)) -> String s
 | Pexp_construct ({txt = Longident.Lident "()"}, _) -> Unit
 | Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
+| Pexp_ident {txt = Longident.Lident "stdout"} -> OutChannel stdout
+| Pexp_ident {txt = Longident.Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Longident.Lident v} -> Var v
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
@@ -177,7 +183,7 @@ let rec recurse f = function
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
 | Control (c, x) -> Control (c, f x)
-| (Bool _ | Var _ | Int _ | Unit) as x -> x
+| (Bool _ | Var _ | Int _ | String _ | OutChannel _ | Unit) as x -> x
 | Record items ->
     List.iter (fun (k, v) -> v := recurse f !v) items;
     Record items
@@ -185,4 +191,5 @@ let rec recurse f = function
 | SetField (a, n, b) -> SetField (recurse f a, n, recurse f b)
 | Raise s -> Raise s
 | TryWith (a, s) -> TryWith (recurse f a, s)
+| CallBuiltIn (args, fn) -> CallBuiltIn (List.map f args, fn)
 
