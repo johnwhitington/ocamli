@@ -24,7 +24,7 @@ let rec substitute n v = function
 
 (* Predicate on value-ness of expressions. *)
 let rec is_value = function
-  Unit | Int _ | Bool _ | Fun _ | OutChannel _ | String _ -> true
+  Unit | Int _ | Bool _ | Fun _ | OutChannel _ | InChannel _ | String _ -> true
 | Record items when
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | _ -> false

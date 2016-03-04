@@ -1,4 +1,2 @@
-val lookup_builtin : string -> Tinyocaml.t
-
+(* Core and Pervasives *)
 val core : (string * Tinyocaml.t) list
-

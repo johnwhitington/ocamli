@@ -30,7 +30,7 @@ let rec appears var = function
 | SetField (e, n, e') -> appears var e || appears var e'
 | TryWith (e, (s, e')) -> appears var e || appears var e'
 | CallBuiltIn (args, _) -> List.exists (appears var) args
-| Int _ | Bool _ | Var _ | Unit | Raise _ | OutChannel _ | String _ -> false
+| Int _ | Bool _ | Var _ | Unit | Raise _ | OutChannel _ | InChannel _ | String _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -131,7 +131,7 @@ let rec eval env = function
         else
           App (Var v, eval env x)
     | exception Not_found ->
-        eval env (App (Core.lookup_builtin v, x))
+        eval env (App (List.assoc v Core.core, x))
     | _ -> failwith "maformed App"
     end
 | App (f, x) -> App (eval env f, x)
@@ -162,7 +162,7 @@ let rec eval env = function
       else CallBuiltIn (eval_first_non_value_item env [] args, fn)
 | Var v ->
     begin try List.assoc v env with Not_found -> failwith "Var not found" end
-| Int _ | Bool _ | Fun _ | Unit | OutChannel _ | String _ -> failwith "already a value"
+| Int _ | Bool _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ -> failwith "already a value"
 
 and eval_first_non_value_item env r = function
   [] -> List.rev r

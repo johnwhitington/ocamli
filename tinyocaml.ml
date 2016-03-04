@@ -16,7 +16,8 @@ and t =
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
 | String of string            (* "foo" *)
-| OutChannel of out_channel   (* e.g stdout *) 
+| OutChannel of out_channel   (* e.g stdout, stderr *)
+| InChannel of in_channel     (* e.g stdin *)
 | Var of string               (* x *)
 | Record of (string * t ref) list  (* Records. *)
 | Op of (op * t * t)          (* + - / * *)
@@ -120,6 +121,7 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
 | Pexp_ident {txt = Longident.Lident "stdout"} -> OutChannel stdout
 | Pexp_ident {txt = Longident.Lident "stderr"} -> OutChannel stderr
+| Pexp_ident {txt = Longident.Lident "stdin"} -> InChannel stdin
 | Pexp_ident {txt = Longident.Lident v} -> Var v
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
@@ -183,7 +185,7 @@ let rec recurse f = function
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
 | Control (c, x) -> Control (c, f x)
-| (Bool _ | Var _ | Int _ | String _ | OutChannel _ | Unit) as x -> x
+| (Bool _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit) as x -> x
 | Record items ->
     List.iter (fun (k, v) -> v := recurse f !v) items;
     Record items

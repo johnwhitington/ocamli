@@ -46,6 +46,7 @@ let rec string_of_tiny_inner isleft parent node =
   | Bool b -> string_of_bool b
   | String s -> "\"" ^ String.escaped s ^ "\""
   | OutChannel s -> "<out_channel>"
+  | InChannel s -> "<in_channel>"
   | CallBuiltIn (args, fn) -> "<call_built_in>"
   | Var v -> v
   | Op (op, l, r) ->

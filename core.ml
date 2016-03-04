@@ -6,13 +6,15 @@ let builtin_output_string = function
   [OutChannel c; String s] -> output_string c s; Unit
 | _ -> failwith "builtin_output_string"
 
-let builtins =
-  ["output_string",
-      Fun ("c", Fun ("s", CallBuiltIn ([Var "c"; Var "s"], builtin_output_string)))]
+let builtin_input_line = function
+  [InChannel c] -> String (input_line c)
+| _ -> failwith "builtin_input_line"
 
-(* Lookup a built-in function by its name *)
-let lookup_builtin x =
-  List.assoc x builtins
+let mk f =
+  Fun ("x", CallBuiltIn ([Var "x"], f))
+
+let mk2 f =
+  Fun ("x", Fun ("y", CallBuiltIn ([Var "x"; Var "y"], f)))
 
 (* String to tinyocaml *)
 let make_tiny s =
@@ -23,4 +25,6 @@ let core =
   ["ref", make_tiny "fun x -> {contents = x}";
    "!", make_tiny "fun x -> x.contents";
    ":=", make_tiny "fun a -> fun b -> a.contents <- b";
-   "print_string", make_tiny "fun x -> output_string stdout x"]
+   "output_string", mk2 builtin_output_string;
+   "print_string", make_tiny "fun x -> output_string stdout x";
+   "input_line", mk builtin_input_line]
