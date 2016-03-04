@@ -53,25 +53,6 @@ let lookup_int_var env v =
 
 let last = ref Unknown
 
-let make_tiny s =
-  s |> Lexing.from_string |> Parse.implementation |> getexpr |> Tinyocaml.of_real_ocaml
-
-(* This contains externals from Core / Pervasives *)
-let builtin_output_string = function
-  [OutChannel c; String s] -> output_string c s; Unit
-| _ -> failwith "builtin_output_string"
-
-let builtins =
-  ["output_string",
-      Fun ("channel", Fun ("str", CallBuiltIn ([Var "channel"; Var "str"], builtin_output_string)))]
-
-(* This contains pure ocaml functions for things in Core / Pervasives *)
-let initial_environment =
-  ["ref", make_tiny "fun x -> {contents = x}";
-   "!", make_tiny "fun x -> x.contents";
-   ":=", make_tiny "fun a -> fun b -> a.contents <- b";
-   "print_string", make_tiny "fun x -> output_string stdout x"]
-
 exception ExceptionRaised of string
 
 let rec eval env = function
@@ -150,7 +131,7 @@ let rec eval env = function
         else
           App (Var v, eval env x)
     | exception Not_found ->
-        eval env (App (List.assoc v builtins, x))
+        eval env (App (Core.lookup_builtin v, x))
     | _ -> failwith "maformed App"
     end
 | App (f, x) -> App (eval env f, x)
@@ -206,7 +187,7 @@ let next e =
   try
     if is_value e
       then IsValue
-      else Next (collect_unused_lets (eval initial_environment e))
+      else Next (collect_unused_lets (eval Core.core e))
   with
     ExceptionRaised s ->
       Printf.printf "Exception reached top level: %s\n" s;
