@@ -205,11 +205,13 @@ let to_string x =
 let tiny x = TinyocamlUtils.underline_redex x
 
 let peek x =
-  let t = !last in
-    ignore (eval Core.core ~peek:true x);
-    let r = !last in
-      last := t;
-      r
+  if is_value x then Unknown else
+    let t = !last in
+      last := Unknown;
+      ignore (eval Core.core ~peek:true x);
+      let r = !last in
+        last := t;
+        r
 
 let last x = !last
 

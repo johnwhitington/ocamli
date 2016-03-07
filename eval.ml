@@ -81,6 +81,23 @@ let fixup op x =
     then Tinyocaml.Control (Tinyocaml.Underline, TinyocamlUtils.strip_control x)
     else x
 
+(* last: the op that got us here *)
+(* next: the next op *)
+(* prevstate: the previous state *)
+(* currstate: the current state *)
+let string_of_op = function
+  Arith -> "Arith"
+| Unknown -> "Unknown"
+| x -> "Other"
+
+let show_this_stage last next prevstate currstate =
+  (*Printf.printf "last = %s, next = %s\n" (string_of_op last) (string_of_op
+   * next);*)
+     TinyocamlUtils.is_value prevstate
+  || TinyocamlUtils.is_value currstate
+  || last <> Arith
+  || next <> Arith
+
 let () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>
@@ -96,9 +113,12 @@ let () =
   let rec really_run state =
     match I.next state with
       Next state' ->
+        (*Printf.printf "Considering printing stage %s...\n" (string_of_tiny
+        (I.tiny state'));*)
         if
-          not !quiet &&
-          (I.last () <> Arith || !show_simple_arithmetic || TinyocamlUtils.is_value (I.tiny state'))
+          not !quiet && (!show_simple_arithmetic ||
+            show_this_stage
+              (I.last ()) (I.peek state') (I.tiny state) (I.tiny state'))
         then
           begin
             if !printer = "tiny" then
