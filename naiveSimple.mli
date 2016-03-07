@@ -17,3 +17,5 @@ val tiny : t -> Tinyocaml.t
 
 val last : unit -> Evalutils.last_op
 
+val peek : t -> Evalutils.last_op
+

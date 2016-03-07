@@ -98,3 +98,5 @@ let tiny x = x
 
 let last () = Unknown
 
+let peek _ = Unknown
+

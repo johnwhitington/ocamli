@@ -55,7 +55,7 @@ let last = ref Unknown
 
 exception ExceptionRaised of string
 
-let rec eval env = function
+let rec eval ?(peek = false) env = function
 | Control (_, x) -> eval env x
 | Op (op, Int a, Int b) ->
     last := Arith;
@@ -144,7 +144,7 @@ let rec eval env = function
 | Field (e, n) -> Field (eval env e, n)
 | SetField (Record items, n, e) ->
     if is_value e
-      then ((List.assoc n items) := e; Unit)
+      then (if not peek then (List.assoc n items) := e; Unit)
       else SetField (Record items, n, eval env e)
 | SetField (e, n, e') ->
     SetField (eval env e, n, e')
@@ -203,6 +203,13 @@ let to_string x =
   Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
 
 let tiny x = TinyocamlUtils.underline_redex x
+
+let peek x =
+  let t = !last in
+    ignore (eval Core.core ~peek:true x);
+    let r = !last in
+      last := t;
+      r
 
 let last x = !last
 

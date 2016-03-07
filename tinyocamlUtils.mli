@@ -8,3 +8,5 @@ val substitute : string -> Tinyocaml.t -> Tinyocaml.t -> Tinyocaml.t
 
 val underline_redex : Tinyocaml.t -> Tinyocaml.t
 
+val strip_control : Tinyocaml.t -> Tinyocaml.t
+

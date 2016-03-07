@@ -110,3 +110,7 @@ and underline_first_non_value_ref items =
 let underline_redex e =
   if is_value e then e else underline_redex e
 
+let rec strip_control = function
+  Control (_, e) -> e
+| x -> Tinyocaml.recurse strip_control x
+

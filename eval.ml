@@ -44,6 +44,7 @@ module type Evaluator =
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
     val last : unit -> Evalutils.last_op
+    val peek : t -> Evalutils.last_op
   end
 
 let implementations =
@@ -75,6 +76,11 @@ let load_code () =
 let string_of_tiny x =
   Pptinyocaml.string_of_tiny ~remove_recs:!remove_recs x
 
+let fixup op x =
+  if op = Arith && not !show_simple_arithmetic
+    then Tinyocaml.Control (Tinyocaml.Underline, TinyocamlUtils.strip_control x)
+    else x
+
 let () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>
@@ -87,7 +93,7 @@ let () =
          _ -> failwith "Unknown machine"
        ) : Evaluator)
   in
-  let rec really_run first state =
+  let rec really_run state =
     match I.next state with
       Next state' ->
         if
@@ -96,16 +102,16 @@ let () =
         then
           begin
             if !printer = "tiny" then
-              print_string (string_of_tiny (I.tiny state'))
+              print_string (string_of_tiny (fixup (I.peek state') (I.tiny state')))
             else
               print_string (to_string (getexpr (I.tree state')));
             print_string "\n"
           end;
-        really_run false state'
+        really_run state'
     | IsValue ->
         if !quiet then begin
           if !printer = "tiny" then
-            print_string (string_of_tiny (I.tiny state))
+            print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
@@ -125,12 +131,12 @@ let () =
       if not !quiet then
         begin
           if !printer = "tiny" then
-            print_string (string_of_tiny (I.tiny state))
+            print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
         end;
-      really_run true state
+      really_run state
    in
       try
         if not !top then
