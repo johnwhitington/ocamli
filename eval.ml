@@ -76,9 +76,16 @@ let load_code () =
 let string_of_tiny x =
   Pptinyocaml.string_of_tiny ~remove_recs:!remove_recs x
 
+(* FIXME: For now, just underlines nothing. It's hard to underline the whole set
+ * of redexes. Maybe we can push -no-arith into environment.ml rather than
+ * patching in eval.ml? *)
+let underline_whole_first_arithmetic x = 
+  TinyocamlUtils.strip_control x
+  (*Tinyocaml.Control (Tinyocaml.Underline, Tinyocaml.strip_control x)*)
+
 let fixup op x =
   if op = Arith && not !show_simple_arithmetic
-    then Tinyocaml.Control (Tinyocaml.Underline, TinyocamlUtils.strip_control x)
+    then underline_whole_first_arithmetic x
     else x
 
 (* last: the op that got us here *)
@@ -91,12 +98,13 @@ let string_of_op = function
 | x -> "Other"
 
 let show_this_stage last next prevstate currstate =
-  (*Printf.printf "last = %s, next = %s\n" (string_of_op last) (string_of_op
-   * next);*)
+  (*Printf.printf "last = %s, next = %s\n" (string_of_op last) (string_of_op * next);*)
      TinyocamlUtils.is_value prevstate
   || TinyocamlUtils.is_value currstate
   || last <> Arith
   || next <> Arith
+
+let skipped = ref false
 
 let () =
   Arg.parse argspec setfile
@@ -113,25 +121,35 @@ let () =
   let rec really_run state =
     match I.next state with
       Next state' ->
-        (*Printf.printf "Considering printing stage %s...\n" (string_of_tiny
-        (I.tiny state'));*)
-        if
+        (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
+        (string_of_tiny (I.tiny state')) !skipped;*)
+        begin if
           not !quiet && (!show_simple_arithmetic ||
             show_this_stage
               (I.last ()) (I.peek state') (I.tiny state) (I.tiny state'))
         then
           begin
             if !printer = "tiny" then
-              print_string (string_of_tiny (fixup (I.peek state') (I.tiny state')))
+              begin
+                print_string (if !skipped then "=>* " else "=>  ");
+                print_string (string_of_tiny (fixup (I.peek state') (I.tiny state')))
+              end
             else
               print_string (to_string (getexpr (I.tree state')));
+            skipped := false;
             print_string "\n"
-          end;
+          end
+        else
+          skipped := true
+        end;
         really_run state'
     | IsValue ->
         if !quiet then begin
           if !printer = "tiny" then
-            print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
+            begin
+              print_string (if !skipped then "=>  " else "=>* ");
+              print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
+            end
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
@@ -151,7 +169,10 @@ let () =
       if not !quiet then
         begin
           if !printer = "tiny" then
-            print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
+            begin
+              print_string "    ";
+              print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
+            end
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
