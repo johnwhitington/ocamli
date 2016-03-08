@@ -76,11 +76,11 @@ let load_code () =
 let string_of_tiny x =
   Pptinyocaml.string_of_tiny ~remove_recs:!remove_recs x
 
-(* FIXME: For now, just underlines nothing. It's hard to underline the whole set
+(* FIXME: For now, just changes nothing. It's hard to underline the whole set
  * of redexes. Maybe we can push -no-arith into environment.ml rather than
  * patching in eval.ml? *)
-let underline_whole_first_arithmetic x = 
-  TinyocamlUtils.strip_control x
+let underline_whole_first_arithmetic x = x
+  (*TinyocamlUtils.strip_control x*)
   (*Tinyocaml.Control (Tinyocaml.Underline, Tinyocaml.strip_control x)*)
 
 let fixup op x =
@@ -118,7 +118,7 @@ let () =
          _ -> failwith "Unknown machine"
        ) : Evaluator)
   in
-  let rec really_run state =
+  let rec really_run first state =
     match I.next state with
       Next state' ->
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
@@ -142,12 +142,12 @@ let () =
         else
           skipped := true
         end;
-        really_run state'
+        really_run false state'
     | IsValue ->
         if !quiet then begin
           if !printer = "tiny" then
             begin
-              print_string (if !skipped then "=>  " else "=>* ");
+              print_string (if first then "    " else if !skipped then "=>* " else "=>  ");
               print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
             end
           else
@@ -177,7 +177,7 @@ let () =
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
         end;
-      really_run state
+      really_run true state
    in
       try
         if not !top then
