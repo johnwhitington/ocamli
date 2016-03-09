@@ -131,15 +131,6 @@ let rec string_of_tiny_inner isleft parent node =
 and string_of_record_entry (n, {contents = e}) =
   Printf.sprintf "%s = %s" n (string_of_tiny_inner false None e)
 
-let rec remove_named_recursive_functions fns = function
-  LetRec (n, v, e) ->
-    let r = Tinyocaml.recurse (remove_named_recursive_functions fns) e in
-      if List.mem n fns then r else LetRec (n, v, r)
-| x -> Tinyocaml.recurse (remove_named_recursive_functions fns) x
-
-let string_of_tiny ?(remove_recs = []) tiny =
-  let tiny =
-    remove_named_recursive_functions remove_recs tiny
-  in
-    string_of_tiny_inner true None tiny
+let to_string tiny =
+  string_of_tiny_inner true None tiny
 

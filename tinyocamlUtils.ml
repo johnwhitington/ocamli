@@ -114,3 +114,9 @@ let rec strip_control = function
   Control (_, e) -> e
 | x -> Tinyocaml.recurse strip_control x
 
+let rec remove_named_recursive_functions fns = function
+  LetRec (n, v, e) ->
+    let r = Tinyocaml.recurse (remove_named_recursive_functions fns) e in
+      if List.mem n fns then r else LetRec (n, v, r)
+| x -> Tinyocaml.recurse (remove_named_recursive_functions fns) x
+

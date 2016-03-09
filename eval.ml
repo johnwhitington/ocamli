@@ -74,7 +74,8 @@ let load_code () =
   | None -> None
 
 let string_of_tiny x =
-  Pptinyocaml.string_of_tiny ~remove_recs:!remove_recs x
+  let x = TinyocamlUtils.remove_named_recursive_functions !remove_recs x in
+    Pptinyocaml.to_string x
 
 (* FIXME: For now, just changes nothing. It's hard to underline the whole set
  * of redexes. Maybe we can push -no-arith into environment.ml rather than

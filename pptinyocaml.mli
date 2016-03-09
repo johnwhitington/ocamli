@@ -1,3 +1,4 @@
-val string_of_tiny :
-  ?remove_recs:string list -> Tinyocaml.t -> string
+(*val print : Format.formatter -> Tintocaml.t -> unit*)
+
+val to_string : Tinyocaml.t -> string
 

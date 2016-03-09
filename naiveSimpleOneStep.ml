@@ -61,7 +61,7 @@ let next e =
 
 let tree x = makestructure (Tinyocaml.to_real_ocaml x)
 
-let to_string x = Pptinyocaml.string_of_tiny x 
+let to_string x = Pptinyocaml.to_string x 
 
 let tiny x = x
 

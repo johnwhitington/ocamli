@@ -200,7 +200,7 @@ let tree x =
   makestructure (Tinyocaml.to_real_ocaml x)
 
 let to_string x =
-  Pptinyocaml.string_of_tiny (TinyocamlUtils.underline_redex x) 
+  Pptinyocaml.to_string (TinyocamlUtils.underline_redex x) 
 
 let tiny x = TinyocamlUtils.underline_redex x
 
