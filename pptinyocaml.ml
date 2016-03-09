@@ -2,6 +2,8 @@ open Tinyocaml
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
+let simple = ref false
+
 type assoc = L | R | N
 
 let rec assoc = function
@@ -36,101 +38,156 @@ let parens node parent isleft =
       else
         ("(", ")")
 
-let rec string_of_tiny_inner isleft parent node =
+let rec print_tiny_inner f isleft parent node =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
   let lp, rp = parens node parent isleft in
   match node with
-  | Control (Underline, x) -> ul ^ string_of_tiny_inner isleft parent x ^ code_end
-  | Control (Pervasive, _) -> ""
-  | Unit -> "()"
-  | Int i -> string_of_int i
-  | Bool b -> string_of_bool b
-  | String s -> "\"" ^ String.escaped s ^ "\""
-  | OutChannel s -> "<out_channel>"
-  | InChannel s -> "<in_channel>"
-  | CallBuiltIn (args, fn) -> "<call_built_in>"
-  | Var v -> v
+  | Control (Underline, x) ->
+      Format.open_tag "underline";
+      print_tiny_inner f isleft parent x;
+      Format.close_tag ()
+  | Control (Pervasive, _) -> str ""
+  | Unit -> str "()"
+  | Int i -> str (string_of_int i)
+  | Bool b -> str (string_of_bool b)
+  | String s -> str ("\"" ^ String.escaped s ^ "\"")
+  | OutChannel s -> str "<out_channel>"
+  | InChannel s -> str "<in_channel>"
+  | CallBuiltIn (args, fn) -> str "<call_built_in>"
+  | Var v -> str v
   | Op (op, l, r) ->
-      Printf.sprintf "%s%s %s %s%s"
-        lp (string_of_tiny_inner true (Some node) l)
-        (Tinyocaml.string_of_op op)
-        (string_of_tiny_inner false (Some node) r) rp
+      str lp;
+      print_tiny_inner f true (Some node) l;
+      str " ";
+      str (Tinyocaml.string_of_op op);
+      str " ";
+      print_tiny_inner f false (Some node) r;
+      str rp
   | Cmp (cmp, l, r) ->
-      Printf.sprintf "%s%s %s %s%s"
-        lp (string_of_tiny_inner true (Some node) l)
-        (Tinyocaml.string_of_cmp cmp)
-        (string_of_tiny_inner false (Some node) r) rp
+      str lp;
+      print_tiny_inner f true (Some node) l;
+      str " ";
+      str (Tinyocaml.string_of_cmp cmp);
+      str " ";
+      print_tiny_inner f false (Some node) r;
+      str rp
   | And (l, r) ->
-      Printf.sprintf "%s%s %s %s%s"
-        lp (string_of_tiny_inner true (Some node) l)
-        "&&"
-        (string_of_tiny_inner false (Some node) r) rp
+      str lp;
+      print_tiny_inner f true (Some node) l;
+      txt " && ";
+      print_tiny_inner f false (Some node) r;
+      str rp
   | Or (l, r) ->
-      Printf.sprintf "%s%s %s %s%s"
-        lp (string_of_tiny_inner true (Some node) l)
-        "||"
-        (string_of_tiny_inner false (Some node) r) rp
+      str lp;
+      print_tiny_inner f true (Some node) l;
+      txt " || ";
+      print_tiny_inner f false (Some node) r;
+      str rp
   | If (e, e1, e2) ->
-      Printf.sprintf "%sif %s then %s else %s%s"
-        lp
-        (string_of_tiny_inner false (Some node) e)
-        (string_of_tiny_inner false (Some node) e1)
-        (string_of_tiny_inner false (Some node) e2)
-        rp
+      str lp;
+      txt "if ";
+      print_tiny_inner f false (Some node) e;
+      txt " then ";
+      print_tiny_inner f false (Some node) e1;
+      txt " else ";
+      print_tiny_inner f false (Some node) e2;
+      str rp
   | Let (v, e, e') ->
-      Printf.sprintf "%slet %s = %s in %s%s"
-        lp v
-        (string_of_tiny_inner false (Some node) e)
-        (string_of_tiny_inner false (Some node) e')
-        rp
+      str lp;
+      txt "let ";
+      str v;
+      txt " =  ";
+      print_tiny_inner f false (Some node) e;
+      txt " in ";
+      print_tiny_inner f false (Some node) e';
+      str rp
   | LetRec (v, e, e') ->
-      Printf.sprintf "%slet rec %s = %s in %s%s"
-        lp v
-        (string_of_tiny_inner false (Some node) e)
-        (string_of_tiny_inner false (Some node) e')
-        rp
+      str lp;
+      str "let rec";
+      str " ";
+      str v;
+      txt " = ";
+      print_tiny_inner f false (Some node) e;
+      txt " in ";
+      print_tiny_inner f false (Some node) e';
+      str rp
   | Fun (v, e) ->
-      Printf.sprintf "%sfun %s -> %s%s"
-        lp v (string_of_tiny_inner false (Some node) e) rp
+      str lp;
+      txt "fun ";
+      str v;
+      txt " ";
+      print_tiny_inner f false (Some node) e;
+      str rp
   | App (e, e') ->
-      Printf.sprintf "%s%s %s%s"
-        lp
-        (string_of_tiny_inner false (Some node) e)
-        (string_of_tiny_inner false (Some node) e')
-        rp
+      str lp;
+      print_tiny_inner f false (Some node) e;
+      txt " ";
+      print_tiny_inner f false (Some node) e';
+      str rp
   | Seq (e, e') ->
-      Printf.sprintf "%s%s; %s%s"
-        lp
-        (string_of_tiny_inner false (Some node) e)
-        (string_of_tiny_inner false (Some node) e')
-        rp
+      str lp;
+      print_tiny_inner f false (Some node) e;
+      txt "; ";
+      print_tiny_inner f false (Some node) e';
+      str rp
   | Record items ->
-      Printf.sprintf "%s{%s}%s"
-        lp
-        (List.fold_left ( ^ ) "" (List.map string_of_record_entry items))
-        rp
+      str "{";
+      List.iter (print_record_entry f) items;
+      str "}"
   | Field (e, n) ->
-      Printf.sprintf "%s%s.%s%s"
-        lp (string_of_tiny_inner false (Some node) e) n rp
+      str lp;
+      print_tiny_inner f false (Some node) e;
+      str ".";
+      str n;
+      str rp
   | SetField (e, n, e') ->
-      Printf.sprintf "%s%s.%s <- %s%s"
-        lp
-        (string_of_tiny_inner false (Some node) e)
-        n
-        (string_of_tiny_inner false (Some node) e')
-        rp
+      str lp;
+      print_tiny_inner f false (Some node) e;
+      str ".";
+      str n;
+      txt " <- ";
+      print_tiny_inner f false (Some node) e';
+      str rp
   | Raise e ->
-      Printf.sprintf "%sraise %s%s" lp e rp
+      str lp;
+      txt "raise ";
+      str e;
+      str rp
   | TryWith (e, (s, e')) ->
-      Printf.sprintf "%stry %s with %s -> %s%s"
-        lp
-        (string_of_tiny_inner false (Some node) e)
-        s
-        (string_of_tiny_inner false (Some node) e')
-        rp
+      str lp;
+      txt "try ";
+      print_tiny_inner f false (Some node) e;
+      txt " with ";
+      str s;
+      txt " -> ";
+      print_tiny_inner f false (Some node) e';
+      str rp
 
-and string_of_record_entry (n, {contents = e}) =
-  Printf.sprintf "%s = %s" n (string_of_tiny_inner false None e)
+and print_record_entry f (n, {contents = e}) =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+    str n;
+    txt " = ";
+    print_tiny_inner f false None e
 
-let to_string tiny =
-  string_of_tiny_inner true None tiny
+let print f t =
+  let tagfuns =
+    {Format.mark_open_tag = (fun _ -> "");
+     Format.mark_close_tag = (fun _ -> "");
+     Format.print_open_tag = (fun _ -> Format.pp_print_string f ul);
+     Format.print_close_tag = (fun _ -> Format.pp_print_string f code_end)}
+  in
+    Format.set_formatter_tag_functions tagfuns;
+    Format.open_box 0;
+    print_tiny_inner f true None t;
+    Format.close_box ();
+    Format.print_newline ()
+
+let to_string t =
+  Format.set_tags true;
+  Format.set_print_tags true;
+  if !simple then Format.set_margin max_int;
+  print Format.str_formatter t;
+  Format.flush_str_formatter ()
 

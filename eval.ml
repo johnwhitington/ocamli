@@ -165,6 +165,11 @@ let () =
         print_string "\n"
   in
    let run code =
+    if !printer = "simple" then
+      begin
+        Pptinyocaml.simple := true;
+        printer := "tiny"
+      end;
     let state = I.init (ast code) in
       (* Print initial state, if not a value *)
       if not !quiet then
