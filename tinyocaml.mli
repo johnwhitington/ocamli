@@ -38,6 +38,7 @@ and t =
 | TryWith of (t * patmatch)    (** try e with ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
+| Module of t list
 
 val string_of_op : op -> string
 
@@ -52,7 +53,7 @@ exception UnknownNode of string
 
 (** Convert real ocaml to tiny ocaml, raising [UnknownNode] if not possible for
 the given program *)
-val of_real_ocaml : Parsetree.expression -> t
+val of_real_ocaml : Parsetree.structure -> t
 
 val recurse : (t -> t) -> t -> t
 

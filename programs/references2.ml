@@ -5,6 +5,7 @@ let swap x y =
     y := t
 
 let x = ref false
+
 let y = ref true
 
 let () = swap x y

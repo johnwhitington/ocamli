@@ -82,7 +82,7 @@ let rec eval = function
 let rec until_value e =
   if is_value e then e else until_value (eval e)
 
-let init x = Tinyocaml.of_real_ocaml (getexpr x)
+let init x = Tinyocaml.of_real_ocaml x
 
 let next e =
   try

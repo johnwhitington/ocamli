@@ -36,6 +36,7 @@ and t =
 | TryWith of (t * patmatch)   (** try e with ... *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
+| Module of t list
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -112,6 +113,7 @@ exception UnknownNode of string
 
 (* FIXME: Limit of currying is f x y for now *)
 
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
@@ -172,7 +174,15 @@ and of_real_ocaml_record_entry = function
 | _ -> raise (UnknownNode "unknown record entry type")
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
- 
+
+and of_real_ocaml_structure_item = function
+  {pstr_desc = Pstr_eval (e, _)}
+| {pstr_desc = Pstr_value (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
+    of_real_ocaml e
+
+let of_real_ocaml x =
+  Module (List.map of_real_ocaml_structure_item x)
+
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
   Op (op, a, b) -> Op (op, f a, f b)
@@ -194,4 +204,5 @@ let rec recurse f = function
 | Raise s -> Raise s
 | TryWith (a, s) -> TryWith (recurse f a, s)
 | CallBuiltIn (args, fn) -> CallBuiltIn (List.map f args, fn)
+| Module l -> Module (List.map (recurse f) l)
 

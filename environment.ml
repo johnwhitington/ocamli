@@ -178,7 +178,7 @@ and eval_first_non_value_record_item env items =
     Exit -> ()
 
 let init x =
-  Tinyocaml.of_real_ocaml (getexpr x)
+  Tinyocaml.of_real_ocaml x
 
 let init_from_tinyocaml x = x
 

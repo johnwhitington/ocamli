@@ -18,7 +18,7 @@ let mk2 f =
 
 (* String to tinyocaml *)
 let make_tiny s =
-  s |> Lexing.from_string |> Parse.implementation |> Evalutils.getexpr |> of_real_ocaml
+  s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
 
 (* This contains pure ocaml functions for things in Core / Pervasives *)
 let core =

@@ -28,13 +28,6 @@ let to_string ast =
     Format.pp_print_flush formatter ();
     Buffer.contents b
 
-let getexpr = function
-  [{pstr_desc = Pstr_eval (e, _)}]
-| [{pstr_desc =
-     Pstr_value
-       (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])}] -> e
-| _ -> failwith "Not a single structure item"
-
 let makestructure e =
   [{pstr_desc = Pstr_eval (e, []); pstr_loc = Location.none}]
 
@@ -55,4 +48,10 @@ let mkbool b =
     (Pexp_construct
       ({txt = Longident.Lident (string_of_bool b); loc = Location.none}, None))
 
+let getexpr = function
+  [{pstr_desc = Pstr_eval (e, _)}]
+| [{pstr_desc =
+     Pstr_value
+       (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])}] -> e
+| _ -> failwith "Not a single structure item"
 

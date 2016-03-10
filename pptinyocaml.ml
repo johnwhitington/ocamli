@@ -45,6 +45,12 @@ let rec print_tiny_inner f isleft parent node =
   let txt = Format.pp_print_text f in
   let lp, rp = parens node parent isleft in
   match node with
+  | Module structure_items ->
+      List.iter
+        (fun x ->
+           print_tiny_inner f false (Some node) x;
+           Format.pp_print_newline f ())
+        structure_items
   | Control (Underline, x) ->
       Format.pp_open_tag f "underline";
       print_tiny_inner f isleft parent x;
@@ -193,7 +199,6 @@ let print ?(preamble="") f t =
     Format.pp_print_flush f ()
 
 let to_string ?(preamble="") t =
-  let f = Format.str_formatter in
-    print ~preamble Format.str_formatter t;
-    Format.flush_str_formatter ()
+  print ~preamble Format.str_formatter t;
+  Format.flush_str_formatter ()
 
