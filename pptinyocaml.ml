@@ -4,6 +4,8 @@ let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
 let simple = ref false
 
+let width = ref 80
+
 type assoc = L | R | N
 
 let rec assoc = function
@@ -44,9 +46,9 @@ let rec print_tiny_inner f isleft parent node =
   let lp, rp = parens node parent isleft in
   match node with
   | Control (Underline, x) ->
-      Format.open_tag "underline";
+      Format.pp_open_tag f "underline";
       print_tiny_inner f isleft parent x;
-      Format.close_tag ()
+      Format.pp_close_tag f ()
   | Control (Pervasive, _) -> str ""
   | Unit -> str "()"
   | Int i -> str (string_of_int i)
@@ -59,17 +61,17 @@ let rec print_tiny_inner f isleft parent node =
   | Op (op, l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
-      str " ";
+      txt " ";
       str (Tinyocaml.string_of_op op);
-      str " ";
+      txt " ";
       print_tiny_inner f false (Some node) r;
       str rp
   | Cmp (cmp, l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
-      str " ";
+      txt " ";
       str (Tinyocaml.string_of_cmp cmp);
-      str " ";
+      txt " ";
       print_tiny_inner f false (Some node) r;
       str rp
   | And (l, r) ->
@@ -97,7 +99,7 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       txt "let ";
       str v;
-      txt " =  ";
+      txt " = ";
       print_tiny_inner f false (Some node) e;
       txt " in ";
       print_tiny_inner f false (Some node) e';
@@ -105,9 +107,10 @@ let rec print_tiny_inner f isleft parent node =
   | LetRec (v, e, e') ->
       str lp;
       str "let rec";
-      str " ";
+      txt " ";
       str v;
       txt " = ";
+      if not !simple then txt "\n";
       print_tiny_inner f false (Some node) e;
       txt " in ";
       print_tiny_inner f false (Some node) e';
@@ -116,7 +119,7 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       txt "fun ";
       str v;
-      txt " ";
+      txt " -> ";
       print_tiny_inner f false (Some node) e;
       str rp
   | App (e, e') ->
@@ -171,23 +174,26 @@ and print_record_entry f (n, {contents = e}) =
     txt " = ";
     print_tiny_inner f false None e
 
-let print f t =
+let print ?(preamble="") f t =
   let tagfuns =
     {Format.mark_open_tag = (fun _ -> "");
      Format.mark_close_tag = (fun _ -> "");
      Format.print_open_tag = (fun _ -> Format.pp_print_string f ul);
      Format.print_close_tag = (fun _ -> Format.pp_print_string f code_end)}
   in
-    Format.set_formatter_tag_functions tagfuns;
-    Format.open_box 0;
+    Format.pp_set_formatter_tag_functions f tagfuns;
+    Format.pp_set_tags f true;
+    Format.pp_set_print_tags f true;
+    Format.pp_set_margin f !width;
+    if !simple then Format.pp_set_margin f max_int;
+    Format.pp_open_box f 4;
+    Format.pp_print_string f preamble;
     print_tiny_inner f true None t;
-    Format.close_box ();
-    Format.print_newline ()
+    Format.pp_close_box f ();
+    Format.pp_print_flush f ()
 
-let to_string t =
-  Format.set_tags true;
-  Format.set_print_tags true;
-  if !simple then Format.set_margin max_int;
-  print Format.str_formatter t;
-  Format.flush_str_formatter ()
+let to_string ?(preamble="") t =
+  let f = Format.str_formatter in
+    print ~preamble Format.str_formatter t;
+    Format.flush_str_formatter ()
 

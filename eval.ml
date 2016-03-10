@@ -14,6 +14,8 @@ let machine = ref "environment"
 
 let printer = ref "tiny"
 
+let width = ref 80
+
 let show_simple_arithmetic = ref true
 
 let setfile s =
@@ -62,6 +64,7 @@ let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
+   ("-width", Arg.Set_int width, " Set the output width");
    ("-e", Arg.String settext, " Evaluate the program text given");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
    ("-remove-rec", Arg.String add_remove_rec, " No not print the given recursive function");
@@ -73,9 +76,9 @@ let load_code () =
   | Some (FromText s) -> Some s
   | None -> None
 
-let string_of_tiny x =
+let string_of_tiny ~preamble x =
   let x = TinyocamlUtils.remove_named_recursive_functions !remove_recs x in
-    Pptinyocaml.to_string x
+    Pptinyocaml.to_string ~preamble x
 
 (* FIXME: For now, just changes nothing. It's hard to underline the whole set
  * of redexes. Maybe we can push -no-arith into environment.ml rather than
@@ -132,8 +135,8 @@ let () =
           begin
             if !printer = "tiny" then
               begin
-                print_string (if !skipped then "=>* " else "=>  ");
-                print_string (string_of_tiny (fixup (I.peek state') (I.tiny state')))
+                let preamble = if !skipped then "=>* " else "=>  " in
+                print_string (string_of_tiny ~preamble (fixup (I.peek state') (I.tiny state')))
               end
             else
               print_string (to_string (getexpr (I.tree state')));
@@ -148,8 +151,10 @@ let () =
         if !quiet then begin
           if !printer = "tiny" then
             begin
-              print_string (if first then "    " else if !skipped then "=>* " else "=>  ");
-              print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
+              let preamble =
+                if first then "    " else if !skipped then "=>* " else "=>  "
+              in
+                print_string (string_of_tiny ~preamble (fixup (I.peek state) (I.tiny state)))
             end
           else
             print_string (to_string (getexpr (I.tree state)));
@@ -170,15 +175,13 @@ let () =
         Pptinyocaml.simple := true;
         printer := "tiny"
       end;
+    Pptinyocaml.width := !width;
     let state = I.init (ast code) in
       (* Print initial state, if not a value *)
       if not !quiet then
         begin
           if !printer = "tiny" then
-            begin
-              print_string "    ";
-              print_string (string_of_tiny (fixup (I.peek state) (I.tiny state)))
-            end
+            print_string (string_of_tiny ~preamble:"    " (fixup (I.peek state) (I.tiny state)))
           else
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
