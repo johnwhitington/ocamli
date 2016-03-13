@@ -1,1 +1,0 @@
-(* Naive evaluation by substitution *)
