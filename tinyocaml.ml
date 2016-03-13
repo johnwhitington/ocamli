@@ -56,7 +56,7 @@ let cmp_of_string = function
 let rec to_real_ocaml_expression_desc = function
   | Control (_, x) -> to_real_ocaml_expression_desc x
   | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
-  | Int i -> Pexp_constant (PConst_int (string_of_int i, None)) 
+  | Int i -> Pexp_constant (Pconst_integer (string_of_int i, None)) 
   | Bool b ->
       Pexp_construct
         ({txt = Longident.Lident (string_of_bool b); loc = Location.none},
@@ -116,8 +116,8 @@ exception UnknownNode of string
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
-  Pexp_constant (PConst_int (s, None)) -> Int (int_of_string s)
-| Pexp_constant (PConst_string (s, None)) -> String s
+  Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
+| Pexp_constant (Pconst_string (s, None)) -> String s
 | Pexp_construct ({txt = Longident.Lident "()"}, _) -> Unit
 | Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
@@ -185,7 +185,8 @@ let of_real_ocaml x =
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
-  Op (op, a, b) -> Op (op, f a, f b)
+| (Bool _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit) as x -> x
+| Op (op, a, b) -> Op (op, f a, f b)
 | And (a, b) -> And (f a, f b)
 | Or (a, b) -> Or (f a, f b)
 | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
@@ -195,7 +196,6 @@ let rec recurse f = function
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
 | Control (c, x) -> Control (c, f x)
-| (Bool _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit) as x -> x
 | Record items ->
     List.iter (fun (k, v) -> v := recurse f !v) items;
     Record items
