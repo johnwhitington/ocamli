@@ -27,6 +27,8 @@ let rec is_value = function
   Unit | Int _ | Bool _ | Fun _ | OutChannel _ | InChannel _ | String _ -> true
 | Record items when
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
+| Module items when
+    List.for_all is_value items -> true
 | _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
@@ -88,6 +90,10 @@ let rec underline_redex e =
         if List.for_all is_value args
           then underline e
           else CallBuiltIn (underline_first_non_value args, fn)
+    | Module ls ->
+        if List.for_all is_value ls
+          then failwith "module already a value"
+          else Module (underline_first_non_value ls)
     | _ ->
         raise UnderlineValueUnderLets
   with

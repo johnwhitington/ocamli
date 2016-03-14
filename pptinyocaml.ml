@@ -25,6 +25,7 @@ let prec = function
 | SetField _ -> 55
 | If _ -> 50
 | Fun _ | Let _ | LetRec _ -> 10
+| Module _ -> 0 (* FIXME *)
 | _ -> max_int
 
 let parens node parent isleft =
