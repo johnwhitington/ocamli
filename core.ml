@@ -18,7 +18,11 @@ let mk2 f =
 
 (* String to tinyocaml *)
 let make_tiny s =
-  s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
+  match
+    s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
+  with
+    Module [h] -> h
+  | _ -> failwith "make_tiny"
 
 (* This contains pure ocaml functions for things in Core / Pervasives *)
 let core =

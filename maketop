@@ -1,2 +1,2 @@
-ocamlfind ocamlmktop -warn-error -31 -package compiler-libs.common -linkpkg -g -o eval.top evalutils.cmo tinyocaml.cmo tinyocamlUtils.cmo pptinyocaml.cmo tinyexamples.cmo naive.cmo naiveSimple.cmo naiveSimpleOneStep.cmo environment.cmo cc.cmo scc.cmo ck.cmo cek.cmo secd.cmo eval.cmo
+ocamlfind ocamlmktop -warn-error -31 -package compiler-libs.common -linkpkg -g -o eval.top evalutils.cmo tinyocaml.cmo tinyocamlUtils.cmo pptinyocaml.cmo core.cmo tinyexamples.cmo naive.cmo naiveSimple.cmo naiveSimpleOneStep.cmo environment.cmo eval.cmo
 

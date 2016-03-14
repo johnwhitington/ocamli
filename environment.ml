@@ -127,13 +127,10 @@ let rec eval ?(peek = false) env = function
 | App (Var v, x) ->
     begin match List.assoc v env with
       Fun (n, body) ->
-        if is_value x then
-          Let (n, x, body)
-        else
-          App (Var v, eval env x)
+        if is_value x then Let (n, x, body) else App (Var v, eval env x)
     | exception Not_found ->
         eval env (App (List.assoc v Core.core, x))
-    | _ -> failwith "maformed App"
+    | _ -> failwith "Malformed app"
     end
 | App (f, x) -> App (eval env f, x)
 | Seq (e, e') ->
