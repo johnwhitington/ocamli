@@ -105,11 +105,11 @@ and underline_first_non_value = function
 | h::t ->
     if is_value h
       then h::underline_first_non_value t
-      else underline h::t
+      else underline_redex h::t
 
 and underline_first_non_value_ref items =
   try
-    List.iter (fun (_, v) -> if not (is_value !v) then v := underline !v) items
+    List.iter (fun (_, v) -> if not (is_value !v) then v := underline_redex !v) items
   with
     Exit -> ()
 

@@ -1,9 +1,9 @@
 open Tinyocaml
 
-let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
-
+(* If true, whole program printed on one line *)
 let simple = ref false
 
+(* Width to format to *)
 let width = ref 80
 
 type assoc = L | R | N
@@ -48,9 +48,7 @@ let rec print_tiny_inner f isleft parent node =
   match node with
   | Module structure_items ->
       List.iter
-        (fun x ->
-           print_tiny_inner f false (Some node) x;
-           Format.pp_print_newline f ())
+        (print_tiny_inner f false (Some node))
         structure_items
   | Control (Underline, x) ->
       Format.pp_open_tag f "underline";
@@ -182,6 +180,7 @@ and print_record_entry f (n, {contents = e}) =
     print_tiny_inner f false None e
 
 let print ?(preamble="") f t =
+  let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m") in
   let tagfuns =
     {Format.mark_open_tag = (fun _ -> "");
      Format.mark_close_tag = (fun _ -> "");
