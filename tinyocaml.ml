@@ -198,12 +198,12 @@ let rec recurse f = function
 | Seq (a, b) -> Seq (f a, f b)
 | Control (c, x) -> Control (c, f x)
 | Record items ->
-    List.iter (fun (k, v) -> v := recurse f !v) items;
+    List.iter (fun (k, v) -> v := f !v) items;
     Record items
 | Field (a, n) -> Field (recurse f a, n)
-| SetField (a, n, b) -> SetField (recurse f a, n, recurse f b)
+| SetField (a, n, b) -> SetField (f a, n, f b)
 | Raise s -> Raise s
-| TryWith (a, s) -> TryWith (recurse f a, s)
+| TryWith (a, s) -> TryWith (f a, s)
 | CallBuiltIn (args, fn) -> CallBuiltIn (List.map f args, fn)
-| Module l -> Module (List.map (recurse f) l)
+| Module l -> Module (List.map f l)
 
