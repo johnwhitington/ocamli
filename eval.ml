@@ -126,7 +126,7 @@ let () =
     match I.next state with
       Next state' ->
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
-        (string_of_tiny (I.tiny state')) !skipped;*)
+        (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
           not !quiet && (!show_simple_arithmetic ||
             show_this_stage
@@ -151,10 +151,7 @@ let () =
         if !quiet then begin
           if !printer = "tiny" then
             begin
-              let preamble =
-                if first then "    " else if !skipped then "=>* " else "=>  "
-              in
-                print_string (string_of_tiny ~preamble (fixup (I.peek state) (I.tiny state)))
+              print_string (string_of_tiny ~preamble:"=>* " (fixup (I.peek state) (I.tiny state)))
             end
           else
             print_string (to_string (getexpr (I.tree state)));
