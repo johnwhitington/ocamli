@@ -72,6 +72,8 @@ let rec underline_redex e =
     | App (f, x) -> App (underline_redex f, x)
     | Seq (a, b) ->
         if is_value a then underline e else Seq (underline_redex a, b)
+    | While _ -> underline e
+    | For _ -> underline e
     | Var _ -> underline e
     | Record items ->
         underline_first_non_value_ref items;

@@ -1,22 +1,18 @@
 open Evalutils
 
+let silent = ref false
 let quiet = ref false
-
 let top = ref false
+let machine = ref "environment"
+let printer = ref "tiny"
+let width = ref 80
+let show_simple_arithmetic = ref true
 
 type mode =
   FromFile of string
 | FromText of string
 
 let source = ref None
-
-let machine = ref "environment"
-
-let printer = ref "tiny"
-
-let width = ref 80
-
-let show_simple_arithmetic = ref true
 
 let setfile s =
   source := Some (FromFile s)
@@ -32,8 +28,6 @@ let load_file f =
   close_in ic;
   Bytes.to_string s
 
-(* Main loop. Get the right abstract machine module, and keep calling it until
-IsValue or Malformed or Unimplemented *)
 let ast code =
   code |> Lexing.from_string |> Parse.implementation
 
@@ -63,6 +57,7 @@ let add_remove_rec x =
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
+   ("-silent", Arg.Set silent, " Print only what the program prints");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-width", Arg.Set_int width, " Set the output width");
    ("-e", Arg.String settext, " Evaluate the program text given");
@@ -113,9 +108,8 @@ let skipped = ref false
 let () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>
-             [-quiet]
-             [-pp <ocaml | tiny>]
-             [-machine <naive | naiveSimple | naiveSimpleOneStep | cc | scc | ck | cek | secd>]\n";
+             [-pp <ocaml | tiny* | simple ]
+             [-machine <naive | naiveSimple | naiveSimpleOneStep | environment*]\n";
   let module I =
     (val
        (try List.assoc !machine implementations with
@@ -128,7 +122,7 @@ let () =
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
-          not !quiet && (!show_simple_arithmetic ||
+          not (!quiet || !silent) && (!show_simple_arithmetic ||
             show_this_stage
               (I.last ()) (I.peek state') (I.tiny state) (I.tiny state'))
         then
@@ -148,6 +142,7 @@ let () =
         end;
         really_run false state'
     | IsValue ->
+        (* Only print if !quiet. On Silent we don't want it, on normal, we have already printed *)
         if !quiet then begin
           if !printer = "tiny" then
             begin
@@ -175,7 +170,7 @@ let () =
     Pptinyocaml.width := !width;
     let state = I.init (ast code) in
       (* Print initial state, if not a value *)
-      if not !quiet then
+      if not (!quiet || !silent) then
         begin
           if !printer = "tiny" then
             print_string (string_of_tiny ~preamble:"    " (fixup (I.peek state) (I.tiny state)))

@@ -1,7 +1,7 @@
 Demos, Week of 14th March
 =========================
 
-1. -remove-rec on programs/factorial (FIXME: let vs let rec so fails)
+1. -remove-rec on programs/factorial
 2. -width 40
 3. -no-arith on factorial
 4. programs/references.ml

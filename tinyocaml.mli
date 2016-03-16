@@ -10,6 +10,8 @@ type ex = string (* for now *)
 
 type control = Underline | Bold | Pervasive
 
+type forkind = UpTo | DownTo
+
 type patmatch = string * t (* for now *)
 
 (** The type of tiny-ocaml programs *)
@@ -21,7 +23,7 @@ and t =
 | OutChannel of out_channel    (** e.g stdout *)
 | InChannel of in_channel      (** e.g stdin *)
 | Var of string                (** x *)
-| Record of (string * t ref) list (* Records. Boolean is mutability *)
+| Record of (string * t ref) list (** {a = e; b = e' ...} *)
 | Op of (op * t * t)           (** + - / * *)
 | And of (t * t)               (** && *)
 | Or of (t * t)                (** || *)
@@ -32,6 +34,8 @@ and t =
 | Fun of (string * t)          (** fun x -> e *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)
+| While of (t * t * t * t)     (** while e do e' done (e, e', copy_of_e, copy_of_e') *)
+| For of (string * t * forkind * t * t * t) (* for v = e [UpTo | DownTo] e' do e'' done, copy of e'' *)
 | Field of (t * string)        (** e.y *)
 | SetField of (t * string * t) (** e.y <- e' *)
 | Raise of ex                  (** raise e *)

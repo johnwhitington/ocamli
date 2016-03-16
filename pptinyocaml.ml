@@ -139,6 +139,25 @@ let rec print_tiny_inner f isleft parent node =
       txt "; ";
       print_tiny_inner f false (Some node) e';
       str rp
+  | While (e, e', _, _) ->
+      str lp;
+      txt "while ";
+      print_tiny_inner f false (Some node) e;
+      txt " do ";
+      print_tiny_inner f false (Some node) e';
+      txt " done";
+      str rp
+  | For (var, e, flag, e', e'', _) ->
+      str lp;
+      txt "for ";
+      str var;
+      txt " = ";
+      print_tiny_inner f false (Some node) e;
+      txt ((function UpTo -> " to " | DownTo -> " down ") flag);
+      print_tiny_inner f false (Some node) e';
+      txt " do ";
+      print_tiny_inner f false (Some node) e'';
+      txt " done"
   | Record items ->
       str "{";
       List.iter (print_record_entry f) items;

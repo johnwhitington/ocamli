@@ -6,6 +6,10 @@ let builtin_output_string = function
   [OutChannel c; String s] -> output_string c s; Unit
 | _ -> failwith "builtin_output_string"
 
+let builtin_print_int = function
+  [Int i] -> output_string stdout (string_of_int i); Unit
+| _ -> failwith "builtin_print_int"
+
 let builtin_input_line = function
   [InChannel c] -> String (input_line c)
 | _ -> failwith "builtin_input_line"
@@ -31,4 +35,5 @@ let core =
    ":=", make_tiny "fun a -> fun b -> a.contents <- b";
    "output_string", mk2 builtin_output_string;
    "print_string", make_tiny "fun x -> output_string stdout x";
+   "print_int", mk builtin_print_int;
    "input_line", mk builtin_input_line]

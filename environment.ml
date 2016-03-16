@@ -15,8 +15,11 @@ let is_value = TinyocamlUtils.is_value
 let rec appears var = function
   Var v when v = var -> true
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
-| Seq (a, b) ->
-    appears var a || appears var b
+| Seq (a, b) -> appears var a || appears var b
+| While (a, b, c, d) ->
+    appears var a || appears var b || appears var c || appears var d
+| For (v, a, flag, b, c, copy) ->
+    appears var a || appears var b || appears var c || appears var copy
 | If (a, b, c) -> appears var a || appears var b || appears var c
 | Control (_, x) -> appears var x
 | Let (v, e, e') ->
@@ -136,6 +139,29 @@ let rec eval peek env expr =
 | App (f, x) -> App (eval peek env f, x)
 | Seq (e, e') ->
     if is_value e then e' else Seq (eval peek env e, e')
+| While (Bool false, _, _, _) ->
+    Unit
+| While (Bool true, e', cg, cb) when not (is_value e') ->
+    While (Bool true, eval peek env e', cg, cb)
+| While (Bool true, e', cg, cb) when is_value e' ->
+    While (cg, cb, cg, cb)
+| While (e, e', cg, cb) ->
+    While (eval peek env e, e', cg, cb)
+(* If start number unevaluted, work on it *)
+| For (v, e, ud, e', e'', copy) when not (is_value e) ->
+    For (v, eval peek env e, ud, e', e'', copy)
+(* If end number unevaluated, work on it *)
+| For (v, e, ud, e', e'', copy) when not (is_value e') ->
+    For (v, e, ud, eval peek env e', e'', copy)
+(* If start number > end number (UP) or end number > start number (DOWN), we are done *)
+| For (_, Int x, UpTo, Int y, _, _) when x > y -> Unit
+| For (_, Int x, DownTo, Int y, _, _) when y > x -> Unit
+(* If body a value, increment to next for loop *)
+| For (v, Int x, ud, e', e'', copy) when is_value e'' ->
+    For (v, Int (x + 1), ud, e', copy, copy)
+(* If body not a value, put the var in the environment and evaluate body one step. *)
+| For (v, x, ud, e', e'', copy) ->
+    For (v, x, ud, e', eval peek ((v, x)::env) e'', copy)
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
@@ -162,7 +188,9 @@ let rec eval peek env expr =
       then if not peek then fn args else Unit
       else CallBuiltIn (eval_first_non_value_item peek env [] args, fn)
 | Var v ->
-    begin try List.assoc v env with Not_found -> failwith "Var not found" end
+    begin try List.assoc v env with
+      Not_found -> failwith (Printf.sprintf "Var %s not found" v)
+    end
 | Int _ | Bool _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ -> failwith "already a value"
 
 and eval_first_non_value_item peek env r = function

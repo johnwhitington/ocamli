@@ -9,6 +9,8 @@ type ex = string (* for now *)
 
 type control = Underline | Bold | Pervasive
 
+type forkind = UpTo | DownTo
+
 type patmatch = string * t (* for now *)
 
 and t =
@@ -30,6 +32,8 @@ and t =
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
+| While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
+| For of (string * t * forkind * t * t * t) (* for e [UpTo | DownTo] e' do e'' done (copy of e'') *)
 | Field of (t * string)       (* e.y *)
 | SetField of (t * string * t)(* e.y <- e' *)
 | Raise of ex                 (** raise e *)
@@ -157,6 +161,13 @@ let rec of_real_ocaml_expression_desc = function
     App (of_real_ocaml e, of_real_ocaml e')
 | Pexp_sequence (e, e') ->
     Seq (of_real_ocaml e, of_real_ocaml e')
+| Pexp_while (e, e') ->
+    While (of_real_ocaml e, of_real_ocaml e', of_real_ocaml e, of_real_ocaml e')
+| Pexp_for ({ppat_desc = Ppat_var {txt}}, e, e', flag, e'') ->
+    let convert_flag = function Upto -> UpTo | Downto -> DownTo in
+      For
+        (txt, of_real_ocaml e, convert_flag flag,
+         of_real_ocaml e', of_real_ocaml e'', of_real_ocaml e'')
 | Pexp_record (items, _) ->
     Record (List.map of_real_ocaml_record_entry items)
 | Pexp_field (e, {txt = Longident.Lident n}) ->
@@ -196,6 +207,8 @@ let rec recurse f = function
 | Fun (x, a) -> Fun (x, f a)
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
+| While (a, b, c, d) -> While (f a, f b, f c, f d)
+| For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
 | Control (c, x) -> Control (c, f x)
 | Record items ->
     List.iter (fun (k, v) -> v := f !v) items;
