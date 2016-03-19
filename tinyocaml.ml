@@ -17,6 +17,7 @@ and t =
   Unit                        (* () *)
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
+| Float of float              (* 1.0 *)
 | String of string            (* "foo" *)
 | OutChannel of out_channel   (* e.g stdout, stderr *)
 | InChannel of in_channel     (* e.g stdin *)
@@ -122,6 +123,7 @@ exception UnknownNode of string
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
 | Pexp_constant (Pconst_string (s, None)) -> String s
+| Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
 | Pexp_construct ({txt = Longident.Lident "()"}, _) -> Unit
 | Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
@@ -196,7 +198,7 @@ let of_real_ocaml x =
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
-| (Bool _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit) as x -> x
+| (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit) as x -> x
 | Op (op, a, b) -> Op (op, f a, f b)
 | And (a, b) -> And (f a, f b)
 | Or (a, b) -> Or (f a, f b)

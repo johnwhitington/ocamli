@@ -58,6 +58,7 @@ let rec print_tiny_inner f isleft parent node =
   | Unit -> str "()"
   | Int i -> str (string_of_int i)
   | Bool b -> str (string_of_bool b)
+  | Float f -> str (string_of_float f)
   | String s -> str ("\"" ^ String.escaped s ^ "\"")
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"

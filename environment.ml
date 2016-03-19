@@ -34,7 +34,7 @@ let rec appears var = function
 | TryWith (e, (s, e')) -> appears var e || appears var e'
 | CallBuiltIn (args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
-| Int _ | Bool _ | Var _ | Unit | Raise _ | OutChannel _ | InChannel _ | String _ -> false
+| Int _ | Bool _ | Var _ | Float _ | Unit | Raise _ | OutChannel _ | InChannel _ | String _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -191,7 +191,7 @@ let rec eval peek env expr =
     begin try List.assoc v env with
       Not_found -> failwith (Printf.sprintf "Var %s not found" v)
     end
-| Int _ | Bool _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ -> failwith "already a value"
+| Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ -> failwith "already a value"
 
 and eval_first_non_value_item peek env r = function
   [] -> List.rev r
