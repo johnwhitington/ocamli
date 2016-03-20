@@ -251,3 +251,7 @@ let to_string ?(preamble="") t =
   print ~preamble Format.str_formatter t;
   Format.flush_str_formatter ()
 
+(* FIXME: Need to update this to only run on stdout or something *)
+let _ =
+  ignore
+    (Sys.signal Sys.sigint (Signal_handle (fun _ -> print_string code_end)))
