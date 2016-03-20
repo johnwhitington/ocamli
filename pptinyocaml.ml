@@ -41,20 +41,28 @@ let parens node parent isleft =
       else
         ("(", ")")
 
+let string_of_tag = function
+  Underline -> "underline"
+| Bold -> "bold"
+| Pervasive -> "pervasive"
+
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  let boldstr s = bold (); str s; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
   | Module structure_items ->
       List.iter
         (print_tiny_inner f false (Some node))
         structure_items
-  | Control (Underline, x) ->
-      Format.pp_open_tag f "underline";
+  | Control (tag, x) ->
+      Format.pp_open_tag f (string_of_tag tag);
       print_tiny_inner f isleft parent x;
       Format.pp_close_tag f ()
-  | Control (Pervasive, _) -> str ""
   | Unit -> str "()"
   | Int i -> str (string_of_int i)
   | Bool b -> str (string_of_bool b)
@@ -94,36 +102,36 @@ let rec print_tiny_inner f isleft parent node =
       str rp
   | If (e, e1, e2) ->
       str lp;
-      txt "if ";
+      boldtxt "if ";
       print_tiny_inner f false (Some node) e;
-      txt " then ";
+      boldtxt " then ";
       print_tiny_inner f false (Some node) e1;
-      txt " else ";
+      boldtxt " else ";
       print_tiny_inner f false (Some node) e2;
       str rp
   | Let (v, e, e') ->
       str lp;
-      txt "let ";
+      boldtxt "let ";
       str v;
       txt " = ";
       print_tiny_inner f false (Some node) e;
-      txt " in ";
+      boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
   | LetRec (v, e, e') ->
       str lp;
-      str "let rec";
+      boldstr "let rec";
       txt " ";
       str v;
       txt " = ";
       if not !simple then txt "\n";
       print_tiny_inner f false (Some node) e;
-      txt " in ";
+      boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
   | Fun (v, e) ->
       str lp;
-      txt "fun ";
+      boldtxt "fun ";
       str v;
       txt " -> ";
       print_tiny_inner f false (Some node) e;
@@ -142,23 +150,23 @@ let rec print_tiny_inner f isleft parent node =
       str rp
   | While (e, e', _, _) ->
       str lp;
-      txt "while ";
+      boldtxt "while ";
       print_tiny_inner f false (Some node) e;
-      txt " do ";
+      boldtxt " do ";
       print_tiny_inner f false (Some node) e';
-      txt " done";
+      boldtxt " done";
       str rp
   | For (var, e, flag, e', e'', _) ->
       str lp;
-      txt "for ";
+      boldtxt "for ";
       str var;
       txt " = ";
       print_tiny_inner f false (Some node) e;
       txt ((function UpTo -> " to " | DownTo -> " down ") flag);
       print_tiny_inner f false (Some node) e';
-      txt " do ";
+      boldtxt " do ";
       print_tiny_inner f false (Some node) e'';
-      txt " done"
+      boldtxt " done"
   | Record items ->
       str "{";
       List.iter (print_record_entry f) items;
@@ -179,14 +187,14 @@ let rec print_tiny_inner f isleft parent node =
       str rp
   | Raise e ->
       str lp;
-      txt "raise ";
+      boldtxt "raise ";
       str e;
       str rp
   | TryWith (e, (s, e')) ->
       str lp;
-      txt "try ";
+      boldtxt "try ";
       print_tiny_inner f false (Some node) e;
-      txt " with ";
+      boldtxt " with ";
       str s;
       txt " -> ";
       print_tiny_inner f false (Some node) e';
@@ -199,13 +207,34 @@ and print_record_entry f (n, {contents = e}) =
     txt " = ";
     print_tiny_inner f false None e
 
+let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
+
+(* Current tags opened. Whenever a tag is added, we have to end the codes, and
+begin new ones *) 
+let tags = ref []
+
+let output_tag f = function
+  "underline" -> Format.pp_print_string f ul
+| "bold" -> Format.pp_print_string f bold
+| _ -> failwith "format: unknown tag"
+
+let output_tags f =
+  List.iter (output_tag f) !tags
+
 let print ?(preamble="") f t =
-  let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m") in
   let tagfuns =
     {Format.mark_open_tag = (fun _ -> "");
      Format.mark_close_tag = (fun _ -> "");
-     Format.print_open_tag = (fun _ -> Format.pp_print_string f ul);
-     Format.print_close_tag = (fun _ -> Format.pp_print_string f code_end)}
+     Format.print_open_tag =
+       (fun tag ->
+         tags := tag::!tags;
+         output_tag f tag);
+     Format.print_close_tag =
+       (fun _ ->
+          if !tags = [] then failwith "ill-matched tags: pop";
+          tags := List.tl !tags;
+          Format.pp_print_string f code_end;
+          if !tags <> [] then output_tags f)}
   in
     Format.pp_set_formatter_tag_functions f tagfuns;
     Format.pp_set_tags f true;
