@@ -54,6 +54,8 @@ let remove_recs = ref []
 let add_remove_rec x =
   remove_recs := x::!remove_recs
 
+let remove_rec_all = ref false
+
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
@@ -62,7 +64,8 @@ let argspec =
    ("-width", Arg.Set_int width, " Set the output width");
    ("-e", Arg.String settext, " Evaluate the program text given");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
-   ("-remove-rec", Arg.String add_remove_rec, " No not print the given recursive function");
+   ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
+   ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic")]
 
 let load_code () =
@@ -72,7 +75,7 @@ let load_code () =
   | None -> None
 
 let string_of_tiny ~preamble x =
-  let x = TinyocamlUtils.remove_named_recursive_functions !remove_recs x in
+  let x = TinyocamlUtils.remove_named_recursive_functions !remove_rec_all !remove_recs x in
     Pptinyocaml.to_string ~preamble x
 
 (* FIXME: For now, just changes nothing. It's hard to underline the whole set
