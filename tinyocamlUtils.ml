@@ -18,7 +18,7 @@ let rec substitute n v = function
 | Let (var, e, e') -> Let (var, substitute n v e, substitute n v e')
 | LetRec (var, e, e') when var = n -> LetRec (var, e, e')
 | LetRec (var, e, e') -> LetRec (var, substitute n v e, substitute n v e')
-| Fun (x, e) -> if x = n then Fun (x, e) else Fun (x, substitute n v e)
+| Fun ({fname; fexp} as r) -> if fname = n then Fun r else Fun {r with fexp = substitute n v fexp}
 | App (f, x) -> App (substitute n v f, substitute n v x)
 | x -> x
 
@@ -63,8 +63,8 @@ let rec underline_redex e =
         if is_value v
           then Let (n, v, underline_redex e')
           else Let (n, underline_redex v, e')
-    | LetRec (n, Fun (var, body), e') ->
-        LetRec (n, Fun (var, body), underline_redex e')
+    | LetRec (n, Fun f, e') ->
+        LetRec (n, Fun f, underline_redex e')
     | App (Fun f, x) ->
         if is_value x then underline e else App (Fun f, underline_redex x)
     | App (Var v, x) ->

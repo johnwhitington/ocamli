@@ -40,7 +40,7 @@ let rec underline_redex e =
   | If (cond, a, b) -> If (underline cond, a, b)
   | Let (n, v, e') ->
       if is_value v then underline e else Let (n, underline v, e')
-  | LetRec (n, Fun (var, body), e) -> LetRec (n, Fun (var, body), underline e)
+  | LetRec (n, (Fun _ as f), e) -> LetRec (n, f, underline e)
   | App (Fun f, x) ->
       if is_value x then underline e else App (Fun f, underline x)
   | App (f, x) -> App (underline f, x)
@@ -67,13 +67,13 @@ let rec eval = function
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval cond, a, b)
 | Let (n, v, e) -> if is_value v then substitute n v e else Let (n, eval v, e)
-| LetRec (n, Fun (var, body), e) ->
-    let v = Fun (var, LetRec (n, Fun (var, body), body)) in
+| LetRec (n, Fun f, e) ->
+    let v = Fun {f with fexp = LetRec (n, Fun f, f.fexp)} in
       substitute n v e
 | LetRec (n, v, e) ->
     if is_value v then substitute n v e else LetRec (n, eval v, e)
-| App (Fun (n, body) as f, x) ->
-    if is_value x then substitute n x body else App (f, eval x)
+| App (Fun {fname; fexp} as f, x) ->
+    if is_value x then substitute fname x fexp else App (f, eval x)
 | App (f, x) -> App (eval f, x)
 | Var _ -> failwith "Expression not closed: unknown variable"
 | Int _ | Bool _ | Fun _ -> failwith "Eval: already a value"

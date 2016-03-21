@@ -26,7 +26,7 @@ let rec appears var = function
     appears var e || v <> var && appears var e'
 | LetRec (v, e, e') ->
     v <> var && (appears var e || appears var e')
-| Fun (v, e) -> v <> var && appears var e
+| Fun {fname; fexp} -> fname <> var && appears var fexp
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
 | Field (e, n) -> appears var e
@@ -112,26 +112,26 @@ let rec eval peek env expr =
       if is_value e then
         if appears n e then
           match e with
-            Fun (fv, body) ->
-              if fv = n then e else Fun (fv, Let (n, v, body))
+            Fun ({fname; fexp} as f) ->
+              if fname = n then e else Fun {f with fexp = Let (n, v, fexp)}
           | _ -> failwith "should not be here / eval Let (n, v, e)"
         else e
       else
         Let (n, v, eval peek ((n, v)::env) e)
     else
       Let (n, eval peek env v, e)
-| LetRec (n, Fun (var, body), e) ->
+| LetRec (n, (Fun _ as f), e) ->
     if is_value e then e else
-      LetRec (n, Fun (var, body), eval peek ((n, Fun (var, body))::env) e)
+      LetRec (n, f, eval peek ((n, f)::env) e)
 | LetRec _ -> failwith "malformed letrec"
-| App (Fun (n, body) as f, x) ->
+| App (Fun ({fname; fexp} as f), x) ->
     if is_value x
-      then Let (n, x, body)
-      else App (f, eval peek env x)
+      then Let (fname, x, fexp)
+      else App (Fun f, eval peek env x)
 | App (Var v, x) ->
     begin match List.assoc v env with
-      Fun (n, body) ->
-        if is_value x then Let (n, x, body) else App (Var v, eval peek env x)
+      Fun {fname; fexp} ->
+        if is_value x then Let (fname, x, fexp) else App (Var v, eval peek env x)
     | exception Not_found ->
         eval peek env (App (List.assoc v Core.core, x))
     | _ -> failwith "Malformed app"

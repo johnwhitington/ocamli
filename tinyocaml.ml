@@ -7,7 +7,7 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type ex = string (* for now *)
 
-type control = Underline | Bold | Pervasive
+type control = Underline | Bold
 
 type forkind = UpTo | DownTo
 
@@ -30,7 +30,7 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (string * t * t)     (* let x = e in e' *)
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
-| Fun of (string * t)         (* fun x -> e *)
+| Fun of {fname : string; fexp : t; fper : bool}         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -76,13 +76,13 @@ let rec to_real_ocaml_expression_desc = function
       Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
   | Let (v, e, e') -> to_real_ocaml_let false v e e'
   | LetRec (v, e, e') -> to_real_ocaml_let true v e e'
-  | Fun (v, e) ->
+  | Fun {fname; fexp} ->
       let pattern =
-       {ppat_desc = Ppat_var {txt = v; loc = Location.none};
+       {ppat_desc = Ppat_var {txt = fname; loc = Location.none};
         ppat_loc = Location.none;
         ppat_attributes = []};
       in
-        Pexp_fun (Nolabel, None, pattern, to_real_ocaml e)
+        Pexp_fun (Nolabel, None, pattern, to_real_ocaml fexp)
   | App (e, e') ->
       Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
   | Seq (e, e') ->
@@ -133,8 +133,8 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_ident {txt = Longident.Lident v} -> Var v
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
-| Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, e) ->
-    Fun (txt, of_real_ocaml e)
+| Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, exp) ->
+    Fun {fname = txt; fexp = of_real_ocaml exp; fper = false}
 | Pexp_let
     (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
        if r = Recursive
@@ -206,7 +206,7 @@ let rec recurse f = function
 | If (e, e1, e2) -> If (f e, f e1, f e2)
 | Let (n, v, e) -> Let (n, f v, f e)
 | LetRec (n, v, e) -> LetRec (n, f v, f e)
-| Fun (x, a) -> Fun (x, f a)
+| Fun ({fexp} as r) -> Fun {r with fexp = f fexp}
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
 | While (a, b, c, d) -> While (f a, f b, f c, f d)

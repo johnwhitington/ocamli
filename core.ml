@@ -15,15 +15,18 @@ let builtin_input_line = function
 | _ -> failwith "builtin_input_line"
 
 let mk f =
-  Fun ("x", CallBuiltIn ([Var "x"], f))
+  Fun {fname = "x"; fexp = CallBuiltIn ([Var "x"], f); fper = true}
 
 let mk2 f =
-  Fun ("x", Fun ("y", CallBuiltIn ([Var "x"; Var "y"], f)))
+  Fun {fname = "x";
+       fexp = Fun {fname = "y"; fexp = CallBuiltIn ([Var "x"; Var "y"], f); fper = true};
+       fper = true}
 
 (* String to tinyocaml *)
 let make_tiny s =
   match
     s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
+    (*~allpervasive:true*)
   with
     Module [h] -> h
   | _ -> failwith "make_tiny"

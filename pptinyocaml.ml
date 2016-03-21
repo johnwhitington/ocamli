@@ -44,7 +44,6 @@ let parens node parent isleft =
 let string_of_tag = function
   Underline -> "underline"
 | Bold -> "bold"
-| Pervasive -> "pervasive"
 
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
@@ -129,12 +128,12 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | Fun (v, e) ->
+  | Fun {fname; fexp} ->
       str lp;
       boldtxt "fun ";
-      str v;
+      str fname;
       txt " -> ";
-      print_tiny_inner f false (Some node) e;
+      print_tiny_inner f false (Some node) fexp;
       str rp
   | App (e, e') ->
       str lp;
@@ -254,4 +253,4 @@ let to_string ?(preamble="") t =
 (* FIXME: Need to update this to only run on stdout or something *)
 let _ =
   ignore
-    (Sys.signal Sys.sigint (Signal_handle (fun _ -> print_string code_end)))
+    (Sys.signal Sys.sigint (Sys.Signal_handle (fun _ -> print_string code_end)))

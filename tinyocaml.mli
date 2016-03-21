@@ -8,7 +8,7 @@ type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
 type ex = string (* for now *)
 
-type control = Underline | Bold | Pervasive
+type control = Underline | Bold
 
 type forkind = UpTo | DownTo
 
@@ -32,7 +32,7 @@ and t =
 | If of (t * t * t)            (** if e then e1 else e2 *)
 | Let of (string * t * t)      (** let x = e in e' *)
 | LetRec of (string * t * t)   (** let rec x = e in e' *)
-| Fun of (string * t)          (** fun x -> e *)
+| Fun of {fname : string; fexp : t; fper : bool} (** fun x -> e *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)
 | While of (t * t * t * t)     (** while e do e' done (e, e', copy_of_e, copy_of_e') *)
