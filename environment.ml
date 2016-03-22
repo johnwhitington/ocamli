@@ -55,7 +55,7 @@ let lookup_int_var env v =
     Int i -> i
   | _ -> failwith "comparison not an integer"
 
-let last = ref Unknown
+let last = ref []
 
 exception ExceptionRaised of string
 
@@ -63,37 +63,37 @@ let rec eval peek env expr =
   match expr with
 | Control (_, x) -> eval peek env x
 | Op (op, Int a, Int b) ->
-    last := Arith;
+    last := Arith::!last;
     Int (calc op a b)
 | Op (op, Int a, b) -> Op (op, Int a, eval peek env b)
 | Op (op, a, b) -> Op (op, eval peek env a, b)
 | And (Bool false, _) ->
-    last := Boolean;
+    last := Boolean::!last;
     Bool false
 | And (Bool true, Bool b) ->
-    last := Boolean;
+    last := Boolean::!last;
     Bool b
 | And (Bool true, b) -> eval peek env b
 | And (a, b) -> And (eval peek env a, b)
 | Or (Bool true, _) ->
-    last := Boolean;
+    last := Boolean::!last;
     Bool true
 | Or (Bool false, Bool b) ->
-    last := Boolean;
+    last := Boolean::!last;
     Bool b
 | Or (Bool false, b) -> eval peek env b
 | Or (a, b) -> And (eval peek env a, b)
 | Cmp (op, Int a, Int b) ->
-    last := Comparison;
+    last := Comparison::!last;
     Bool (comp op a b)
 | Cmp (op, Var a, Int b) ->
-    last := Comparison;
+    last := Comparison::!last;
     Bool (comp op (lookup_int_var env a) b)
 | Cmp (op, Int a, Var b) ->
-    last := Comparison;
+    last := Comparison::!last;
     Bool (comp op a (lookup_int_var env b))
 | Cmp (op, Var a, Var b) ->
-    last := Comparison;
+    last := Comparison::!last;
     Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
 | Cmp (op, a, b) -> Cmp (op, eval peek env a, b)
@@ -212,7 +212,7 @@ let init x =
 let init_from_tinyocaml x = x
 
 let next e =
-  last := Unknown;
+  last := [];
   try
     if is_value e
       then IsValue
@@ -234,9 +234,9 @@ let to_string x =
 let tiny x = TinyocamlUtils.underline_redex x
 
 let peek x =
-  if is_value x then Unknown else
+  if is_value x then [] else
     let t = !last in
-      last := Unknown;
+      last := [];
       ignore (eval true Core.core x);
       let r = !last in
         last := t;

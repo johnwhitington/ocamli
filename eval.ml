@@ -3,6 +3,7 @@ open Evalutils
 let silent = ref false
 let quiet = ref false
 let top = ref false
+let showpervasives = ref false
 let machine = ref "environment"
 let printer = ref "tiny"
 let width = ref 80
@@ -39,8 +40,8 @@ module type Evaluator =
     val tree : t -> Parsetree.structure
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
-    val last : unit -> Evalutils.last_op
-    val peek : t -> Evalutils.last_op
+    val last : unit -> Evalutils.last_op list
+    val peek : t -> Evalutils.last_op list
   end
 
 let implementations =
@@ -66,6 +67,7 @@ let argspec =
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
+   ("-show-pervasives", Arg.Set showpervasives, " Show Pervasives such as :=");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic")]
 
 let load_code () =
@@ -85,10 +87,10 @@ let underline_whole_first_arithmetic x = x
   (*TinyocamlUtils.strip_control x*)
   (*Tinyocaml.Control (Tinyocaml.Underline, Tinyocaml.strip_control x)*)
 
-let fixup op x =
-  if op = Arith && not !show_simple_arithmetic
+let fixup ops x = x
+  (*if op = Arith && not !show_simple_arithmetic
     then underline_whole_first_arithmetic x
-    else x
+    else x*)
 
 (* last: the op that got us here *)
 (* next: the next op *)
@@ -96,15 +98,17 @@ let fixup op x =
 (* currstate: the current state *)
 let string_of_op = function
   Arith -> "Arith"
-| Unknown -> "Unknown"
-| x -> "Other"
+| Boolean -> "Boolean"
+| Comparison -> "Comparison"
+| IfBool -> "IfBool"
+| InsidePervasive -> "InsidePervasive"
 
 let show_this_stage last next prevstate currstate =
   (*Printf.printf "last = %s, next = %s\n" (string_of_op last) (string_of_op * next);*)
      TinyocamlUtils.is_value prevstate
   || TinyocamlUtils.is_value currstate
-  || last <> Arith
-  || next <> Arith
+  || not (List.mem Arith last)
+  || not (List.mem Arith next)
 
 let skipped = ref false
 

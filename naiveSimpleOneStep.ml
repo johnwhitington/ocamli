@@ -64,7 +64,7 @@ let to_string x = Pptinyocaml.to_string x
 
 let tiny x = x
 
-let last () = Unknown
+let last () = []
 
-let peek _ = Unknown
+let peek _ = []
 

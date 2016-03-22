@@ -96,7 +96,7 @@ let to_string x = Pptinyocaml.to_string (underline_redex x)
 
 let tiny x = x
 
-let last () = Unknown
+let last () = []
 
-let peek _ = Unknown
+let peek _ = []
 

@@ -200,6 +200,8 @@ let tiny ast = Tinyocaml.of_real_ocaml (makestructure ast)
 
 let to_string = Evalutils.to_string
 
-let last () = Unknown
-let peek _ = Unknown
+let last () = []
+
+let peek _ = []
+
 

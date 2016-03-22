@@ -12,11 +12,11 @@ exception ExnUnimplemented of string
 exception ExnMalformed of string
 
 type last_op =
-    Unknown
-  | Arith
+    Arith
   | Boolean
   | Comparison
   | IfBool
+  | InsidePervasive 
 
 let unimp s = raise (ExnUnimplemented s)
 let malformed s = raise (ExnMalformed s)

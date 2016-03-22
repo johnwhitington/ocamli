@@ -14,7 +14,7 @@ val to_string : t -> string
 
 val tiny : t -> Tinyocaml.t
 
-val last : unit -> Evalutils.last_op
+val last : unit -> Evalutils.last_op list
 
-val peek : t -> Evalutils.last_op
+val peek : t -> Evalutils.last_op list
 
