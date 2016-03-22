@@ -118,6 +118,7 @@ exception UnknownNode of string
 
 (* FIXME: Limit of currying is f x y for now *)
 
+let allper = ref false
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
@@ -134,7 +135,7 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
 | Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, exp) ->
-    Fun {fname = txt; fexp = of_real_ocaml exp; fper = false}
+    Fun {fname = txt; fexp = of_real_ocaml exp; fper = false || !allper}
 | Pexp_let
     (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
        if r = Recursive
@@ -193,7 +194,8 @@ and of_real_ocaml_structure_item = function
 | {pstr_desc = Pstr_value (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
     of_real_ocaml e
 
-let of_real_ocaml x =
+let of_real_ocaml ?(allpervasive = false) x =
+  allper := allpervasive;
   Module (List.map of_real_ocaml_structure_item x)
 
 (* Recurse over the tinyocaml data type *)

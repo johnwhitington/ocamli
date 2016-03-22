@@ -58,7 +58,7 @@ exception UnknownNode of string
 
 (** Convert real ocaml to tiny ocaml, raising [UnknownNode] if not possible for
 the given program *)
-val of_real_ocaml : Parsetree.structure -> t
+val of_real_ocaml : ?allpervasive:bool -> Parsetree.structure -> t
 
 val recurse : (t -> t) -> t -> t
 

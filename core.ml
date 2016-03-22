@@ -25,8 +25,7 @@ let mk2 f =
 (* String to tinyocaml *)
 let make_tiny s =
   match
-    s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
-    (*~allpervasive:true*)
+    s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml ~allpervasive:true
   with
     Module [h] -> h
   | _ -> failwith "make_tiny"
