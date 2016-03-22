@@ -110,6 +110,9 @@ let show_this_stage last next prevstate currstate =
   || not (List.mem Arith last)
   || not (List.mem Arith next)
 
+let show_this_pervasive_stage last =
+  not (List.mem InsidePervasive last)
+
 let skipped = ref false
 
 let () =
@@ -129,9 +132,9 @@ let () =
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
-          not (!quiet || !silent) && (!show_simple_arithmetic ||
-            show_this_stage
-              (I.last ()) (I.peek state') (I.tiny state) (I.tiny state'))
+          not (!quiet || !silent) &&
+          (!show_simple_arithmetic || show_this_stage (I.last ()) (I.peek state') (I.tiny state) (I.tiny state')) &&
+          (!showpervasives || show_this_pervasive_stage (I.last ()))
         then
           begin
             if !printer = "tiny" then
