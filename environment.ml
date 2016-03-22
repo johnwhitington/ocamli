@@ -32,7 +32,7 @@ let rec appears var = function
 | Field (e, n) -> appears var e
 | SetField (e, n, e') -> appears var e || appears var e'
 | TryWith (e, (s, e')) -> appears var e || appears var e'
-| CallBuiltIn (args, _) -> List.exists (appears var) args
+| CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
 | Int _ | Bool _ | Var _ | Float _ | Unit | Raise _ | OutChannel _ | InChannel _ | String _ -> false
 
@@ -187,10 +187,10 @@ let rec eval peek env expr =
         ExceptionRaised x when x = s ->
           e'
       end
-| CallBuiltIn (args, fn) ->
+| CallBuiltIn (name, args, fn) ->
     if List.for_all is_value args
       then if not peek then fn args else Unit
-      else CallBuiltIn (eval_first_non_value_item peek env [] args, fn)
+      else CallBuiltIn (name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
     begin try List.assoc v env with
       Not_found -> failwith (Printf.sprintf "Var %s not found" v)

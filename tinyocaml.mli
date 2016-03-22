@@ -42,7 +42,7 @@ and t =
 | Raise of ex                  (** raise e *)
 | TryWith of (t * patmatch)    (** try e with ... *)
 | Control of (control * t)     (** Control code *)
-| CallBuiltIn of (t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
+| CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Module of t list
 
 val string_of_op : op -> string

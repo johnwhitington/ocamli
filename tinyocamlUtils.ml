@@ -88,10 +88,10 @@ let rec underline_redex e =
     | Raise _ -> underline e
     | TryWith (a, (s, b)) ->
         if is_value e then underline e else TryWith (underline a, (s, b))
-    | CallBuiltIn (args, fn) ->
+    | CallBuiltIn (name, args, fn) ->
         if List.for_all is_value args
           then underline e
-          else CallBuiltIn (underline_first_non_value args, fn)
+          else CallBuiltIn (name, underline_first_non_value args, fn)
     | Module ls ->
         if List.for_all is_value ls
           then failwith "module already a value"

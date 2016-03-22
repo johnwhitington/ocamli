@@ -69,7 +69,7 @@ let rec print_tiny_inner f isleft parent node =
   | String s -> str ("\"" ^ String.escaped s ^ "\"")
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
-  | CallBuiltIn (args, fn) -> str "<call_built_in>"
+  | CallBuiltIn (name, args, fn) -> str "<<"; str name; str ">>"
   | Var v -> str v
   | Op (op, l, r) ->
       str lp;

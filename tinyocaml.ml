@@ -40,7 +40,7 @@ and t =
 | Raise of ex                 (** raise e *)
 | TryWith of (t * patmatch)   (** try e with ... *)
 | Control of (control * t)    (* Control string for prettyprinting *)
-| CallBuiltIn of (t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
+| CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Module of t list
 
 let string_of_op = function
@@ -221,6 +221,6 @@ let rec recurse f = function
 | SetField (a, n, b) -> SetField (f a, n, f b)
 | Raise s -> Raise s
 | TryWith (a, s) -> TryWith (f a, s)
-| CallBuiltIn (args, fn) -> CallBuiltIn (List.map f args, fn)
+| CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
 | Module l -> Module (List.map f l)
 
