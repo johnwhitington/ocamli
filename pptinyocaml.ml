@@ -56,7 +56,10 @@ let rec print_tiny_inner f isleft parent node =
   match node with
   | Module structure_items ->
       List.iter
-        (print_tiny_inner f false (Some node))
+        (fun x ->
+           print_tiny_inner f false (Some node) x;
+           Format.pp_print_newline f ();
+           Format.pp_print_newline f ())
         structure_items
   | Control (tag, x) ->
       Format.pp_open_tag f (string_of_tag tag);

@@ -131,6 +131,14 @@ let rec eval peek env expr =
     if is_value e then e else
       LetRec (n, f, eval peek ((n, f)::env) e)
 | LetRec _ -> failwith "malformed letrec"
+| LetDef (v, e) ->
+    if is_value e
+      then failwith "letdef already a value"
+      else LetDef (v, eval peek env e)
+| LetRecDef (v, e) ->
+    if is_value e
+      then failwith "letrecdef already a value"
+      else LetRecDef (v, eval peek ((v, e)::env) e)
 | App (Fun ({fname; fexp; fper} as f), x) ->
     if fper then last := InsidePervasive::!last;
     if is_value x

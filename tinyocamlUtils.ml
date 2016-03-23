@@ -29,6 +29,7 @@ let rec is_value = function
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | Module items when
     List.for_all is_value items -> true
+| LetDef (_, e) | LetRecDef (_, e) when is_value e -> true
 | _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
