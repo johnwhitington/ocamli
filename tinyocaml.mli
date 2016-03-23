@@ -49,6 +49,8 @@ val string_of_op : op -> string
 
 val string_of_cmp : cmp -> string
 
+val to_string : t -> string
+
 (** Convert tiny ocaml to real ocaml. *)
 val to_real_ocaml : t -> Parsetree.expression
 

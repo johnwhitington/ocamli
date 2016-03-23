@@ -30,7 +30,8 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (string * t * t)     (* let x = e in e' *)
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
-| Fun of {fname : string; fexp : t; fper : bool}         (* fun x -> e *)
+| Fun of {fname : string; fexp : t; fper : bool}  (* fun x -> e FIXME: Do we
+need fper now we have __PER__? *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -56,6 +57,79 @@ let op_of_string = function
 let cmp_of_string = function
   "<" -> LT | "=" -> EQ | ">" -> GT | "<=" -> EQLT | ">=" -> EQGT | "<>" -> NEQ
 | _ -> failwith "cmp_of_string"
+
+let rec to_string = function
+  Unit -> "Unit"
+| Int i -> Printf.sprintf "Int %i" i
+| Float f -> Printf.sprintf "Float %f" f
+| String s -> Printf.sprintf "String %s" s
+| OutChannel o -> Printf.sprintf "OutChannel"
+| InChannel i -> Printf.sprintf "InChannel"
+| Var s -> Printf.sprintf "Var %s" s
+| Record l -> to_string_record l
+| Op (op, l, r) ->
+    Printf.sprintf "Op (%s, %s, %s)" (to_string_op op) (to_string l) (to_string r)
+| Cmp (cmp, l, r) -> 
+    Printf.sprintf "Cmp (%s, %s, %s)" (to_string_cmp cmp) (to_string l) (to_string r)
+| If (a, b, c) ->
+    Printf.sprintf "If (%s, %s, %s)" (to_string a) (to_string b) (to_string c)
+| Let (x, e, e') ->
+    Printf.sprintf "Let (%s, %s, %s)" x (to_string e) (to_string e')
+| LetRec (x, e, e') ->
+    Printf.sprintf "LetRec (%s, %s, %s)" x (to_string e) (to_string e')
+| Fun {fname; fexp; fper} ->
+    Printf.sprintf "Fun {fname = %s, fexp = %s, fper = %b}" fname (to_string fexp) fper
+| App (e, e') ->
+    Printf.sprintf "App (%s, %s)" (to_string e) (to_string e')
+| Seq (e, e') ->
+    Printf.sprintf "Seq (%s, %s)" (to_string e) (to_string e')
+| While (e, e', copy_e, copy_e') ->
+    Printf.sprintf "While (%s, %s, %s, %s)"
+      (to_string e) (to_string e') (to_string copy_e) (to_string copy_e')
+| For (var, s, forkind, e, expr, copy_expr) ->
+    Printf.sprintf "For (%s, %s, %s, %s, %s, %s)"
+      var (to_string s) (to_string_forkind forkind) (to_string e) (to_string expr) (to_string copy_expr)
+| Field (e, y) ->
+    Printf.sprintf "Field (%s, %s)" (to_string e) y
+| SetField (e, y, e') ->
+    Printf.sprintf "SetField (%s, %s, %s)" (to_string e) y (to_string e')
+| Raise ex ->
+    Printf.sprintf "Raise %s" (to_string_exn ex)
+| TryWith (t, pat) ->
+    Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_patmatch pat)
+| Control (c, t) ->
+    Printf.sprintf "Control (%s, %s)" (to_string_control c) (to_string t)
+| CallBuiltIn (name, _, _) ->
+    Printf.sprintf "CallBuiltIn %s" name
+| Module l ->
+    to_string_module l
+
+and to_string_control = function
+  Underline -> "Underline"
+| Bold -> "Bold"
+
+and to_string_exn = function
+  s -> s
+
+and to_string_patmatch (str, t) =
+  Printf.sprintf "(%s, %s)" str (to_string t)
+
+and to_string_op = function
+  Add -> "Add" | Sub -> "Sub" | Mul -> "Mul" | Div -> "Div"
+
+and to_string_cmp = function
+  LT -> "LT" | EQ -> "EQ" | GT -> "GT" | EQLT -> "EQLT" | EQGT -> "EQGT" | NEQ -> "NEQ"
+
+and to_string_forkind = function UpTo -> "UpTo" | DownTo -> "DownTo" 
+
+and to_string_record l =
+  "Record [" ^
+  List.fold_left ( ^ ) ""
+    (List.map (fun (n, t) -> Printf.sprintf "(%s, %s); " n (to_string !t)) l) ^
+  "]"
+
+and to_string_module l =
+  "Module [" ^ List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^ "]"
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
@@ -191,7 +265,7 @@ and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
 
 and of_real_ocaml_structure_item = function
   {pstr_desc = Pstr_eval (e, _)}
-| {pstr_desc = Pstr_value (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
+| {pstr_desc = Pstr_value (_, [{pvb_pat = {ppat_desc = _}; pvb_expr = e}])} ->
     of_real_ocaml e
 
 let of_real_ocaml ?(allpervasive = false) x =

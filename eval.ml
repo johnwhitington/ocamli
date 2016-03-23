@@ -3,11 +3,13 @@ open Evalutils
 let silent = ref false
 let quiet = ref false
 let top = ref false
+let debug = ref false
 let showpervasives = ref false
 let machine = ref "environment"
 let printer = ref "tiny"
 let width = ref 80
 let show_simple_arithmetic = ref true
+let debugtiny = ref false
 
 type mode =
   FromFile of string
@@ -68,6 +70,8 @@ let argspec =
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
    ("-show-pervasives", Arg.Set showpervasives, " Show Pervasives such as :=");
+   ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
+   ("-debug", Arg.Set debug, " Debug (for OCAMLRUNPARAM=b)");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic")]
 
 let load_code () =
@@ -179,6 +183,13 @@ let () =
       end;
     Pptinyocaml.width := !width;
     let state = I.init (ast code) in
+       if !debugtiny then
+         begin
+           print_string (Tinyocaml.to_string (I.tiny state));
+           print_string "\n";
+           flush stdout;
+           exit 0
+         end;
       (* Print initial state, if not a value *)
       if not (!quiet || !silent) then
         begin
@@ -190,11 +201,13 @@ let () =
         end;
       really_run true state
    in
-      try
-        if not !top then
-          match load_code () with
-            None -> failwith "No source code provided"
-          | Some x -> run x
-      with
-        e -> Printf.eprintf "Error: [%s]\n" (Printexc.to_string e); exit 1
+     try
+       if not !top then
+         match load_code () with
+           None -> failwith "No source code provided"
+         | Some x -> run x
+     with
+       e ->
+         if !debug then raise e else Printf.eprintf "Error: [%s]\n" (Printexc.to_string e);
+         exit 1
 
