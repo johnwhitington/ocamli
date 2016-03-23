@@ -55,3 +55,10 @@ let getexpr = function
        (Nonrecursive, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])}] -> e
 | _ -> failwith "Not a single structure item"
 
+let namestarred s =
+  String.length s > 7 && String.sub s 0 7 = "__PER__"
+
+let unstar s =
+  if String.length s > 7 && String.sub s 0 7 = "__PER__"
+    then String.sub s 7 (String.length s - 7)
+    else s

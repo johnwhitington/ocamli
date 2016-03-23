@@ -70,7 +70,7 @@ let rec print_tiny_inner f isleft parent node =
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
   | CallBuiltIn (name, args, fn) -> str "<<"; str name; str ">>"
-  | Var v -> str v
+  | Var v -> str (Evalutils.unstar v)
   | Op (op, l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
@@ -111,7 +111,7 @@ let rec print_tiny_inner f isleft parent node =
   | Let (v, e, e') ->
       str lp;
       boldtxt "let ";
-      str v;
+      str (Evalutils.unstar v);
       txt " = ";
       print_tiny_inner f false (Some node) e;
       boldtxt " in ";
@@ -131,7 +131,7 @@ let rec print_tiny_inner f isleft parent node =
   | Fun {fname; fexp} ->
       str lp;
       boldtxt "fun ";
-      str fname;
+      str (Evalutils.unstar fname);
       txt " -> ";
       print_tiny_inner f false (Some node) fexp;
       str rp

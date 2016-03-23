@@ -108,6 +108,7 @@ let rec eval peek env expr =
          let x = 1 in fun y -> x + y
          fun y -> let x = 1 in x + y
      *)
+    if namestarred n then last := InsidePervasive::!last;
     if is_value v then
       if is_value e then
         if appears n e then
@@ -122,7 +123,7 @@ let rec eval peek env expr =
     else
       Let (n, eval peek env v, e)
 | LetRec (n, (Fun r as f), e) ->
-    if r.fper then last := InsidePervasive::!last;
+    if r.fper || namestarred n then last := InsidePervasive::!last;
     if is_value e then e else
       LetRec (n, f, eval peek ((n, f)::env) e)
 | LetRec _ -> failwith "malformed letrec"
