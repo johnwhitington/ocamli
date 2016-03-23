@@ -30,6 +30,8 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (string * t * t)     (* let x = e in e' *)
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
+| LetDef of (string * t)          (** let x = e *)
+| LetRecDef of (string * t)    (** let rec x = e *)
 | Fun of {fname : string; fexp : t; fper : bool}  (* fun x -> e FIXME: Do we
 need fper now we have __PER__? *)
 | App of (t * t)              (* e e' *)
@@ -61,6 +63,7 @@ let cmp_of_string = function
 let rec to_string = function
   Unit -> "Unit"
 | Int i -> Printf.sprintf "Int %i" i
+| Bool b -> Printf.sprintf "Bool %b" b
 | Float f -> Printf.sprintf "Float %f" f
 | String s -> Printf.sprintf "String %s" s
 | OutChannel o -> Printf.sprintf "OutChannel"
@@ -69,6 +72,10 @@ let rec to_string = function
 | Record l -> to_string_record l
 | Op (op, l, r) ->
     Printf.sprintf "Op (%s, %s, %s)" (to_string_op op) (to_string l) (to_string r)
+| And (a, b) ->
+    Printf.sprintf "And (%s, %s)" (to_string a) (to_string b)
+| Or (a, b) ->
+    Printf.sprintf "Or (%s, %s)" (to_string a) (to_string b)
 | Cmp (cmp, l, r) -> 
     Printf.sprintf "Cmp (%s, %s, %s)" (to_string_cmp cmp) (to_string l) (to_string r)
 | If (a, b, c) ->
@@ -77,6 +84,10 @@ let rec to_string = function
     Printf.sprintf "Let (%s, %s, %s)" x (to_string e) (to_string e')
 | LetRec (x, e, e') ->
     Printf.sprintf "LetRec (%s, %s, %s)" x (to_string e) (to_string e')
+| LetDef (x, e) ->
+    Printf.sprintf "LetDef (%s, %s)" x (to_string e)
+| LetRecDef (x, e) ->
+    Printf.sprintf "LetRecDef (%s, %s)" x (to_string e)
 | Fun {fname; fexp; fper} ->
     Printf.sprintf "Fun {fname = %s, fexp = %s, fper = %b}" fname (to_string fexp) fper
 | App (e, e') ->
@@ -264,9 +275,15 @@ and of_real_ocaml_record_entry = function
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
 
 and of_real_ocaml_structure_item = function
-  {pstr_desc = Pstr_eval (e, _)}
-| {pstr_desc = Pstr_value (_, [{pvb_pat = {ppat_desc = _}; pvb_expr = e}])} ->
-    of_real_ocaml e
+  (* "1" or "let x = 1 in 2" *)
+  {pstr_desc = Pstr_eval (e, _)} -> of_real_ocaml e
+  (* let x = 1 *)
+| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr = e}])} ->
+    if recflag = Nonrecursive then
+      LetDef (txt, of_real_ocaml e) 
+    else
+      LetRecDef (txt, of_real_ocaml e)
+| _ -> failwith "unknown structure item"
 
 let of_real_ocaml ?(allpervasive = false) x =
   allper := allpervasive;
@@ -282,6 +299,8 @@ let rec recurse f = function
 | If (e, e1, e2) -> If (f e, f e1, f e2)
 | Let (n, v, e) -> Let (n, f v, f e)
 | LetRec (n, v, e) -> LetRec (n, f v, f e)
+| LetDef (n, v) -> LetDef (n, f v)
+| LetRecDef (n, v) -> LetRecDef (n, f v)
 | Fun ({fexp} as r) -> Fun {r with fexp = f fexp}
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)

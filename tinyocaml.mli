@@ -32,6 +32,8 @@ and t =
 | If of (t * t * t)            (** if e then e1 else e2 *)
 | Let of (string * t * t)      (** let x = e in e' *)
 | LetRec of (string * t * t)   (** let rec x = e in e' *)
+| LetDef of (string * t)          (** let x = e *)
+| LetRecDef of (string * t)    (** let rec x = e *)
 | Fun of {fname : string; fexp : t; fper : bool} (** fun x -> e *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)

@@ -8,7 +8,6 @@ let calc = TinyocamlUtils.calc
 
 let comp = TinyocamlUtils.comp
 
-(* Predicate on value-ness of expressions. Var _ is here for convenience *)
 let is_value = TinyocamlUtils.is_value
 
 (* True if a variable appears not occluded by a let. *)
@@ -26,6 +25,10 @@ let rec appears var = function
     appears var e || v <> var && appears var e'
 | LetRec (v, e, e') ->
     v <> var && (appears var e || appears var e')
+| LetDef (v, e) ->
+    appears var e
+| LetRecDef (v, e) ->
+    v <> var && appears var e
 | Fun {fname; fexp} -> fname <> var && appears var fexp
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
@@ -55,6 +58,7 @@ let lookup_int_var env v =
     Int i -> i
   | _ -> failwith "comparison not an integer"
 
+(* The last operation to have been done *)
 let last = ref []
 
 exception ExceptionRaised of string
@@ -202,7 +206,11 @@ and eval_first_non_value_item peek env r = function
   [] -> List.rev r
 | h::t ->
     if is_value h
-      then eval_first_non_value_item peek env (h::r) t
+      then
+        let env' =
+          env (* FIXME. If a let, add to the environment. *)
+        in
+          eval_first_non_value_item peek env' (h::r) t
       else List.rev r @ [eval peek env h] @ t
 
 and eval_first_non_value_record_item peek env items =

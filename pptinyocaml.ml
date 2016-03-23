@@ -128,6 +128,22 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
+  | LetDef (v, e) ->
+      str lp;
+      boldtxt "let ";
+      str (Evalutils.unstar v);
+      txt " = ";
+      print_tiny_inner f false (Some node) e;
+      str rp
+  | LetRecDef (v, e) ->
+      str lp;
+      boldstr "let rec";
+      txt " ";
+      str v;
+      txt " = ";
+      if not !simple then txt "\n";
+      print_tiny_inner f false (Some node) e;
+      str rp
   | Fun {fname; fexp} ->
       str lp;
       boldtxt "fun ";
