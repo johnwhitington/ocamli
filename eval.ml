@@ -44,12 +44,13 @@ module type Evaluator =
     val to_string : t -> string
     val last : unit -> Evalutils.last_op list
     val peek : t -> Evalutils.last_op list
+    val newlines : t -> bool
   end
 
 let implementations =
-  [("naive", (module Naive : Evaluator));
+  [(*("naive", (module Naive : Evaluator));
    ("naiveSimple", (module NaiveSimple : Evaluator));
-   ("naiveSimpleOneStep", (module NaiveSimpleOneStep : Evaluator));
+   ("naiveSimpleOneStep", (module NaiveSimpleOneStep : Evaluator));*)
    ("environment", (module Environment : Evaluator))]
 
 let remove_recs = ref []
@@ -144,6 +145,7 @@ let () =
             if !printer = "tiny" then
               begin
                 let preamble = if !skipped then "=>* " else "=>  " in
+                if I.newlines state then print_string "\n";
                 print_string (string_of_tiny ~preamble (fixup (I.peek state') (I.tiny state')))
               end
             else

@@ -201,8 +201,6 @@ and to_real_ocaml x =
 
 exception UnknownNode of string
 
-(* FIXME: Limit of currying is f x y for now *)
-
 let allper = ref false
 
 (* Convert from a parsetree to a t, assuming we can *)
@@ -232,7 +230,7 @@ let rec of_real_ocaml_expression_desc = function
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, _)})]) ->
        Raise s
-| Pexp_apply
+| Pexp_apply (* 2 opearands *)
     ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
      [(Nolabel, l); (Nolabel, r)]) ->
        let e = of_real_ocaml l in
@@ -245,8 +243,10 @@ let rec of_real_ocaml_expression_desc = function
              Cmp (cmp_of_string cmp , e, e')
          | _ -> App (App (Var f, e), e') 
          end
-| Pexp_apply (e, [(Nolabel, e')]) ->
+| Pexp_apply (e, [(Nolabel, e')]) -> (* one operand *)
     App (of_real_ocaml e, of_real_ocaml e')
+| Pexp_apply (e, apps) -> (* more than two operands *)
+    of_real_ocaml_apps (List.rev (e::List.map snd apps))
 | Pexp_sequence (e, e') ->
     Seq (of_real_ocaml e, of_real_ocaml e')
 | Pexp_while (e, e') ->
@@ -267,6 +267,11 @@ let rec of_real_ocaml_expression_desc = function
   ->
     TryWith (of_real_ocaml e, (n, of_real_ocaml pc_rhs))
 | _ -> raise (UnknownNode "unknown node")
+
+and of_real_ocaml_apps = function
+  [] -> assert false
+| [x] -> of_real_ocaml x
+| h::t -> App (of_real_ocaml_apps t, of_real_ocaml h)
 
 and of_real_ocaml_record_entry = function
   ({txt = Longident.Lident n}, e) -> (n, ref (of_real_ocaml e))

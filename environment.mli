@@ -21,3 +21,5 @@ val last : unit -> Evalutils.last_op list
 
 val peek : t -> Evalutils.last_op list
 
+val newlines : t -> bool
+

@@ -269,3 +269,9 @@ let peek x =
 
 let last x = !last
 
+let newlines = function
+  Module (_::_::_) -> true
+| _ -> false
+
+
+
