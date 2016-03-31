@@ -66,6 +66,14 @@ let rec underline_redex e =
           else Let (n, underline_redex v, e')
     | LetRec (n, Fun f, e') ->
         LetRec (n, Fun f, underline_redex e')
+    | LetDef (k, v) ->
+        if is_value v
+          then failwith "letdef already a value"
+          else LetDef (k, underline_redex v)
+    | LetRecDef (k, v) ->
+        if is_value v
+          then failwith "lefrecdef already a value"
+          else LetRecDef (k, underline_redex v)
     | App (Fun f, x) ->
         if is_value x then underline e else App (Fun f, underline_redex x)
     | App (Var v, x) ->

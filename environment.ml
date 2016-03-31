@@ -37,7 +37,8 @@ let rec appears var = function
 | TryWith (e, (s, e')) -> appears var e || appears var e'
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
-| Int _ | Bool _ | Var _ | Float _ | Unit | Raise _ | OutChannel _ | InChannel _ | String _ -> false
+| Int _ | Bool _ | Var _ | Float _ | Unit
+| Raise _ | OutChannel _ | InChannel _ | String _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -216,7 +217,10 @@ and eval_first_non_value_item peek env r = function
     if is_value h
       then
         let env' =
-          env (* FIXME. If a let, add to the environment. *)
+          match h with
+            LetDef binding -> binding::env
+          | LetRecDef binding -> binding::env
+          | _ -> env
         in
           eval_first_non_value_item peek env' (h::r) t
       else List.rev r @ [eval peek env h] @ t

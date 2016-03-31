@@ -30,8 +30,8 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (string * t * t)     (* let x = e in e' *)
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
-| LetDef of (string * t)          (** let x = e *)
-| LetRecDef of (string * t)    (** let rec x = e *)
+| LetDef of (string * t)      (* let x = e *)
+| LetRecDef of (string * t)   (* let rec x = e *)
 | Fun of {fname : string; fexp : t; fper : bool}  (* fun x -> e FIXME: Do we
 need fper now we have __PER__? *)
 | App of (t * t)              (* e e' *)
