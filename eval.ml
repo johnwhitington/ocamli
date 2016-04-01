@@ -11,7 +11,6 @@ let width = ref 80
 let show_simple_arithmetic = ref true
 let debugtiny = ref false
 let debugpp = ref false
-let erase = ref false
 let prompt = ref false
 let step = ref 0.0
 
@@ -68,7 +67,6 @@ let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
    ("-silent", Arg.Set silent, " Print only what the program prints");
-   ("-erase", Arg.Set erase, " Erase after each but the last step");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
    ("-step", Arg.Set_float step, " Wait a number of seconds after each step but last");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
