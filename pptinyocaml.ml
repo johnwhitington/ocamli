@@ -45,6 +45,13 @@ let string_of_tag = function
   Underline -> "underline"
 | Bold -> "bold"
 
+let rec find_funs e =
+  match e with
+    Fun f ->
+      let more, e' = find_funs f.fexp in
+        (f.fname::more, e')
+  | _ -> ([], e)
+
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
@@ -112,38 +119,49 @@ let rec print_tiny_inner f isleft parent node =
       print_tiny_inner f false (Some node) e2;
       str rp
   | Let (v, e, e') ->
+      let morefuns, e = find_funs e in
       str lp;
       boldtxt "let ";
       str (Evalutils.unstar v);
-      txt " = ";
+      txt " ";
+      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+      txt "= ";
       print_tiny_inner f false (Some node) e;
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
   | LetRec (v, e, e') ->
+      let morefuns, e = find_funs e in
       str lp;
       boldstr "let rec";
       txt " ";
-      str v;
-      txt " = ";
+      str (Evalutils.unstar v);
+      txt " ";
+      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+      txt "= ";
       if not !simple then txt "\n";
       print_tiny_inner f false (Some node) e;
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
   | LetDef (v, e) ->
+      let morefuns, e = find_funs e in
       str lp;
       boldtxt "let ";
       str (Evalutils.unstar v);
-      txt " = ";
+      txt " ";
+      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+      txt "= ";
       print_tiny_inner f false (Some node) e;
       str rp
   | LetRecDef (v, e) ->
+      let morefuns, e = find_funs e in
       str lp;
-      boldstr "let rec";
+      boldstr "let rec ";
+      str (Evalutils.unstar v);
       txt " ";
-      str v;
-      txt " = ";
+      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+      txt "= ";
       if not !simple then txt "\n";
       print_tiny_inner f false (Some node) e;
       str rp

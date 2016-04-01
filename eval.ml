@@ -10,6 +10,7 @@ let printer = ref "tiny"
 let width = ref 80
 let show_simple_arithmetic = ref true
 let debugtiny = ref false
+let debugpp = ref false
 
 type mode =
   FromFile of string
@@ -72,6 +73,7 @@ let argspec =
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
    ("-show-pervasives", Arg.Set showpervasives, " Show Pervasives such as :=");
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
+   ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Set debug, " Debug (for OCAMLRUNPARAM=b)");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic")]
 
@@ -192,7 +194,6 @@ let () =
            flush stdout;
            exit 0
          end;
-      (* Print initial state, if not a value *)
       if not (!quiet || !silent) then
         begin
           if !printer = "tiny" then
@@ -201,6 +202,7 @@ let () =
             print_string (to_string (getexpr (I.tree state)));
           print_string "\n"
         end;
+      if !debugpp then exit 0;
       really_run true state
    in
      try
