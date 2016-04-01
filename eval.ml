@@ -11,6 +11,9 @@ let width = ref 80
 let show_simple_arithmetic = ref true
 let debugtiny = ref false
 let debugpp = ref false
+let erase = ref false
+let prompt = ref false
+let step = ref 0.0
 
 type mode =
   FromFile of string
@@ -65,6 +68,9 @@ let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
    ("-silent", Arg.Set silent, " Print only what the program prints");
+   ("-erase", Arg.Set erase, " Erase after each but the last step");
+   ("-prompt", Arg.Set prompt, " Require enter after each step but last");
+   ("-step", Arg.Set_float step, " Wait a number of seconds after each step but last");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-width", Arg.Set_int width, " Set the output width");
    ("-e", Arg.String settext, " Evaluate the program text given");
@@ -122,6 +128,13 @@ let show_this_pervasive_stage last =
 
 let skipped = ref false
 
+let wait_for_enter () =
+  ignore (input_line stdin)
+
+let print_string x =
+  print_string x;
+  flush stdout
+
 let () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>
@@ -134,6 +147,8 @@ let () =
        ) : Evaluator)
   in
   let rec really_run first state =
+    if !prompt then wait_for_enter ();
+    Unix.sleepf !step;
     match I.next state with
       Next state' ->
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
@@ -153,7 +168,7 @@ let () =
             else
               print_string (to_string (getexpr (I.tree state')));
             skipped := false;
-            print_string "\n"
+            if not !prompt then print_string "\n"
           end
         else
           skipped := true
@@ -200,7 +215,7 @@ let () =
             print_string (string_of_tiny ~preamble:"    " (fixup (I.peek state) (I.tiny state)))
           else
             print_string (to_string (getexpr (I.tree state)));
-          print_string "\n"
+          if not !prompt then print_string "\n"
         end;
       if !debugpp then exit 0;
       really_run true state
