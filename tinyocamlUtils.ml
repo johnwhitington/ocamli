@@ -41,6 +41,8 @@ let underline x =
 exception UnderlineValueUnderLets
 exception UnderlineValueUnderLets2
 
+let fastcurry = ref false
+
 let rec underline_redex e =
   try
     match e with
@@ -78,6 +80,8 @@ let rec underline_redex e =
         if is_value x then underline e else App (Fun f, underline_redex x)
     | App (Var v, x) ->
         if is_value x then underline e else App (Var v, underline_redex x)
+    | App (App (f, x), x') when !fastcurry ->
+        underline_curry f x x'
     | App (f, x) -> App (underline_redex f, x)
     | Seq (a, b) ->
         if is_value a then underline e else Seq (underline_redex a, b)
@@ -110,6 +114,13 @@ let rec underline_redex e =
   with
     UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
   | UnderlineValueUnderLets2 -> underline e
+
+(* Start with App (App (f, x), x'). Look for more apps in f... *)
+and underline_curry f x x' =
+  if not (is_value f) then App (App (underline_redex f, x), x') else
+  if not (is_value x) then App (App (f, underline_redex x), x') else
+  if not (is_value x') then App (App (f, x), underline_redex x') else
+  underline (App (App (f, x), x'))
 
 and underline_first_non_value = function
   [] -> []

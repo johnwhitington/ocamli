@@ -148,6 +148,7 @@ let () =
        ) : Evaluator)
   in
     I.fastcurry := !fastcurry;
+    TinyocamlUtils.fastcurry := !fastcurry;
   let rec really_run first state =
     if !prompt then wait_for_enter ();
     Unix.sleepf !step;

@@ -12,3 +12,5 @@ val strip_control : Tinyocaml.t -> Tinyocaml.t
 
 val remove_named_recursive_functions : bool -> string list -> Tinyocaml.t -> Tinyocaml.t
 
+val fastcurry : bool ref
+
