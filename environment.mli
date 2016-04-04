@@ -23,3 +23,5 @@ val peek : t -> Evalutils.last_op list
 
 val newlines : t -> bool
 
+val fastcurry : bool ref
+

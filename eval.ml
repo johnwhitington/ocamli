@@ -13,6 +13,7 @@ let debugtiny = ref false
 let debugpp = ref false
 let prompt = ref false
 let step = ref 0.0
+let fastcurry = ref false
 
 type mode =
   FromFile of string
@@ -48,6 +49,7 @@ module type Evaluator =
     val last : unit -> Evalutils.last_op list
     val peek : t -> Evalutils.last_op list
     val newlines : t -> bool
+    val fastcurry : bool ref
   end
 
 let implementations =
@@ -76,6 +78,7 @@ let argspec =
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
    ("-show-pervasives", Arg.Set showpervasives, " Show Pervasives such as :=");
+   ("-fast-curry", Arg.Set fastcurry, " Apply all curried arguments at once. ");
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Set debug, " Debug (for OCAMLRUNPARAM=b)");
@@ -144,6 +147,7 @@ let () =
          _ -> failwith "Unknown machine"
        ) : Evaluator)
   in
+    I.fastcurry := !fastcurry;
   let rec really_run first state =
     if !prompt then wait_for_enter ();
     Unix.sleepf !step;

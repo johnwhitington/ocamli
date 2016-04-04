@@ -10,6 +10,8 @@ let comp = TinyocamlUtils.comp
 
 let is_value = TinyocamlUtils.is_value
 
+let fastcurry = ref false
+
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true
@@ -153,6 +155,18 @@ let rec eval peek env expr =
     | exception Not_found ->
         eval peek env (App (List.assoc v Core.core, x))
     | _ -> failwith "Malformed app"
+    end
+(* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
+row, of course. We must a) recognise the pattern b) turn each non-value argument
+into a value and then c) apply all the arguments to the function at once. *)
+| App (App (f, x), x') when !fastcurry ->
+    if not (is_value f) then App (App (eval peek env f, x), x') else
+    if not (is_value x) then App (App (f, eval peek env x), x') else
+    if not (is_value x') then App (App (f, x), eval peek env x') else
+    begin match f with
+      Fun {fname = a; fexp = Fun {fname = b; fexp = e}} ->
+        Let (a, x, Let (b, x', e))
+    | _ -> failwith "bad fun / app pair"
     end
 | App (f, x) -> App (eval peek env f, x)
 | Seq (e, e') ->
