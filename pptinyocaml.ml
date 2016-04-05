@@ -6,6 +6,8 @@ let simple = ref false
 (* Width to format to *)
 let width = ref 80
 
+let fastcurry = ref false
+
 type assoc = L | R | N
 
 let rec assoc = function
@@ -174,13 +176,13 @@ let rec print_tiny_inner f isleft parent node =
       str rp
   | App (e, e') ->
       str lp;
-      print_tiny_inner f false (Some node) e;
+      print_tiny_inner f true (Some node) e;
       txt " ";
       print_tiny_inner f false (Some node) e';
       str rp
   | Seq (e, e') ->
       str lp;
-      print_tiny_inner f false (Some node) e;
+      print_tiny_inner f true (Some node) e;
       txt "; ";
       print_tiny_inner f false (Some node) e';
       str rp

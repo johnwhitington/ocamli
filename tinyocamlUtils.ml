@@ -80,8 +80,8 @@ let rec underline_redex e =
         if is_value x then underline e else App (Fun f, underline_redex x)
     | App (Var v, x) ->
         if is_value x then underline e else App (Var v, underline_redex x)
-    | App (App (f, x), x') when !fastcurry ->
-        underline_curry f x x'
+    | App (App _, _) when !fastcurry ->
+        underline_curry e
     | App (f, x) -> App (underline_redex f, x)
     | Seq (a, b) ->
         if is_value a then underline e else Seq (underline_redex a, b)
@@ -115,12 +115,24 @@ let rec underline_redex e =
     UnderlineValueUnderLets -> raise UnderlineValueUnderLets2
   | UnderlineValueUnderLets2 -> underline e
 
-(* Start with App (App (f, x), x'). Look for more apps in f... *)
-and underline_curry f x x' =
-  if not (is_value f) then App (App (underline_redex f, x), x') else
-  if not (is_value x) then App (App (f, underline_redex x), x') else
-  if not (is_value x') then App (App (f, x), underline_redex x') else
-  underline (App (App (f, x), x'))
+(* 1) Underline the first function which is not a value, if there is one, or else *)
+(* 2) Underline the first argument which is not a value, if there is one, or else *)
+(* 3) We are ready to apply, return None. *)
+and underline_curry_inner e =
+  match e with
+  | App (App _ as f', x') ->
+      begin match underline_curry_inner f' with
+        None -> None
+      | Some f'' -> Some (App (f'', x'))
+      end
+  | App (f, x) when not (is_value f) -> Some (App (underline_redex f, x))
+  | App (f, x) when not (is_value x) -> Some (App (f, underline_redex x))
+  | _ -> None
+
+and underline_curry e =
+  match underline_curry_inner e with
+    None -> underline e
+  | Some x -> x
 
 and underline_first_non_value = function
   [] -> []

@@ -159,15 +159,8 @@ let rec eval peek env expr =
 (* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
 row, of course. We must a) recognise the pattern b) turn each non-value argument
 into a value and then c) apply all the arguments to the function at once. *)
-| App (App (f, x), x') when !fastcurry ->
-    if not (is_value f) then App (App (eval peek env f, x), x') else
-    if not (is_value x) then App (App (f, eval peek env x), x') else
-    if not (is_value x') then App (App (f, x), eval peek env x') else
-    begin match f with
-      Fun {fname = a; fexp = Fun {fname = b; fexp = e}} ->
-        Let (a, x, Let (b, x', e))
-    | _ -> failwith "bad fun / app pair"
-    end
+| App (App _, _) when !fastcurry ->
+    eval_curry peek env expr
 | App (f, x) -> App (eval peek env f, x)
 | Seq (e, e') ->
     if is_value e then e' else Seq (eval peek env e, e')
@@ -224,6 +217,44 @@ into a value and then c) apply all the arguments to the function at once. *)
       Not_found -> failwith (Printf.sprintf "Var %s not found" v)
     end
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ -> failwith "already a value"
+
+(* Apply curried function appliation App (App (f, x), x') etc. *)
+(* 1. If the function 'f' is not a value, evaluate one step *)
+(* 2. If any argument is not a value, evaluate one step *)
+(* 3. Otherwise, we have a function and some value-arguments, so build the lets *)
+and eval_curry_inner peek env e =
+  match e with
+    App (App _ as f', x') ->
+      if is_value x' then
+        let f'', did = eval_curry_inner peek env f' in
+          (App (f'', x'), did)
+      else
+        (App (f', eval peek env x'), true)
+  | App (f, x) when not (is_value f) -> (App (eval peek env f, x), true)
+  | App (f, x) when not (is_value x) -> (App (f, eval peek env x), true)
+  | x -> (x, false)
+
+and eval_curry_findfun = function
+  App (App (e, _), _) -> eval_curry_findfun e
+| App (f, _) -> f
+| _ -> failwith "eval_curry_findfun"
+
+and eval_curry peek env e =
+  let x, did = eval_curry_inner peek env e in
+    if did then x else
+      eval_curry_makelets (eval_curry_findfun e) (eval_curry_collect_args [] e)
+
+and eval_curry_collect_args args = function
+    App (f, e) -> eval_curry_collect_args (e::args) f
+  | _ -> List.rev args
+
+and eval_curry_makelets f args =
+  match f, args with
+  | Fun {fname = a; fexp}, [x] ->
+      Let (a, x, fexp)
+  | Fun {fname = a; fexp}, x::xs ->
+      Let (a, x, eval_curry_makelets fexp xs)
+  | _ -> failwith "eval_curry_makelets"
 
 and eval_first_non_value_item peek env r = function
   [] -> List.rev r

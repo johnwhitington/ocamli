@@ -6,3 +6,5 @@ val simple : bool ref
 
 val width : int ref
 
+val fastcurry : bool ref
+
