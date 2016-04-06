@@ -14,6 +14,13 @@ let builtin_input_line = function
   [InChannel c] -> String (input_line c)
 | _ -> failwith "builtin_input_line"
 
+let builtin_int_of_string = function
+  [String s] ->
+    begin try Int (int_of_string s) with
+      e -> failwith "builtin_int_of_string" (* FIXME: A Proper exception here *)
+    end
+| _ -> failwith "builtin_int_of_string"
+
 (* The initial asterisk will be used to elide these variables when not showing
 pervasives in the output. When showing pervasives, we just remove the asterisk. *)
 let mk name f =
@@ -43,4 +50,5 @@ let core =
    "output_string", mk2 "output_string" builtin_output_string;
    "print_string", make_tiny "fun __PER__x -> output_string stdout __PER__x";
    "print_int", mk "print_int" builtin_print_int;
+   "int_of_string", mk "int_of_string" builtin_int_of_string;
    "input_line", mk "input_line" builtin_input_line]

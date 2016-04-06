@@ -35,8 +35,14 @@ let load_file f =
   close_in ic;
   Bytes.to_string s
 
+let env =
+  Compmisc.init_path false;
+  Compmisc.initial_env ()
+
 let ast code =
-  code |> Lexing.from_string |> Parse.implementation
+  let ast = code |> Lexing.from_string |> Parse.implementation in
+    let _, _ = Typemod.type_implementation "example.ml" "" "example" env ast in
+      ast
 
 module type Evaluator =
   sig
