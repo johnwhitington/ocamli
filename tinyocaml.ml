@@ -32,8 +32,7 @@ and t =
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
 | LetDef of (string * t)      (* let x = e *)
 | LetRecDef of (string * t)   (* let rec x = e *)
-| Fun of {fname : string; fexp : t; fper : bool}  (* fun x -> e FIXME: Do we
-need fper now we have __PER__? *)
+| Fun of {fname : string; fexp : t; fper : bool}  (* fun x -> e FIXME: Do we need fper now we have __PER__? *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -288,6 +287,18 @@ and of_real_ocaml_structure_item = function
       LetDef (txt, of_real_ocaml e) 
     else
       LetRecDef (txt, of_real_ocaml e)
+  (* let _ = 1 *)
+| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
+    if recflag = Nonrecursive then
+      LetDef ("_", of_real_ocaml e) 
+    else
+      LetRecDef ("_", of_real_ocaml e)
+  (* let () = ... *)
+| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_construct ({txt}, None)}; pvb_expr = e}])} ->
+    if recflag = Nonrecursive then
+      LetDef ("()", of_real_ocaml e) 
+    else
+      LetRecDef ("()", of_real_ocaml e)
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml ?(allpervasive = false) x =
