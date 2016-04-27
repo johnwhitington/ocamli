@@ -31,7 +31,7 @@ let rec appears var = function
     appears var e
 | LetRecDef (v, e) ->
     v <> var && appears var e
-| Fun {fname; fexp} -> fname <> var && appears var fexp
+| Fun (fname, fexp) -> fname <> var && appears var fexp
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
 | Field (e, n) -> appears var e
@@ -120,9 +120,8 @@ let rec eval peek env expr =
       if is_value e then
         if appears n e then
           match e with
-            Fun ({fname; fexp; fper} as f) ->
-              if fper then last := InsidePervasive::!last;
-              if fname = n then e else Fun {f with fexp = Let (n, v, fexp)}
+            Fun (fname, fexp) ->
+              if fname = n then e else Fun (fname, Let (n, v, fexp))
           | _ -> failwith "should not be here / eval Let (n, v, e)"
         else e
       else
@@ -130,7 +129,7 @@ let rec eval peek env expr =
     else
       Let (n, eval peek env v, e)
 | LetRec (n, (Fun r as f), e) ->
-    if r.fper || namestarred n then last := InsidePervasive::!last;
+    if namestarred n then last := InsidePervasive::!last;
     if is_value e then e else
       LetRec (n, f, eval peek ((n, f)::env) e)
 | LetRec _ -> failwith "malformed letrec"
@@ -142,15 +141,13 @@ let rec eval peek env expr =
     if is_value e
       then failwith "letrecdef already a value"
       else LetRecDef (v, eval peek ((v, e)::env) e)
-| App (Fun ({fname; fexp; fper} as f), x) ->
-    if fper then last := InsidePervasive::!last;
+| App (Fun ((fname, fexp) as f), x) ->
     if is_value x
       then Let (fname, x, fexp)
       else App (Fun f, eval peek env x)
 | App (Var v, x) ->
     begin match List.assoc v env with
-      Fun {fname; fexp; fper} ->
-        if fper then last := InsidePervasive::!last;
+      Fun (fname, fexp) ->
         if is_value x then Let (fname, x, fexp) else App (Var v, eval peek env x)
     | exception Not_found ->
         eval peek env (App (List.assoc v Core.core, x))
@@ -250,9 +247,9 @@ and eval_curry_collect_args args = function
 
 and eval_curry_makelets f args =
   match f, args with
-  | Fun {fname = a; fexp}, [x] ->
+  | Fun (a, fexp), [x] ->
       Let (a, x, fexp)
-  | Fun {fname = a; fexp}, x::xs ->
+  | Fun (a, fexp), x::xs ->
       Let (a, x, eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
 

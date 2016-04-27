@@ -32,7 +32,7 @@ and t =
 | LetRec of (string * t * t)  (* let rec x = e in e' *)
 | LetDef of (string * t)      (* let x = e *)
 | LetRecDef of (string * t)   (* let rec x = e *)
-| Fun of {fname : string; fexp : t; fper : bool}  (* fun x -> e FIXME: Do we need fper now we have __PER__? *)
+| Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -87,8 +87,8 @@ let rec to_string = function
     Printf.sprintf "LetDef (%s, %s)" x (to_string e)
 | LetRecDef (x, e) ->
     Printf.sprintf "LetRecDef (%s, %s)" x (to_string e)
-| Fun {fname; fexp; fper} ->
-    Printf.sprintf "Fun {fname = %s, fexp = %s, fper = %b}" fname (to_string fexp) fper
+| Fun (fname, fexp) ->
+    Printf.sprintf "Fun (%s, %s)" fname (to_string fexp)
 | App (e, e') ->
     Printf.sprintf "App (%s, %s)" (to_string e) (to_string e')
 | Seq (e, e') ->
@@ -160,7 +160,7 @@ let rec to_real_ocaml_expression_desc = function
       Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
   | Let (v, e, e') -> to_real_ocaml_let false v e e'
   | LetRec (v, e, e') -> to_real_ocaml_let true v e e'
-  | Fun {fname; fexp} ->
+  | Fun (fname, fexp) ->
       let pattern =
        {ppat_desc = Ppat_var {txt = fname; loc = Location.none};
         ppat_loc = Location.none;
@@ -200,8 +200,6 @@ and to_real_ocaml x =
 
 exception UnknownNode of string
 
-let allper = ref false
-
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -217,7 +215,7 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
 | Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, exp) ->
-    Fun {fname = txt; fexp = of_real_ocaml exp; fper = false || !allper}
+    Fun (txt, of_real_ocaml exp)
 | Pexp_let
     (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
        if r = Recursive
@@ -301,8 +299,7 @@ and of_real_ocaml_structure_item = function
       LetRecDef ("()", of_real_ocaml e)
 | _ -> failwith "unknown structure item"
 
-let of_real_ocaml ?(allpervasive = false) x =
-  allper := allpervasive;
+let of_real_ocaml x =
   Module (List.map of_real_ocaml_structure_item x)
 
 (* Recurse over the tinyocaml data type *)
@@ -317,7 +314,7 @@ let rec recurse f = function
 | LetRec (n, v, e) -> LetRec (n, f v, f e)
 | LetDef (n, v) -> LetDef (n, f v)
 | LetRecDef (n, v) -> LetRecDef (n, f v)
-| Fun ({fexp} as r) -> Fun {r with fexp = f fexp}
+| Fun (n, fexp) -> Fun (n, f fexp)
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)
 | While (a, b, c, d) -> While (f a, f b, f c, f d)

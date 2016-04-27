@@ -42,7 +42,7 @@ let logicaland =
   And (Bool true, Bool false)
 
 let mkfun fname fexp =
-  Fun {fname; fexp; fper = false}
+  Fun (fname, fexp)
 
 (* (fun x -> x + 1) 2 *)
 let funapp =

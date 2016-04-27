@@ -24,20 +24,15 @@ let builtin_int_of_string = function
 (* The initial asterisk will be used to elide these variables when not showing
 pervasives in the output. When showing pervasives, we just remove the asterisk. *)
 let mk name f =
-  Fun {fname = "__PER__x"; fexp = CallBuiltIn (name, [Var "__PER__x"], f); fper = true}
+  Fun ("__PER__x", CallBuiltIn (name, [Var "__PER__x"], f))
 
 let mk2 name f =
-  Fun {fname = "__PER__x";
-       fexp =
-         Fun {fname = "__PER__y";
-              fexp = CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f);
-              fper = true};
-       fper = true}
+  Fun ("__PER__x", Fun ("__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f)))
 
 (* String to tinyocaml *)
 let make_tiny s =
   match
-    s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml ~allpervasive:true
+    s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
   with
     Module [h] -> h
   | _ -> failwith "make_tiny"

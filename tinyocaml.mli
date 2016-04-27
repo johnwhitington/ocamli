@@ -32,9 +32,9 @@ and t =
 | If of (t * t * t)            (** if e then e1 else e2 *)
 | Let of (string * t * t)      (** let x = e in e' *)
 | LetRec of (string * t * t)   (** let rec x = e in e' *)
-| LetDef of (string * t)          (** let x = e *)
+| LetDef of (string * t)       (** let x = e *)
 | LetRecDef of (string * t)    (** let rec x = e *)
-| Fun of {fname : string; fexp : t; fper : bool} (** fun x -> e *)
+| Fun of (string * t)          (** fun x -> e *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)
 | While of (t * t * t * t)     (** while e do e' done (e, e', copy_of_e, copy_of_e') *)
@@ -62,7 +62,7 @@ exception UnknownNode of string
 
 (** Convert real ocaml to tiny ocaml, raising [UnknownNode] if not possible for
 the given program *)
-val of_real_ocaml : ?allpervasive:bool -> Parsetree.structure -> t
+val of_real_ocaml : Parsetree.structure -> t
 
 val recurse : (t -> t) -> t -> t
 

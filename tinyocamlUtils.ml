@@ -18,7 +18,7 @@ let rec substitute n v = function
 | Let (var, e, e') -> Let (var, substitute n v e, substitute n v e')
 | LetRec (var, e, e') when var = n -> LetRec (var, e, e')
 | LetRec (var, e, e') -> LetRec (var, substitute n v e, substitute n v e')
-| Fun ({fname; fexp} as r) -> if fname = n then Fun r else Fun {r with fexp = substitute n v fexp}
+| Fun (fname, fexp) -> if fname = n then Fun (fname, fexp) else Fun (fname, substitute n v fexp)
 | App (f, x) -> App (substitute n v f, substitute n v x)
 | x -> x
 

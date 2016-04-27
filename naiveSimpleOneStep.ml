@@ -36,11 +36,11 @@ let rec eval = function
     if is_value v
       then eval (substitute n v e)
       else eval (Let (n, eval v, e))
-| LetRec (n, Fun ({fname; fexp} as f), e) ->
-    eval (substitute n (Fun {f with fexp = LetRec (n, Fun f, fexp)}) e)
+| LetRec (n, (Fun (fname, fexp) as f), e) ->
+    eval (substitute n (Fun (fname, LetRec (n, f, fexp))) e)
 | LetRec (n, v, e) ->
     if is_value v then eval (substitute n v e) else eval (LetRec (n, eval v, e))
-| App (Fun {fname; fexp} as f, x) ->
+| App ((Fun (fname, fexp) as f), x) ->
     if is_value x then eval (substitute fname x fexp) else eval (App (f, eval x))
 | App (f, x) -> eval (App (eval f, x))
 | Var _ -> failwith "Expression not closed: unknown variable"

@@ -49,9 +49,9 @@ let string_of_tag = function
 
 let rec find_funs e =
   match e with
-    Fun f ->
-      let more, e' = find_funs f.fexp in
-        (f.fname::more, e')
+    Fun (fname, fexp) ->
+      let more, e' = find_funs fexp in
+        (fname::more, e')
   | _ -> ([], e)
 
 let rec print_tiny_inner f isleft parent node =
@@ -167,7 +167,7 @@ let rec print_tiny_inner f isleft parent node =
       if not !simple then txt "\n";
       print_tiny_inner f false (Some node) e;
       str rp
-  | Fun {fname; fexp} ->
+  | Fun (fname, fexp) ->
       str lp;
       boldtxt "fun ";
       str (Evalutils.unstar fname);
