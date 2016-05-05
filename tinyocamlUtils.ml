@@ -32,6 +32,7 @@ let rec is_value = function
 | Cons (e, e') when
     is_value e && is_value e' -> true
 | LetDef (_, e) | LetRecDef (_, e) when is_value e -> true
+| ExceptionDef _ -> true
 | _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")

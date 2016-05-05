@@ -1,0 +1,2 @@
+exception E of int
+

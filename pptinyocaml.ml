@@ -233,10 +233,20 @@ let rec print_tiny_inner f isleft parent node =
       txt " <- ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | Raise e ->
+  | Raise (e, payload) ->
       str lp;
-      boldtxt "raise ";
-      str e;
+      begin match payload with
+      | None ->
+          boldtxt "raise ";
+          str e;
+      | Some p ->
+          boldtxt "raise ";
+          str "(";
+          str e;
+          txt " ";
+          print_tiny_inner f false (Some node) p;
+          str ")"
+      end;
       str rp
   | TryWith (e, (s, e')) ->
       str lp;
@@ -246,6 +256,11 @@ let rec print_tiny_inner f isleft parent node =
       str s;
       txt " -> ";
       print_tiny_inner f false (Some node) e';
+      str rp
+  | ExceptionDef e ->
+      str lp;
+      boldtxt "exception ";
+      str e;
       str rp
 
 and print_record_entry f (n, {contents = e}) =

@@ -6,8 +6,6 @@ type op = Add | Sub | Mul | Div
 (** Comparison operators *)
 type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
-type ex = string (* for now *)
-
 type control = Underline | Bold
 
 type forkind = UpTo | DownTo
@@ -41,8 +39,9 @@ and t =
 | For of (string * t * forkind * t * t * t) (* for v = e [UpTo | DownTo] e' do e'' done, copy of e'' *)
 | Field of (t * string)        (** e.y *)
 | SetField of (t * string * t) (** e.y <- e' *)
-| Raise of ex                  (** raise e *)
+| Raise of (string * t option) (** raise e *)
 | TryWith of (t * patmatch)    (** try e with ... *)
+| ExceptionDef of string       (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Module of t list

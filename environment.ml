@@ -40,7 +40,7 @@ let rec appears var = function
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
 | Int _ | Bool _ | Var _ | Float _ | Unit
-| Raise _ | OutChannel _ | InChannel _ | String _ | Nil -> false
+| Raise _ | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -64,7 +64,7 @@ let lookup_int_var env v =
 (* The last operation to have been done *)
 let last = ref []
 
-exception ExceptionRaised of string
+exception ExceptionRaised of string * Tinyocaml.t option
 
 let rec append_values x y =
   match x with
@@ -203,12 +203,12 @@ into a value and then c) apply all the arguments to the function at once. *)
       else SetField (Record items, n, eval peek env e)
 | SetField (e, n, e') ->
     SetField (eval peek env e, n, e')
-| Raise e ->
-    raise (ExceptionRaised e)
+| Raise (e, payload) ->
+    raise (ExceptionRaised (e, payload))
 | TryWith (e, (s, e')) ->
     if is_value e then e else
       begin try eval peek env e with
-        ExceptionRaised x when x = s ->
+        ExceptionRaised (x, payload) when x = s ->
           e'
       end
 | CallBuiltIn (name, args, fn) ->
@@ -230,7 +230,7 @@ into a value and then c) apply all the arguments to the function at once. *)
     else if is_value x then Append (x, eval peek env y)
     else Append (eval peek env x, y)
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
-| InChannel _ | String _ | Nil -> failwith "already a value"
+| InChannel _ | String _ | Nil | ExceptionDef _ -> failwith "already a value"
 
 (* Apply curried function appliation App (App (f, x), x') etc. *)
 (* 1. If the function 'f' is not a value, evaluate one step *)
@@ -302,7 +302,7 @@ let next e =
       then IsValue
       else Next (collect_unused_lets (eval false Core.core e))
   with
-    ExceptionRaised s ->
+    ExceptionRaised (s, payload) ->
       Printf.printf "Exception reached top level: %s\n" s;
       IsValue
   | x ->

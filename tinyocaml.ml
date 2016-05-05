@@ -5,8 +5,6 @@ type op = Add | Sub | Mul | Div
 
 type cmp = LT | EQ | GT | EQLT | EQGT | NEQ
 
-type ex = string (* for now *)
-
 type control = Underline | Bold
 
 type forkind = UpTo | DownTo
@@ -39,10 +37,11 @@ and t =
 | For of (string * t * forkind * t * t * t) (* for e [UpTo | DownTo] e' do e'' done (copy of e'') *)
 | Field of (t * string)       (* e.y *)
 | SetField of (t * string * t)(* e.y <- e' *)
-| Raise of ex                 (** raise e *)
-| TryWith of (t * patmatch)   (** try e with ... *)
+| Raise of (string * t option)(* raise e *)
+| TryWith of (t * patmatch)   (* try e with ... *)
+| ExceptionDef of string      (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
-| CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
+| CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
 | Module of t list            (* Module *)
 | Cons of t * t               (* List *)
 | Nil                         (* [] *)
@@ -106,8 +105,12 @@ let rec to_string = function
     Printf.sprintf "Field (%s, %s)" (to_string e) y
 | SetField (e, y, e') ->
     Printf.sprintf "SetField (%s, %s, %s)" (to_string e) y (to_string e')
-| Raise ex ->
-    Printf.sprintf "Raise %s" (to_string_exn ex)
+| Raise (n, payload) ->
+    Printf.sprintf
+      "Raise %s (%s)"
+      n (match payload with None -> "" | Some x -> to_string x)
+| ExceptionDef e ->
+    Printf.sprintf "Exception %s" e
 | TryWith (t, pat) ->
     Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_patmatch pat)
 | Control (c, t) ->
@@ -125,9 +128,6 @@ let rec to_string = function
 and to_string_control = function
   Underline -> "Underline"
 | Bold -> "Bold"
-
-and to_string_exn = function
-  s -> s
 
 and to_string_patmatch (str, t) =
   Printf.sprintf "(%s, %s)" str (to_string t)
@@ -175,12 +175,13 @@ let rec of_real_ocaml_expression_desc = function
        if r = Recursive
          then LetRec (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
          else Let (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
-(* This is raise. We special case for now, since we don't have exception
- * definitions *)
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
-     [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, _)})]) ->
-       Raise s
+     [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
+         begin match payload with
+           None -> Raise (s, None)
+         | Some x -> Raise (s, Some (of_real_ocaml x))
+         end
 | Pexp_apply (* 2 opearands *)
     ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
      [(Nolabel, l); (Nolabel, r)]) ->
@@ -253,6 +254,9 @@ and of_real_ocaml_structure_item = function
       LetDef ("()", of_real_ocaml e) 
     else
       LetRecDef ("()", of_real_ocaml e)
+  (* exception E of ... *)
+| {pstr_desc = Pstr_exception {pext_name = {txt}}} ->
+    ExceptionDef txt
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml x =
@@ -283,6 +287,7 @@ let rec recurse f = function
 | SetField (a, n, b) -> SetField (f a, n, f b)
 | Raise s -> Raise s
 | TryWith (a, s) -> TryWith (f a, s)
+| ExceptionDef e -> ExceptionDef e
 | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
 | Module l -> Module (List.map f l)
 | Cons (e, e') -> Cons (recurse f e, recurse f e')
