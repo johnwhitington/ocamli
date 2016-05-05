@@ -16,7 +16,7 @@ let fastcurry = ref false
 let rec appears var = function
   Var v when v = var -> true
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
-| Seq (a, b) | Cons (a, b) -> appears var a || appears var b
+| Seq (a, b) | Cons (a, b) | Append (a, b) -> appears var a || appears var b
 | While (a, b, c, d) ->
     appears var a || appears var b || appears var c || appears var d
 | For (v, a, flag, b, c, copy) ->
@@ -65,6 +65,12 @@ let lookup_int_var env v =
 let last = ref []
 
 exception ExceptionRaised of string
+
+let rec append_values x y =
+  match x with
+    Nil -> y
+  | Cons (a, b) -> Cons (a, append_values b y)
+  | _ -> failwith "bad append"
 
 let rec eval peek env expr =
   match expr with
@@ -218,7 +224,13 @@ into a value and then c) apply all the arguments to the function at once. *)
       Cons (x, eval peek env y)
     else
       Cons (eval peek env x, y)
-| Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ | Nil -> failwith "already a value"
+| Append (x, y) ->
+    if is_value x && is_value y then
+      append_values x y
+    else if is_value x then Append (x, eval peek env y)
+    else Append (eval peek env x, y)
+| Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
+| InChannel _ | String _ | Nil -> failwith "already a value"
 
 (* Apply curried function appliation App (App (f, x), x') etc. *)
 (* 1. If the function 'f' is not a value, evaluate one step *)

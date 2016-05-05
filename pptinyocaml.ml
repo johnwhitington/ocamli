@@ -74,6 +74,10 @@ let rec print_tiny_inner f isleft parent node =
       print_tiny_inner f isleft parent x;
       str "::";
       print_tiny_inner f isleft parent y;
+  | Append (x, y) ->
+      print_tiny_inner f isleft parent x;
+      txt " @ ";
+      print_tiny_inner f isleft parent y
   | Nil ->
       str "[]"
   | Control (tag, x) ->

@@ -46,6 +46,7 @@ and t =
 | Module of t list            (* Module *)
 | Cons of t * t               (* List *)
 | Nil                         (* [] *)
+| Append of t * t             (* @ *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -118,6 +119,8 @@ let rec to_string = function
 | Cons (e, e') ->
     Printf.sprintf "Cons (%s, %s)" (to_string e) (to_string e')
 | Nil -> "[]"
+| Append (e, e') ->
+    Printf.sprintf "Append (%s, %s)" (to_string e) (to_string e')
 
 and to_string_control = function
   Underline -> "Underline"
@@ -186,6 +189,7 @@ let rec of_real_ocaml_expression_desc = function
          begin match f with
            "&&" -> And (e, e')
          | "||" -> Or (e, e')
+         | "@" -> Append (e, e')
          | ("*" | "+" | "-" | "/") as op  -> Op (op_of_string op, e, e')
          | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
              Cmp (cmp_of_string cmp , e, e')
@@ -282,4 +286,5 @@ let rec recurse f = function
 | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
 | Module l -> Module (List.map f l)
 | Cons (e, e') -> Cons (recurse f e, recurse f e')
+| Append (e, e') -> Append (recurse f e, recurse f e')
 

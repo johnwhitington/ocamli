@@ -48,6 +48,7 @@ and t =
 | Module of t list
 | Cons of t * t
 | Nil
+| Append of t * t
 
 val string_of_op : op -> string
 
