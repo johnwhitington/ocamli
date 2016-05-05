@@ -49,7 +49,6 @@ module type Evaluator =
     type t
     val init : Parsetree.structure -> t
     val next : t -> t Evalutils.result
-    val tree : t -> Parsetree.structure
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
     val last : unit -> Evalutils.last_op list
@@ -176,7 +175,8 @@ let () =
                 print_string (string_of_tiny ~preamble (fixup (I.peek state') (I.tiny state')))
               end
             else
-              print_string (to_string (getexpr (I.tree state')));
+              ();
+              (*print_string (to_string (getexpr (I.tree state')));*)
             skipped := false;
             if not !prompt then print_string "\n"
           end
@@ -192,7 +192,7 @@ let () =
               print_string (string_of_tiny ~preamble:"=>* " (fixup (I.peek state) (I.tiny state)))
             end
           else
-            print_string (to_string (getexpr (I.tree state)));
+            (); (*print_string (to_string (getexpr (I.tree state)));*)
           print_string "\n"
         end
     | Malformed s ->
@@ -224,7 +224,8 @@ let () =
           if !printer = "tiny" then
             print_string (string_of_tiny ~preamble:"    " (fixup (I.peek state) (I.tiny state)))
           else
-            print_string (to_string (getexpr (I.tree state)));
+            ();
+            (*print_string (to_string (getexpr (I.tree state)));*)
           if not !prompt then print_string "\n"
         end;
       if !debugpp then exit 0;

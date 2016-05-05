@@ -16,7 +16,7 @@ let fastcurry = ref false
 let rec appears var = function
   Var v when v = var -> true
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
-| Seq (a, b) -> appears var a || appears var b
+| Seq (a, b) | Cons (a, b) -> appears var a || appears var b
 | While (a, b, c, d) ->
     appears var a || appears var b || appears var c || appears var d
 | For (v, a, flag, b, c, copy) ->
@@ -40,7 +40,7 @@ let rec appears var = function
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
 | Int _ | Bool _ | Var _ | Float _ | Unit
-| Raise _ | OutChannel _ | InChannel _ | String _ -> false
+| Raise _ | OutChannel _ | InChannel _ | String _ | Nil -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -213,7 +213,12 @@ into a value and then c) apply all the arguments to the function at once. *)
     begin try List.assoc v env with
       Not_found -> failwith (Printf.sprintf "Var %s not found" v)
     end
-| Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ -> failwith "already a value"
+| Cons (x, y) ->
+    if is_value x then
+      Cons (x, eval peek env y)
+    else
+      Cons (eval peek env x, y)
+| Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _ | InChannel _ | String _ | Nil -> failwith "already a value"
 
 (* Apply curried function appliation App (App (f, x), x') etc. *)
 (* 1. If the function 'f' is not a value, evaluate one step *)
@@ -292,8 +297,8 @@ let next e =
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
       Malformed "environment"
 
-let tree x =
-  makestructure (Tinyocaml.to_real_ocaml x)
+(*let tree x =
+  makestructure (Tinyocaml.to_real_ocaml x)*)
 
 let to_string x =
   Pptinyocaml.to_string (TinyocamlUtils.underline_redex x) 

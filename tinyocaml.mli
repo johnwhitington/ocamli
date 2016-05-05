@@ -46,6 +46,8 @@ and t =
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Module of t list
+| Cons of t * t
+| Nil
 
 val string_of_op : op -> string
 
@@ -54,7 +56,7 @@ val string_of_cmp : cmp -> string
 val to_string : t -> string
 
 (** Convert tiny ocaml to real ocaml. *)
-val to_real_ocaml : t -> Parsetree.expression
+(*val to_real_ocaml : t -> Parsetree.expression*)
 
 (** Raised by [of_real_ocaml] if the program cannot be represented in tiny ocaml
 .*)

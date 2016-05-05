@@ -43,7 +43,9 @@ and t =
 | TryWith of (t * patmatch)   (** try e with ... *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
-| Module of t list
+| Module of t list            (* Module *)
+| Cons of t * t               (* List *)
+| Nil                         (* [] *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -113,6 +115,9 @@ let rec to_string = function
     Printf.sprintf "CallBuiltIn %s" name
 | Module l ->
     to_string_module l
+| Cons (e, e') ->
+    Printf.sprintf "Cons (%s, %s)" (to_string e) (to_string e')
+| Nil -> "[]"
 
 and to_string_control = function
   Underline -> "Underline"
@@ -141,63 +146,6 @@ and to_string_record l =
 and to_string_module l =
   "Module [" ^ List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^ "]"
 
-(* Convert from t to an OCaml parsetree. *)
-let rec to_real_ocaml_expression_desc = function
-  | Control (_, x) -> to_real_ocaml_expression_desc x
-  | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
-  | Int i -> Pexp_constant (Pconst_integer (string_of_int i, None)) 
-  | Bool b ->
-      Pexp_construct
-        ({txt = Longident.Lident (string_of_bool b); loc = Location.none},
-          None)
-  | Var v ->
-      Pexp_ident {txt = Longident.Lident v; loc = Location.none}
-  | Op (op, l, r) -> to_real_ocaml_apply l r (string_of_op op)
-  | And (l, r) -> to_real_ocaml_apply l r "&&"
-  | Or (l, r) -> to_real_ocaml_apply l r "||"
-  | Cmp (cmp, l, r) -> to_real_ocaml_apply l r (string_of_cmp cmp)
-  | If (e, e1, e2) ->
-      Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
-  | Let (v, e, e') -> to_real_ocaml_let false v e e'
-  | LetRec (v, e, e') -> to_real_ocaml_let true v e e'
-  | Fun (fname, fexp) ->
-      let pattern =
-       {ppat_desc = Ppat_var {txt = fname; loc = Location.none};
-        ppat_loc = Location.none;
-        ppat_attributes = []};
-      in
-        Pexp_fun (Nolabel, None, pattern, to_real_ocaml fexp)
-  | App (e, e') ->
-      Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
-  | Seq (e, e') ->
-      Pexp_sequence (to_real_ocaml e, to_real_ocaml e') 
-
-and to_real_ocaml_let r v e e' =
-  let binding =
-     {pvb_pat =
-       {ppat_desc = Ppat_var {txt = v; loc = Location.none};
-        ppat_loc = Location.none;
-        ppat_attributes = []};
-      pvb_expr = to_real_ocaml e;
-      pvb_attributes = [];
-      pvb_loc = Location.none};
-  in
-    Pexp_let
-      ((if r then Recursive else Nonrecursive), [binding], to_real_ocaml e')
-
-and to_real_ocaml_apply l r n =
-  let exprs =
-    [(Nolabel, to_real_ocaml l); (Nolabel, to_real_ocaml r)] in
-  let expr =
-    Evalutils.with_desc
-      (Pexp_ident
-         {txt = Longident.Lident n; loc = Location.none})
-  in
-    Pexp_apply (expr, exprs)
-
-and to_real_ocaml x =
-  Evalutils.with_desc (to_real_ocaml_expression_desc x)
-
 exception UnknownNode of string
 
 (* Convert from a parsetree to a t, assuming we can *)
@@ -208,6 +156,9 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_construct ({txt = Longident.Lident "()"}, _) -> Unit
 | Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
+| Pexp_construct ({txt = Longident.Lident "[]"}, _) -> Nil
+| Pexp_construct ({txt = Longident.Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
+    Cons (of_real_ocaml e, of_real_ocaml e')
 | Pexp_ident {txt = Longident.Lident "stdout"} -> OutChannel stdout
 | Pexp_ident {txt = Longident.Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Longident.Lident "stdin"} -> InChannel stdin
@@ -238,6 +189,7 @@ let rec of_real_ocaml_expression_desc = function
          | ("*" | "+" | "-" | "/") as op  -> Op (op_of_string op, e, e')
          | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
              Cmp (cmp_of_string cmp , e, e')
+
          | _ -> App (App (Var f, e), e') 
          end
 | Pexp_apply (e, [(Nolabel, e')]) -> (* one operand *)
@@ -304,7 +256,7 @@ let of_real_ocaml x =
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
-| (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit) as x -> x
+| (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
 | Op (op, a, b) -> Op (op, f a, f b)
 | And (a, b) -> And (f a, f b)
 | Or (a, b) -> Or (f a, f b)
@@ -329,4 +281,5 @@ let rec recurse f = function
 | TryWith (a, s) -> TryWith (f a, s)
 | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
 | Module l -> Module (List.map f l)
+| Cons (e, e') -> Cons (recurse f e, recurse f e')
 

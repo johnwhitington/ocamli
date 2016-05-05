@@ -70,6 +70,12 @@ let rec print_tiny_inner f isleft parent node =
              print_tiny_inner f false (Some node) x;
              if i < l - 1 then txt "\n\n")
           structure_items
+  | Cons (x, y) ->
+      print_tiny_inner f isleft parent x;
+      str "::";
+      print_tiny_inner f isleft parent y;
+  | Nil ->
+      str "[]"
   | Control (tag, x) ->
       Format.pp_open_tag f (string_of_tag tag);
       print_tiny_inner f isleft parent x;
