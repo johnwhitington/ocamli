@@ -41,7 +41,7 @@ and t =
 | SetField of (t * string * t) (** e.y <- e' *)
 | Raise of (string * t option) (** raise e *)
 | TryWith of (t * patmatch)    (** try e with ... *)
-| ExceptionDef of string       (** exception e of ... *)
+| ExceptionDef of (string * Parsetree.constructor_arguments) (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Module of t list
@@ -55,11 +55,7 @@ val string_of_cmp : cmp -> string
 
 val to_string : t -> string
 
-(** Convert tiny ocaml to real ocaml. *)
-(*val to_real_ocaml : t -> Parsetree.expression*)
-
-(** Raised by [of_real_ocaml] if the program cannot be represented in tiny ocaml
-.*)
+(** Raised by [of_real_ocaml] if the program cannot be represented in tiny ocaml.*)
 exception UnknownNode of string
 
 (** Convert real ocaml to tiny ocaml, raising [UnknownNode] if not possible for

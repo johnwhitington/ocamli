@@ -1,4 +1,6 @@
 open Tinyocaml
+open Asttypes
+open Parsetree
 
 (* If true, whole program printed on one line *)
 let simple = ref false
@@ -53,6 +55,14 @@ let rec find_funs e =
       let more, e' = find_funs fexp in
         (fname::more, e')
   | _ -> ([], e)
+
+let pp_constructor_arg pp = function
+  Pcstr_tuple coretypes ->
+    Pprintast.core_type pp
+      {ptyp_desc = Ptyp_tuple coretypes;
+       ptyp_loc = Location.none; 
+       ptyp_attributes = []}
+| _ -> failwith "unimplemented record type"
 
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
@@ -257,10 +267,16 @@ let rec print_tiny_inner f isleft parent node =
       txt " -> ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | ExceptionDef e ->
+  | ExceptionDef (e, t) ->
       str lp;
       boldtxt "exception ";
       str e;
+      begin match t with
+        Pcstr_tuple (_::_) ->
+          boldtxt " of ";
+          pp_constructor_arg f t
+      | _ -> ()
+      end;
       str rp
 
 and print_record_entry f (n, {contents = e}) =

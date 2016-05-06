@@ -39,7 +39,7 @@ and t =
 | SetField of (t * string * t)(* e.y <- e' *)
 | Raise of (string * t option)(* raise e *)
 | TryWith of (t * patmatch)   (* try e with ... *)
-| ExceptionDef of string      (* Exception definition. *)
+| ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
 | Module of t list            (* Module *)
@@ -60,6 +60,19 @@ let op_of_string = function
 let cmp_of_string = function
   "<" -> LT | "=" -> EQ | ">" -> GT | "<=" -> EQLT | ">=" -> EQGT | "<>" -> NEQ
 | _ -> failwith "cmp_of_string"
+
+let string_of_coretype t =
+  let f = Format.str_formatter in
+    Pprintast.core_type f t;
+    Format.flush_str_formatter ()
+
+let string_of_constructor_arg = function
+  Pcstr_tuple coretypes ->
+    string_of_coretype
+      {ptyp_desc = Ptyp_tuple coretypes;
+       ptyp_loc = Location.none; 
+       ptyp_attributes = []}
+| Pcstr_record _ -> "record"
 
 let rec to_string = function
   Unit -> "Unit"
@@ -109,8 +122,8 @@ let rec to_string = function
     Printf.sprintf
       "Raise %s (%s)"
       n (match payload with None -> "" | Some x -> to_string x)
-| ExceptionDef e ->
-    Printf.sprintf "Exception %s" e
+| ExceptionDef (e, args) ->
+    Printf.sprintf "Exception (%s, Some %s)" e (string_of_constructor_arg args)
 | TryWith (t, pat) ->
     Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_patmatch pat)
 | Control (c, t) ->
@@ -255,8 +268,8 @@ and of_real_ocaml_structure_item = function
     else
       LetRecDef ("()", of_real_ocaml e)
   (* exception E of ... *)
-| {pstr_desc = Pstr_exception {pext_name = {txt}}} ->
-    ExceptionDef txt
+| {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
+    ExceptionDef (txt, t) 
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml x =
