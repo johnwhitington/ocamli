@@ -1,4 +1,5 @@
 exception E of int * string
 
-let x = 1 + 2 * 3
+let x =
+  raise (E (1, "foo"))
 

@@ -29,6 +29,8 @@ let rec is_value = function
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | Module items when
     List.for_all is_value items -> true
+| Tuple items when
+    List.for_all is_value items -> true
 | Cons (e, e') when
     is_value e && is_value e' -> true
 | LetDef (_, e) | LetRecDef (_, e) when is_value e -> true
@@ -112,6 +114,10 @@ let rec underline_redex e =
         if List.for_all is_value ls
           then failwith "module already a value"
           else Module (underline_first_non_value ls)
+    | Tuple ls ->
+        if List.for_all is_value ls
+          then failwith "tuple already a value"
+          else Tuple (underline_first_non_value ls)
     | Cons (x, y) ->
         if is_value x then Cons (x, underline_redex y) else Cons (underline x, y)
     | _ ->

@@ -46,6 +46,7 @@ and t =
 | Cons of t * t               (* List *)
 | Nil                         (* [] *)
 | Append of t * t             (* @ *)
+| Tuple of t list             (* (1, 2) *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -137,6 +138,10 @@ let rec to_string = function
 | Nil -> "[]"
 | Append (e, e') ->
     Printf.sprintf "Append (%s, %s)" (to_string e) (to_string e')
+| Tuple xs ->
+    Printf.sprintf
+      "Tuple (%s)"
+      (List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ ", ") xs))
 
 and to_string_control = function
   Underline -> "Underline"
@@ -233,6 +238,8 @@ let rec of_real_ocaml_expression_desc = function
     (e, [{pc_lhs = {ppat_desc = Ppat_construct ({txt = Longident.Lident n}, _)}; pc_rhs}])
   ->
     TryWith (of_real_ocaml e, (n, of_real_ocaml pc_rhs))
+| Pexp_tuple xs ->
+    Tuple (List.map of_real_ocaml xs)
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_apps = function
@@ -305,4 +312,5 @@ let rec recurse f = function
 | Module l -> Module (List.map f l)
 | Cons (e, e') -> Cons (recurse f e, recurse f e')
 | Append (e, e') -> Append (recurse f e, recurse f e')
+| Tuple l -> Tuple (List.map f l)
 

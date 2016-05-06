@@ -44,10 +44,11 @@ and t =
 | ExceptionDef of (string * Parsetree.constructor_arguments) (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
-| Module of t list
-| Cons of t * t
-| Nil
-| Append of t * t
+| Module of t list             (** Module *)
+| Cons of t * t                (** :: *)
+| Nil                          (** [] *)
+| Append of t * t              (** @ *)
+| Tuple of t list              (** (a, b) *)
 
 val string_of_op : op -> string
 

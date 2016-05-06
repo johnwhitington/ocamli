@@ -29,7 +29,7 @@ let prec = function
 | SetField _ -> 55
 | If _ -> 50
 | Fun _ | Let _ | LetRec _ -> 10
-| Module _ -> 0 (* FIXME *)
+| Module _ -> 0 | Tuple _ -> 0 (* FIXME *)
 | _ -> max_int
 
 let parens node parent isleft =
@@ -80,6 +80,15 @@ let rec print_tiny_inner f isleft parent node =
              print_tiny_inner f false (Some node) x;
              if i < l - 1 then txt "\n\n")
           structure_items
+  | Tuple xs ->
+      let l = List.length xs in
+      str "(";
+      List.iteri
+        (fun i x ->
+           print_tiny_inner f false (Some node) x;
+           if i < l - 1 then txt ", ")
+        xs;
+      str ")"
   | Cons (x, y) ->
       print_tiny_inner f isleft parent x;
       str "::";

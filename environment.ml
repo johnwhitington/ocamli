@@ -39,6 +39,7 @@ let rec appears var = function
 | TryWith (e, (s, e')) -> appears var e || appears var e'
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
+| Tuple ls -> List.exists (appears var) ls
 | Int _ | Bool _ | Var _ | Float _ | Unit
 | Raise _ | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
@@ -195,6 +196,8 @@ into a value and then c) apply all the arguments to the function at once. *)
     Record items
 | Module ls ->
     Module (eval_first_non_value_item peek env [] ls)
+| Tuple ls ->
+    Tuple (eval_first_non_value_item peek env [] ls)
 | Field (Record items, n) -> !(List.assoc n items)
 | Field (e, n) -> Field (eval peek env e, n)
 | SetField (Record items, n, e) ->
