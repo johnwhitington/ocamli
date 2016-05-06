@@ -157,7 +157,7 @@ let rec eval peek env expr =
       Fun (fname, fexp) ->
         if is_value x then Let (fname, x, fexp) else App (Var v, eval peek env x)
     | exception Not_found ->
-        eval peek env (App (List.assoc v Core.core, x))
+        eval peek env (App (List.assoc v Core.pervasives, x))
     | _ -> failwith "Malformed app"
     end
 (* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
@@ -303,7 +303,7 @@ let next e =
   try
     if is_value e
       then IsValue
-      else Next (collect_unused_lets (eval false Core.core e))
+      else Next (collect_unused_lets (eval false Core.pervasives e))
   with
     ExceptionRaised (s, payload) ->
       Printf.printf "Exception reached top level: %s\n" s;
@@ -324,7 +324,7 @@ let peek x =
   if is_value x then [] else
     let t = !last in
       last := [];
-      ignore (eval true Core.core x);
+      ignore (eval true Core.pervasives x);
       let r = !last in
         last := t;
         r
