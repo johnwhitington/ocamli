@@ -87,7 +87,8 @@ let argspec =
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Set debug, " Debug (for OCAMLRUNPARAM=b)");
-   ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic")]
+   ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
+   ("-no-peek", Arg.Clear Environment.dopeek, " Avoid peeking for debug")]
 
 let load_code () =
   match !source with
@@ -237,7 +238,12 @@ let () =
            None -> failwith "No source code provided"
          | Some x -> run x
      with
-       e ->
+       Environment.ExceptionRaised(n, payload) ->
+         let expstr =
+           match payload with None -> "" | Some p -> Tinyocaml.to_string p
+         in
+           prerr_string (Printf.sprintf "Exception: %s %s.\n" n expstr)
+     | e ->
          if !debug then raise e else Printf.eprintf "Error: [%s]\n" (Printexc.to_string e);
          exit 1
 

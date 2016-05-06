@@ -1,6 +1,8 @@
 (* The type of the internal state of the evaluator *)
 type t
 
+exception ExceptionRaised of string * Tinyocaml.t option
+
 (* Initialise the evaluator with an OCaml ast *)
 val init : Parsetree.structure -> t
 
@@ -24,4 +26,6 @@ val peek : t -> Evalutils.last_op list
 val newlines : t -> bool
 
 val fastcurry : bool ref
+
+val dopeek : bool ref
 

@@ -12,6 +12,8 @@ let is_value = TinyocamlUtils.is_value
 
 let fastcurry = ref false
 
+let dopeek = ref true
+
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true
@@ -158,7 +160,7 @@ let rec eval peek env expr =
         if is_value x then Let (fname, x, fexp) else App (Var v, eval peek env x)
     | exception Not_found ->
         eval peek env (App (List.assoc v Core.pervasives, x))
-    | _ -> failwith "Malformed app"
+    | _ -> failwith (Printf.sprintf "Malformed app (%s) (%s)" v (Tinyocaml.to_string x))
     end
 (* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
 row, of course. We must a) recognise the pattern b) turn each non-value argument
@@ -321,7 +323,7 @@ let to_string x =
 let tiny x = TinyocamlUtils.underline_redex x
 
 let peek x =
-  if is_value x then [] else
+  if is_value x || not !dopeek then [] else
     let t = !last in
       last := [];
       ignore (eval true Core.pervasives x);
