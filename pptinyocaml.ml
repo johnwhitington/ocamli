@@ -153,7 +153,7 @@ let rec print_tiny_inner f isleft parent node =
       let morefuns, e = find_funs e in
       str lp;
       boldtxt "let ";
-      str (Evalutils.unstar v);
+      print_pattern f false (Some node) v;
       txt " ";
       List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
       txt "= ";
@@ -166,7 +166,7 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       boldstr "let rec";
       txt " ";
-      str (Evalutils.unstar v);
+      print_pattern f false (Some node) v;
       txt " ";
       List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
       txt "= ";
@@ -179,7 +179,7 @@ let rec print_tiny_inner f isleft parent node =
       let morefuns, e = find_funs e in
       str lp;
       boldtxt "let ";
-      str (Evalutils.unstar v);
+      print_pattern f false (Some node) v;
       txt " ";
       List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
       txt "= ";
@@ -189,7 +189,7 @@ let rec print_tiny_inner f isleft parent node =
       let morefuns, e = find_funs e in
       str lp;
       boldstr "let rec ";
-      str (Evalutils.unstar v);
+      print_pattern f false (Some node) v;
       txt " ";
       List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
       txt "= ";
@@ -287,6 +287,16 @@ let rec print_tiny_inner f isleft parent node =
       | _ -> ()
       end;
       str rp
+
+and print_pattern f isleft parent pat =
+  let str = Format.fprintf f "%s" in
+    match pat with
+      PatAny ->
+        str "_"
+    | PatVar v ->
+        str (Evalutils.unstar v)
+    | PatTuple _ ->
+        str "FIXMEtuple"
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

@@ -9,7 +9,16 @@ type control = Underline | Bold
 
 type forkind = UpTo | DownTo
 
-type patmatch = string * t (* for now *)
+type pattern =
+  PatAny
+| PatVar of string
+| PatTuple of pattern list
+
+and case = pattern * t * t (* guard, rhs *)
+
+and patmatch = case list
+
+and expatmatch = string * t (* for now *)
 
 and t =
   Unit                        (* () *)
@@ -26,10 +35,10 @@ and t =
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t)           (* if e then e1 else e2 *)
-| Let of (string * t * t)     (* let x = e in e' *)
-| LetRec of (string * t * t)  (* let rec x = e in e' *)
-| LetDef of (string * t)      (* let x = e *)
-| LetRecDef of (string * t)   (* let rec x = e *)
+| Let of (pattern * t * t)     (* let x = e in e' *)
+| LetRec of (pattern * t * t)  (* let rec x = e in e' *)
+| LetDef of (pattern * t)      (* let x = e *)
+| LetRecDef of (pattern * t)   (* let rec x = e *)
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
@@ -38,7 +47,8 @@ and t =
 | Field of (t * string)       (* e.y *)
 | SetField of (t * string * t)(* e.y <- e' *)
 | Raise of (string * t option)(* raise e *)
-| TryWith of (t * patmatch)   (* try e with ... *)
+| Match of (t * patmatch)     (* match e with ... *)
+| TryWith of (t * expatmatch)   (* try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
@@ -96,13 +106,13 @@ let rec to_string = function
 | If (a, b, c) ->
     Printf.sprintf "If (%s, %s, %s)" (to_string a) (to_string b) (to_string c)
 | Let (x, e, e') ->
-    Printf.sprintf "Let (%s, %s, %s)" x (to_string e) (to_string e')
+    Printf.sprintf "Let (%s, %s, %s)" (to_string_pat x) (to_string e) (to_string e')
 | LetRec (x, e, e') ->
-    Printf.sprintf "LetRec (%s, %s, %s)" x (to_string e) (to_string e')
+    Printf.sprintf "LetRec (%s, %s, %s)" (to_string_pat x) (to_string e) (to_string e')
 | LetDef (x, e) ->
-    Printf.sprintf "LetDef (%s, %s)" x (to_string e)
+    Printf.sprintf "LetDef (%s, %s)" (to_string_pat x) (to_string e)
 | LetRecDef (x, e) ->
-    Printf.sprintf "LetRecDef (%s, %s)" x (to_string e)
+    Printf.sprintf "LetRecDef (%s, %s)" (to_string_pat x) (to_string e)
 | Fun (fname, fexp) ->
     Printf.sprintf "Fun (%s, %s)" fname (to_string fexp)
 | App (e, e') ->
@@ -142,6 +152,11 @@ let rec to_string = function
     Printf.sprintf
       "Tuple (%s)"
       (List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ ", ") xs))
+
+and to_string_pat = function
+  PatAny -> "_"
+| PatVar v -> v
+| PatTuple _ -> "tuple"
 
 and to_string_control = function
   Underline -> "Underline"
@@ -191,8 +206,8 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_let
     (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
        if r = Recursive
-         then LetRec (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
-         else Let (txt, of_real_ocaml pvb_expr, of_real_ocaml e')
+         then LetRec (PatVar txt, of_real_ocaml pvb_expr, of_real_ocaml e')
+         else Let (PatVar txt, of_real_ocaml pvb_expr, of_real_ocaml e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
@@ -259,21 +274,24 @@ and of_real_ocaml_structure_item = function
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr = e}])} ->
     if recflag = Nonrecursive then
-      LetDef (txt, of_real_ocaml e) 
+      LetDef (PatVar txt, of_real_ocaml e) 
     else
-      LetRecDef (txt, of_real_ocaml e)
+      LetRecDef (PatVar txt, of_real_ocaml e)
   (* let _ = 1 *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
     if recflag = Nonrecursive then
-      LetDef ("_", of_real_ocaml e) 
+      LetDef (PatVar "_", of_real_ocaml e) 
     else
-      LetRecDef ("_", of_real_ocaml e)
+      LetRecDef (PatVar "_", of_real_ocaml e)
   (* let () = ... *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_construct ({txt}, None)}; pvb_expr = e}])} ->
     if recflag = Nonrecursive then
-      LetDef ("()", of_real_ocaml e) 
+      LetDef (PatVar "()", of_real_ocaml e) 
     else
-      LetRecDef ("()", of_real_ocaml e)
+      LetRecDef (PatVar "()", of_real_ocaml e)
+  (* let a, b, c = ... *)
+| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_tuple items}; pvb_expr = e}])} ->
+    failwith "found a tuple"
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
     ExceptionDef (txt, t) 

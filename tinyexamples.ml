@@ -50,13 +50,13 @@ let funapp =
 
 (* Function *)
 let func =
-  Let ("f", mkfun "x" (Op (Add, Var "x", Int 1)), App (Var "f", Int 6))
+  Let (PatVar "f", mkfun "x" (Op (Add, Var "x", Int 1)), App (Var "f", Int 6))
 
 (* let x = 1 in let x = 2 in let y = 3 in x + y *)
 let lets =
-  Let ("x", Int 1,
-    Let ("x", Int 2,
-      Let ("y", Int 3, Op (Add, Var "x", Var "y"))))
+  Let (PatVar "x", Int 1,
+    Let (PatVar "x", Int 2,
+      Let (PatVar "y", Int 3, Op (Add, Var "x", Var "y"))))
 
 (* let rec factorial x =
      if x = 1 then 1 else x * factorial (x - 1)
@@ -64,7 +64,7 @@ let lets =
      factorial 4 *)
 let factorial =
   LetRec
-    ("factorial",
+    (PatVar "factorial",
      mkfun "x"
        (If (Cmp (EQ, Var "x", Int 1),
            Var "x",

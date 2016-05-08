@@ -14,10 +14,10 @@ let rec substitute n v = function
 | Or (a, b) -> Or (substitute n v a, substitute n v b)
 | Cmp (cmp, a, b) -> Cmp (cmp, substitute n v a, substitute n v b)
 | If (e, e1, e2) -> If (substitute n v e, substitute n v e1, substitute n v e2)
-| Let (var, e, e') when var = n -> Let (var, substitute n v e, e')
-| Let (var, e, e') -> Let (var, substitute n v e, substitute n v e')
-| LetRec (var, e, e') when var = n -> LetRec (var, e, e')
-| LetRec (var, e, e') -> LetRec (var, substitute n v e, substitute n v e')
+| Let (PatVar var, e, e') when var = n -> Let (PatVar var, substitute n v e, e')
+| Let (PatVar var, e, e') -> Let (PatVar var, substitute n v e, substitute n v e')
+| LetRec (PatVar var, e, e') when var = n -> LetRec (PatVar var, e, e')
+| LetRec (PatVar var, e, e') -> LetRec (PatVar var, substitute n v e, substitute n v e')
 | Fun (fname, fexp) -> if fname = n then Fun (fname, fexp) else Fun (fname, substitute n v fexp)
 | App (f, x) -> App (substitute n v f, substitute n v x)
 | x -> x
@@ -166,8 +166,8 @@ let rec strip_control = function
 | x -> Tinyocaml.recurse strip_control x
 
 let rec remove_named_recursive_functions all fns = function
-  LetRec (n, v, e) ->
+  LetRec (PatVar n, v, e) ->
     let r = Tinyocaml.recurse (remove_named_recursive_functions all fns) e in
-      if all || List.mem n fns then r else LetRec (n, v, r)
+      if all || List.mem n fns then r else LetRec (PatVar n, v, r)
 | x -> Tinyocaml.recurse (remove_named_recursive_functions all fns) x
 

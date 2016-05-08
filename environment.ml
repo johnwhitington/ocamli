@@ -25,13 +25,13 @@ let rec appears var = function
     appears var a || appears var b || appears var c || appears var copy
 | If (a, b, c) -> appears var a || appears var b || appears var c
 | Control (_, x) -> appears var x
-| Let (v, e, e') ->
+| Let (PatVar v, e, e') ->
     appears var e || v <> var && appears var e'
-| LetRec (v, e, e') ->
+| LetRec (PatVar v, e, e') ->
     v <> var && (appears var e || appears var e')
-| LetDef (v, e) ->
+| LetDef (PatVar v, e) ->
     appears var e
-| LetRecDef (v, e) ->
+| LetRecDef (PatVar v, e) ->
     v <> var && appears var e
 | Fun (fname, fexp) -> fname <> var && appears var fexp
 | Record items ->
@@ -48,16 +48,16 @@ let rec appears var = function
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 let rec collect_unused_lets = function
-  Let (n, v, e) ->
+  Let (PatVar n, v, e) ->
     (* Must be a value: side effects *)
     if is_value v && not (appears n e)
       then collect_unused_lets e
-      else Let (n, collect_unused_lets v, collect_unused_lets e)
-| LetRec (n, v, e) ->
+      else Let (PatVar n, collect_unused_lets v, collect_unused_lets e)
+| LetRec (PatVar n, v, e) ->
     (* Must be a value: side effects *)
     if is_value v && not (appears n e)
       then collect_unused_lets e
-      else LetRec (n, collect_unused_lets v, collect_unused_lets e)
+      else LetRec (PatVar n, collect_unused_lets v, collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
 (* Evaluate one step, assuming not already a value *)
@@ -118,7 +118,7 @@ let rec eval peek env expr =
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
-| Let (n, v, e) ->
+| Let (PatVar n, v, e) ->
     (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
     to the environment, retain, and continue search for redex.  If v not a
     value, evaluate its rhs one step *)
@@ -132,40 +132,37 @@ let rec eval peek env expr =
         if appears n e then
           match e with
             Fun (fname, fexp) ->
-              if fname = n then e else Fun (fname, Let (n, v, fexp))
+              if fname = n then e else Fun (fname, Let (PatVar n, v, fexp))
           | _ -> failwith "should not be here / eval Let (n, v, e)"
         else e
       else
-        Let (n, v, eval peek ((n, v)::env) e)
+        Let (PatVar n, v, eval peek ((n, v)::env) e)
     else
-      Let (n, eval peek env v, e)
-| LetRec (n, (Fun r as f), e) ->
+      Let (PatVar n, eval peek env v, e)
+| LetRec (PatVar n, (Fun r as f), e) ->
     if namestarred n then last := InsidePervasive::!last;
     if is_value e then e else
-      LetRec (n, f, eval peek ((n, f)::env) e)
+      LetRec (PatVar n, f, eval peek ((n, f)::env) e)
 | LetRec _ -> failwith "malformed letrec"
-| LetDef (v, e) ->
+| LetDef (PatVar v, e) ->
     if is_value e
       then failwith "letdef already a value"
-      else LetDef (v, eval peek env e)
-| LetRecDef (v, e) ->
+      else LetDef (PatVar v, eval peek env e)
+| LetRecDef (PatVar v, e) ->
     if is_value e
       then failwith "letrecdef already a value"
-      else LetRecDef (v, eval peek ((v, e)::env) e)
+      else LetRecDef (PatVar v, eval peek ((v, e)::env) e)
 | App (Fun ((fname, fexp) as f), x) ->
     if is_value x
-      then Let (fname, x, fexp)
+      then Let (PatVar fname, x, fexp)
       else App (Fun f, eval peek env x)
 | App (Var v, x) ->
     begin match List.assoc v env with
       Fun (fname, fexp) ->
         if is_value x then
-          Let (fname, x, fexp)
+          Let (PatVar fname, x, fexp)
         else
           App (Var v, eval peek env x)
-    (*| exception Not_found ->
-        print_string "LOOKUP_PER";
-        eval peek env (App (List.assoc v Core.pervasives, x))*)
     | _ -> failwith (Printf.sprintf "Malformed app (%s) (%s)" v (Tinyocaml.to_string x))
     end
 (* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
@@ -282,9 +279,9 @@ and eval_curry_collect_args args = function
 and eval_curry_makelets f args =
   match f, args with
   | Fun (a, fexp), [x] ->
-      Let (a, x, fexp)
+      Let (PatVar a, x, fexp)
   | Fun (a, fexp), x::xs ->
-      Let (a, x, eval_curry_makelets fexp xs)
+      Let (PatVar a, x, eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
 
 and eval_first_non_value_item peek env r = function
@@ -294,8 +291,8 @@ and eval_first_non_value_item peek env r = function
       then
         let env' =
           match h with
-            LetDef binding -> binding::env
-          | LetRecDef binding -> binding::env
+            LetDef (PatVar x, y) -> (x, y)::env
+          | LetRecDef (PatVar x, y) -> (x, y)::env
           | _ -> env
         in
           eval_first_non_value_item peek env' (h::r) t
