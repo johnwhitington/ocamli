@@ -240,7 +240,7 @@ let () =
      with
        Environment.ExceptionRaised(n, payload) ->
          let expstr =
-           match payload with None -> "" | Some p -> Tinyocaml.to_string p
+           match payload with None -> "" | Some p -> Pptinyocaml.to_string p
          in
            prerr_string (Printf.sprintf "Exception: %s %s.\n" n expstr)
      | e ->

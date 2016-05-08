@@ -1,2 +1,4 @@
-print_string "Hello, World!\n"
+output_string stdout "foo"
+
+(*print_string "Hello, World!\n"*)
 

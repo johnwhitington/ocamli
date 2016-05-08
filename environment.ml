@@ -42,8 +42,10 @@ let rec appears var = function
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Module ls -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
+| Raise (_, Some x) -> appears var x
+| Raise (_, None) -> false
 | Int _ | Bool _ | Var _ | Float _ | Unit
-| Raise _ | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
+| OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 let rec collect_unused_lets = function
   Let (n, v, e) ->
@@ -157,9 +159,13 @@ let rec eval peek env expr =
 | App (Var v, x) ->
     begin match List.assoc v env with
       Fun (fname, fexp) ->
-        if is_value x then Let (fname, x, fexp) else App (Var v, eval peek env x)
-    | exception Not_found ->
-        eval peek env (App (List.assoc v Core.pervasives, x))
+        if is_value x then
+          Let (fname, x, fexp)
+        else
+          App (Var v, eval peek env x)
+    (*| exception Not_found ->
+        print_string "LOOKUP_PER";
+        eval peek env (App (List.assoc v Core.pervasives, x))*)
     | _ -> failwith (Printf.sprintf "Malformed app (%s) (%s)" v (Tinyocaml.to_string x))
     end
 (* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
@@ -209,7 +215,13 @@ into a value and then c) apply all the arguments to the function at once. *)
 | SetField (e, n, e') ->
     SetField (eval peek env e, n, e')
 | Raise (e, payload) ->
-    raise (ExceptionRaised (e, payload))
+    begin match payload with
+      Some x when not (is_value x) ->
+        Raise (e, Some (eval peek env x))
+    | _ ->
+      (* FIXME: Need to include info about the last stage here, since it gets elided *)
+      raise (ExceptionRaised (e, payload))
+    end
 | TryWith (e, (s, e')) ->
     if is_value e then e else
       begin try eval peek env e with
@@ -307,9 +319,7 @@ let next e =
       then IsValue
       else Next (collect_unused_lets (eval false Core.pervasives e))
   with
-    ExceptionRaised (s, payload) ->
-      Printf.printf "Exception reached top level: %s\n" s;
-      IsValue
+    ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
       Malformed "environment"

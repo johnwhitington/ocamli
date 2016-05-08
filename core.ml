@@ -31,7 +31,7 @@ let mk2 name f =
 
 (* String to tinyocaml *)
 let make_tiny s =
-  match
+  let (r, r') = match
     s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
   with
     Module [LetDef (n, x)]
@@ -39,6 +39,9 @@ let make_tiny s =
   | Module [ExceptionDef (n, _) as h] -> (n, h)
   | exception e -> print_string s; print_newline (); raise e
   | _ -> failwith "make_tiny"
+ in
+   (*Printf.printf "%s, %s\n" r (Tinyocaml.to_string r');*)
+   (r, r')
 
 (* This contains pure ocaml functions for things in Pervasives. FIXME:
 Autogenerate these by reading pervasives.ml(i) from the OCaml installation. *)
