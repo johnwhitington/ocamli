@@ -24,14 +24,14 @@ let builtin_int_of_string = function
 (* The initial asterisk will be used to elide these variables when not showing
 pervasives in the output. When showing pervasives, we just remove the asterisk. *)
 let mk name f =
-  (name, LetDef (name, Fun ("__PER__x", CallBuiltIn (name, [Var "__PER__x"], f))))
+  (name, Fun ("__PER__x", CallBuiltIn (name, [Var "__PER__x"], f)))
 
 let mk2 name f =
-  (name, LetDef (name, Fun ("__PER__x", Fun ("__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f)))))
+  (name, Fun ("__PER__x", Fun ("__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f))))
 
 (* String to tinyocaml *)
 let make_tiny s =
-  let (r, r') = match
+  match
     s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
   with
     Module [LetDef (n, x)]
@@ -39,9 +39,6 @@ let make_tiny s =
   | Module [ExceptionDef (n, _) as h] -> (n, h)
   | exception e -> print_string s; print_newline (); raise e
   | _ -> failwith "make_tiny"
- in
-   (*Printf.printf "%s, %s\n" r (Tinyocaml.to_string r');*)
-   (r, r')
 
 (* This contains pure ocaml functions for things in Pervasives. FIXME:
 Autogenerate these by reading pervasives.ml(i) from the OCaml installation. *)
