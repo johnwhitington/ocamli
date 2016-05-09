@@ -29,7 +29,7 @@ let prec = function
 | SetField _ -> 55
 | If _ -> 50
 | Fun _ | Let _ | LetRec _ -> 10
-| Module _ -> 0 | Tuple _ -> 0 (* FIXME *)
+| Struct _ -> 0 | Tuple _ -> 0 (* FIXME *)
 | _ -> max_int
 
 let parens node parent isleft =
@@ -73,7 +73,7 @@ let rec print_tiny_inner f isleft parent node =
   let boldstr s = bold (); str s; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
-  | Module structure_items ->
+  | Struct structure_items ->
       let l = List.length structure_items in
         List.iteri
           (fun i x ->

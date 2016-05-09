@@ -14,7 +14,7 @@ type pattern =
 | PatVar of string
 | PatTuple of pattern list
 
-and case = pattern * t * t (* guard, rhs *)
+and case = pattern * t option * t (* pattern, guard, rhs *)
 
 and patmatch = case list
 
@@ -35,10 +35,10 @@ and t =
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t)           (* if e then e1 else e2 *)
-| Let of (pattern * t * t)     (* let x = e in e' *)
-| LetRec of (pattern * t * t)  (* let rec x = e in e' *)
-| LetDef of (pattern * t)      (* let x = e *)
-| LetRecDef of (pattern * t)   (* let rec x = e *)
+| Let of (pattern * t * t)    (* let x = e in e' *)
+| LetRec of (pattern * t * t) (* let rec x = e in e' *)
+| LetDef of (pattern * t)     (* let x = e *)
+| LetRecDef of (pattern * t)  (* let rec x = e *)
 | Fun of (string * t)         (* fun x -> e *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
@@ -48,11 +48,12 @@ and t =
 | SetField of (t * string * t)(* e.y <- e' *)
 | Raise of (string * t option)(* raise e *)
 | Match of (t * patmatch)     (* match e with ... *)
-| TryWith of (t * expatmatch)   (* try e with ... *)
+| TryWith of (t * expatmatch) (* try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
-| Module of t list            (* Module *)
+| Struct of t list            (* Module implementation. *)
+| Sig of t list               (* Module signature. *)
 | Cons of t * t               (* List *)
 | Nil                         (* [] *)
 | Append of t * t             (* @ *)
@@ -141,8 +142,8 @@ let rec to_string = function
     Printf.sprintf "Control (%s, %s)" (to_string_control c) (to_string t)
 | CallBuiltIn (name, _, _) ->
     Printf.sprintf "CallBuiltIn %s" name
-| Module l ->
-    to_string_module l
+| Struct l ->
+    to_string_struct l
 | Cons (e, e') ->
     Printf.sprintf "Cons (%s, %s)" (to_string e) (to_string e')
 | Nil -> "[]"
@@ -179,8 +180,8 @@ and to_string_record l =
     (List.map (fun (n, t) -> Printf.sprintf "(%s, %s); " n (to_string !t)) l) ^
   "]"
 
-and to_string_module l =
-  "Module [" ^ List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^ "]"
+and to_string_struct l =
+  "Struct [" ^ List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^ "]"
 
 exception UnknownNode of string
 
@@ -298,7 +299,7 @@ and of_real_ocaml_structure_item = function
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml x =
-  Module (List.map of_real_ocaml_structure_item x)
+  Struct (List.map of_real_ocaml_structure_item x)
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
@@ -327,7 +328,7 @@ let rec recurse f = function
 | TryWith (a, s) -> TryWith (f a, s)
 | ExceptionDef e -> ExceptionDef e
 | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
-| Module l -> Module (List.map f l)
+| Struct l -> Struct (List.map f l)
 | Cons (e, e') -> Cons (recurse f e, recurse f e')
 | Append (e, e') -> Append (recurse f e, recurse f e')
 | Tuple l -> Tuple (List.map f l)
