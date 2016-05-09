@@ -6,22 +6,6 @@ let calc = function
 let comp = function
   LT -> (<) | EQ -> (=) | GT -> (>) | EQLT -> (<=) | EQGT -> (>=) | NEQ -> (<>)
 
-(* Substitute a value for a name in an expresion *)
-let rec substitute n v = function
-  Var x when x = n -> v
-| Op (op, a, b) -> Op (op, substitute n v a, substitute n v b)
-| And (a, b) -> And (substitute n v a, substitute n v b)
-| Or (a, b) -> Or (substitute n v a, substitute n v b)
-| Cmp (cmp, a, b) -> Cmp (cmp, substitute n v a, substitute n v b)
-| If (e, e1, e2) -> If (substitute n v e, substitute n v e1, substitute n v e2)
-| Let (PatVar var, e, e') when var = n -> Let (PatVar var, substitute n v e, e')
-| Let (PatVar var, e, e') -> Let (PatVar var, substitute n v e, substitute n v e')
-| LetRec (PatVar var, e, e') when var = n -> LetRec (PatVar var, e, e')
-| LetRec (PatVar var, e, e') -> LetRec (PatVar var, substitute n v e, substitute n v e')
-| Fun (fname, fexp) -> if fname = n then Fun (fname, fexp) else Fun (fname, substitute n v fexp)
-| App (f, x) -> App (substitute n v f, substitute n v x)
-| x -> x
-
 (* Predicate on value-ness of expressions. *)
 let rec is_value = function
   Unit | Int _ | Bool _ | Fun _ | OutChannel _ | InChannel _ | String _ | Nil -> true
@@ -120,6 +104,8 @@ let rec underline_redex e =
           else Tuple (underline_first_non_value ls)
     | Cons (x, y) ->
         if is_value x then Cons (x, underline_redex y) else Cons (underline x, y)
+    | Match (x, patmatch) ->
+        if is_value x then underline e else Match (underline_redex x, patmatch)
     | _ ->
         raise UnderlineValueUnderLets
   with

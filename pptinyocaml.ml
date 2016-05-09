@@ -73,6 +73,13 @@ let rec print_tiny_inner f isleft parent node =
   let boldstr s = bold (); str s; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
+  | Match (e, patmatch) ->
+      str lp;
+      boldtxt "match ";
+      print_tiny_inner f false (Some node) e;
+      boldtxt " with ";
+      List.iter (print_case f false (Some node)) patmatch;
+      str rp
   | Struct structure_items ->
       let l = List.length structure_items in
         List.iteri
@@ -287,6 +294,22 @@ let rec print_tiny_inner f isleft parent node =
       | _ -> ()
       end;
       str rp
+
+and print_case f isleft parent (pattern, guard, rhs) =
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  txt "| ";
+  print_pattern f isleft parent pattern;
+  begin match guard with
+  | None -> ()
+  | Some g ->
+      boldtxt " when ";
+      print_tiny_inner f false parent g
+  end;
+  boldtxt " -> ";
+  print_tiny_inner f false parent rhs
 
 and print_pattern f isleft parent pat =
   let str = Format.fprintf f "%s" in

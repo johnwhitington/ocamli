@@ -14,6 +14,11 @@ let fastcurry = ref false
 
 let dopeek = ref true
 
+let rec bound_in_pattern = function
+  PatAny -> []
+| PatVar v -> [v]
+| PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
+
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true
@@ -33,6 +38,8 @@ let rec appears var = function
     appears var e
 | LetRecDef (PatVar v, e) ->
     v <> var && appears var e
+| Match (e, patmatch) ->
+    appears var e || List.exists (appears_in_case var) patmatch
 | Fun (fname, fexp) -> fname <> var && appears var fexp
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
@@ -46,6 +53,17 @@ let rec appears var = function
 | Raise (_, None) -> false
 | Int _ | Bool _ | Var _ | Float _ | Unit
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
+
+(* True if a) appears unoccluded in the 'when' expression b) appears unoccluded
+in the rhs *)
+and appears_in_case var (pat, guard, rhs) =
+  let bound = bound_in_pattern pat in
+    let appears_in_guard =
+      match guard with
+        None -> false
+      | Some g -> appears var g
+    in
+      (appears_in_guard || appears var rhs) && not (List.mem var bound)
 
 let rec collect_unused_lets = function
   Let (PatVar n, v, e) ->

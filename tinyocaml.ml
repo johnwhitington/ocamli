@@ -137,7 +137,7 @@ let rec to_string = function
 | ExceptionDef (e, args) ->
     Printf.sprintf "Exception (%s, Some %s)" e (string_of_constructor_arg args)
 | TryWith (t, pat) ->
-    Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_patmatch pat)
+    Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_expatmatch pat)
 | Control (c, t) ->
     Printf.sprintf "Control (%s, %s)" (to_string_control c) (to_string t)
 | CallBuiltIn (name, _, _) ->
@@ -153,18 +153,31 @@ let rec to_string = function
     Printf.sprintf
       "Tuple (%s)"
       (List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ ", ") xs))
+| Match (e, patmatch) ->
+    Printf.sprintf
+      "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
 
 and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
 | PatTuple _ -> "tuple"
 
+and to_string_patmatch xs =
+  List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
+
+and to_string_guard = function
+  None -> "None"
+| Some g -> Printf.sprintf "Some (%s)" (to_string g)
+
+and to_string_case (pat, guard, rhs) =
+  Printf.sprintf "(%s, %s, %s)" (to_string_pat pat) (to_string_guard guard) (to_string rhs)
+
+and to_string_expatmatch (s, t) =
+  Printf.sprintf "(%s, %s)" s (to_string t)
+
 and to_string_control = function
   Underline -> "Underline"
 | Bold -> "Bold"
-
-and to_string_patmatch (str, t) =
-  Printf.sprintf "(%s, %s)" str (to_string t)
 
 and to_string_op = function
   Add -> "Add" | Sub -> "Sub" | Mul -> "Mul" | Div -> "Div"
@@ -256,6 +269,8 @@ let rec of_real_ocaml_expression_desc = function
     TryWith (of_real_ocaml e, (n, of_real_ocaml pc_rhs))
 | Pexp_tuple xs ->
     Tuple (List.map of_real_ocaml xs)
+| Pexp_match (e, cases) ->
+    Match (of_real_ocaml e, List.map of_real_ocaml_case cases)
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_apps = function
@@ -266,6 +281,16 @@ and of_real_ocaml_apps = function
 and of_real_ocaml_record_entry = function
   ({txt = Longident.Lident n}, e) -> (n, ref (of_real_ocaml e))
 | _ -> raise (UnknownNode "unknown record entry type")
+
+and of_real_ocaml_case {pc_lhs; pc_guard; pc_rhs} =
+  (of_real_ocaml_pattern pc_lhs,
+   begin match pc_guard with None -> None | Some x -> Some (of_real_ocaml x) end,
+   of_real_ocaml pc_rhs)
+
+and of_real_ocaml_pattern = function
+  {ppat_desc = Ppat_var {txt}} -> PatVar txt
+| {ppat_desc = Ppat_any} -> PatAny
+| _ -> failwith "unknown pattern"
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
 
@@ -331,5 +356,12 @@ let rec recurse f = function
 | Struct l -> Struct (List.map f l)
 | Cons (e, e') -> Cons (recurse f e, recurse f e')
 | Append (e, e') -> Append (recurse f e, recurse f e')
+| Match (e, patmatch) ->
+    Match (e, List.map (recurse_case f) patmatch)
 | Tuple l -> Tuple (List.map f l)
+
+and recurse_case f (pat, guard, rhs) =
+  (pat,
+   begin match guard with None -> None | Some g -> Some (recurse f g) end,
+   recurse f rhs)
 
