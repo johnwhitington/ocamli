@@ -95,6 +95,17 @@ let rec append_values x y =
   | Cons (a, b) -> Cons (a, append_values b y)
   | _ -> failwith "bad append"
 
+type patmatchresult =
+  Matched of t
+| EvaluatedGuardStep of case
+| FailedToMatch
+
+let matches expr pattern =
+  match expr, pattern with
+    _, PatAny -> true
+  | Int i, PatInt i' when i = i' -> true
+  | _ -> false
+
 let rec eval peek env expr =
   match expr with
 | Control (_, x) -> eval peek env x
@@ -261,8 +272,31 @@ into a value and then c) apply all the arguments to the function at once. *)
       append_values x y
     else if is_value x then Append (x, eval peek env y)
     else Append (eval peek env x, y)
+| Match (_, []) ->
+    Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
+| Match (x, p::ps) ->
+    if not (is_value x) then
+      Match (eval peek env x, p::ps)
+    else
+      begin match eval_case peek env x p with
+      | Matched e -> e
+      | EvaluatedGuardStep p' -> Match (x, p'::ps)
+      | FailedToMatch -> Match (x, ps)
+      end
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
 | InChannel _ | String _ | Nil | ExceptionDef _ -> failwith "already a value"
+
+and eval_case peek env expr (pattern, guard, rhs) =
+  if matches expr pattern then (* FIXME matches must return the bindings! This
+  is new environment which we must return with rhs and/or use to evaluate the
+  guard *)
+    match guard with
+      None -> Matched rhs
+    | Some (Bool false) -> FailedToMatch
+    | Some (Bool true) -> Matched rhs
+    | Some x -> EvaluatedGuardStep (pattern, Some (eval peek env x), rhs)
+  else
+    FailedToMatch
 
 (* Apply curried function appliation App (App (f, x), x') etc. *)
 (* 1. If the function 'f' is not a value, evaluate one step *)
