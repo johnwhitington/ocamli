@@ -13,6 +13,7 @@ type forkind = UpTo | DownTo
 type pattern =
   PatAny
 | PatVar of string
+| PatInt of int
 | PatTuple of pattern list
 
 and case = pattern * t option * t (* pattern, guard, rhs *)

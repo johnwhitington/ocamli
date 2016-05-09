@@ -12,6 +12,7 @@ type forkind = UpTo | DownTo
 type pattern =
   PatAny
 | PatVar of string
+| PatInt of int
 | PatTuple of pattern list
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
@@ -289,6 +290,7 @@ and of_real_ocaml_case {pc_lhs; pc_guard; pc_rhs} =
 
 and of_real_ocaml_pattern = function
   {ppat_desc = Ppat_var {txt}} -> PatVar txt
+| {ppat_desc = Ppat_constant (Pconst_integer (s, None))} -> PatInt (int_of_string s)
 | {ppat_desc = Ppat_any} -> PatAny
 | _ -> failwith "unknown pattern"
 

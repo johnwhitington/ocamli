@@ -309,7 +309,8 @@ and print_case f isleft parent (pattern, guard, rhs) =
       print_tiny_inner f false parent g
   end;
   boldtxt " -> ";
-  print_tiny_inner f false parent rhs
+  print_tiny_inner f false parent rhs;
+  txt " "
 
 and print_pattern f isleft parent pat =
   let str = Format.fprintf f "%s" in
@@ -318,6 +319,8 @@ and print_pattern f isleft parent pat =
         str "_"
     | PatVar v ->
         str (Evalutils.unstar v)
+    | PatInt i ->
+        str (string_of_int i)
     | PatTuple _ ->
         str "FIXMEtuple"
 
