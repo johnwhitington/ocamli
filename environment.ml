@@ -173,6 +173,8 @@ let rec eval peek env expr =
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
+(*| Let (PatTuple t, v, e) ->
+    (* Convert to n 'anded' lets *)*)
 | Let (PatVar n, v, e) ->
     (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
     to the environment, retain, and continue search for redex.  If v not a

@@ -225,10 +225,10 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_function cases ->
     Function (List.map of_real_ocaml_case cases)
 | Pexp_let
-    (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
+    (r, [{pvb_pat = {ppat_desc}; pvb_expr}], e') ->
        if r = Recursive
-         then LetRec (PatVar txt, of_real_ocaml pvb_expr, of_real_ocaml e')
-         else Let (PatVar txt, of_real_ocaml pvb_expr, of_real_ocaml e')
+         then LetRec (of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
+         else Let (of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
