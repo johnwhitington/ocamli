@@ -20,6 +20,7 @@ let rec bound_in_pattern = function
 | PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
 | PatNil -> []
 | PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
+| PatAlias (a, p) -> a::bound_in_pattern p
 
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
@@ -115,7 +116,21 @@ let rec matches expr pattern rhs =
         | Some rhs' -> matches t pt rhs'
         | None -> no
         end
+    | Tuple es, PatTuple ps ->
+        match_many_binders es ps rhs
+    | e, PatAlias (a, p) ->
+       matches e p (Let (PatVar a, e, rhs))
     | _ -> no
+
+and match_many_binders es ps rhs =
+  match es, ps with
+    [], [] -> Some rhs
+  | eh::et, ph::pt ->
+      begin match matches eh ph rhs with
+        None -> None
+      | Some rhs' -> match_many_binders et pt rhs'
+      end
+  | _ -> failwith "match_many_binders"
 
 let rec eval peek env expr =
   match expr with
@@ -196,6 +211,17 @@ let rec eval peek env expr =
     if is_value x
       then Let (PatVar fname, x, fexp)
       else App (Fun f, eval peek env x)
+| App (Function [], x) ->
+    Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
+| App (Function (p::ps), x) ->
+    if is_value x
+      then 
+        begin match eval_case peek env x p with
+        | Matched e -> e
+        | EvaluatedGuardStep p' -> App (Function (p'::ps), x)
+        | FailedToMatch -> App (Function ps, x)
+        end
+      else App (Function (p::ps), eval peek env x)
 | App (Var v, x) ->
     begin match List.assoc v env with
       Fun (fname, fexp) ->

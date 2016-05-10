@@ -17,10 +17,9 @@ type pattern =
 | PatTuple of pattern list
 | PatNil
 | PatCons of pattern * pattern
+| PatAlias of string * pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
-
-and patmatch = case list
 
 and expatmatch = string * t (* for now *)
 
@@ -45,6 +44,7 @@ and t =
 | LetDef of (pattern * t)       (** let x = e *)
 | LetRecDef of (pattern * t)    (** let rec x = e *)
 | Fun of (string * t)          (** fun x -> e *)
+| Function of case list        (** function x -> e | y -> f ... *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)
 | While of (t * t * t * t)     (** while e do e' done (e, e', copy_of_e, copy_of_e') *)
@@ -52,16 +52,16 @@ and t =
 | Field of (t * string)        (** e.y *)
 | SetField of (t * string * t) (** e.y <- e' *)
 | Raise of (string * t option) (** raise e *)
-| Match of (t * patmatch)      (** match e with ... *)
+| Match of (t * case list)      (** match e with ... *)
 | TryWith of (t * expatmatch)  (** try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Struct of t list             (** Module implementation *)
 | Sig of t list                (** Module signature *)
-| Cons of t * t                (** :: *)
+| Cons of (t * t)                (** :: *)
 | Nil                          (** [] *)
-| Append of t * t              (** @ *)
+| Append of (t * t)              (** @ *)
 | Tuple of t list              (** (a, b) *)
 
 val string_of_op : op -> string

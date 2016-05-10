@@ -202,7 +202,7 @@ let rec split = function
   | (x,y)::l ->
       let (rx, ry) = split l in (x::rx, y::ry)
 
-let rec combine l1 l2 =
+(*let rec combine l1 l2 =
   match (l1, l2) with
     ([], []) -> []
   | (a1::l1, a2::l2) -> (a1, a2) :: combine l1 l2
@@ -430,4 +430,4 @@ let sort_uniq cmp l =
   in
   let len = length l in
   if len < 2 then l else sort len l
-;;
+;;*)

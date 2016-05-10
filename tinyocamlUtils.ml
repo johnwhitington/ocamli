@@ -8,7 +8,7 @@ let comp = function
 
 (* Predicate on value-ness of expressions. *)
 let rec is_value = function
-  Unit | Int _ | Bool _ | Fun _ | OutChannel _ | InChannel _ | String _ | Nil -> true
+  Unit | Int _ | Bool _ | Fun _ | Function _ | OutChannel _ | InChannel _ | String _ | Nil -> true
 | Record items when
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | Struct items when
@@ -67,6 +67,8 @@ let rec underline_redex e =
           else LetRecDef (k, underline_redex v)
     | App (Fun f, x) ->
         if is_value x then underline e else App (Fun f, underline_redex x)
+    | App (Function f, x) ->
+        if is_value x then underline e else App (Function f, underline_redex x)
     | App (Var v, x) ->
         if is_value x then underline e else App (Var v, underline_redex x)
     | App (App _, _) when !fastcurry ->

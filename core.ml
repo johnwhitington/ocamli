@@ -46,6 +46,7 @@ let pervasives =
   [make_tiny "let ref = fun __PER__x -> {contents = __PER__x}";
    make_tiny "let ( ! ) = fun __PER__x -> __PER__x.contents";
    make_tiny "let ( := ) = fun __PER__a -> fun __PER__b -> __PER__a.contents <- __PER__b";
+   make_tiny "let rec ( @ ) __PER__l1 __PER__l2 = match __PER__l1 with [] -> __PER__l2 | __PER__hd :: __PER__tl -> __PER__hd :: (__PER__tl @ __PER__l2)";
    mk2 "output_string" builtin_output_string;
    make_tiny "let print_string = fun __PER__x -> output_string stdout __PER__x";
    mk "print_int" builtin_print_int;

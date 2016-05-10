@@ -28,7 +28,7 @@ let prec = function
 | Or _ -> 60
 | SetField _ -> 55
 | If _ -> 50
-| Fun _ | Let _ | LetRec _ -> 10
+| Fun _ | Function _ | Let _ | LetRec _ -> 10
 | Struct _ -> 0 | Tuple _ -> 0 (* FIXME *)
 | _ -> max_int
 
@@ -78,6 +78,11 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt "match ";
       print_tiny_inner f false (Some node) e;
       boldtxt " with ";
+      List.iter (print_case f false (Some node)) patmatch;
+      str rp
+  | Function patmatch ->
+      str lp;
+      boldtxt "function ";
       List.iter (print_case f false (Some node)) patmatch;
       str rp
   | Struct structure_items ->
@@ -314,6 +319,10 @@ and print_case f isleft parent (pattern, guard, rhs) =
 
 and print_pattern f isleft parent pat =
   let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
     match pat with
       PatAny ->
         str "_"
@@ -321,13 +330,24 @@ and print_pattern f isleft parent pat =
         str (Evalutils.unstar v)
     | PatInt i ->
         str (string_of_int i)
-    | PatTuple _ ->
-        str "FIXMEtuple"
+    | PatTuple items ->
+        str "(";
+        let l = List.length items in
+          List.iteri
+            (fun i x ->
+               print_pattern f isleft parent x;
+               if i < l - 1 then txt ", ")
+            items;
+        str ")"
     | PatNil -> str "[]"
     | PatCons (h, t) ->
         print_pattern f isleft parent h;
         str "::";
         print_pattern f isleft parent t
+    | PatAlias (a, p) ->
+        print_pattern f isleft parent p;
+        boldtxt " as ";
+        str a
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

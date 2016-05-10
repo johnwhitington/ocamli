@@ -16,10 +16,9 @@ type pattern =
 | PatTuple of pattern list
 | PatNil
 | PatCons of pattern * pattern
+| PatAlias of string * pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
-
-and patmatch = case list
 
 and expatmatch = string * t (* for now *)
 
@@ -43,6 +42,7 @@ and t =
 | LetDef of (pattern * t)     (* let x = e *)
 | LetRecDef of (pattern * t)  (* let rec x = e *)
 | Fun of (string * t)         (* fun x -> e *)
+| Function of case list     
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -50,16 +50,16 @@ and t =
 | Field of (t * string)       (* e.y *)
 | SetField of (t * string * t)(* e.y <- e' *)
 | Raise of (string * t option)(* raise e *)
-| Match of (t * patmatch)     (* match e with ... *)
+| Match of (t * case list)     (* match e with ... *)
 | TryWith of (t * expatmatch) (* try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
 | Struct of t list            (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
-| Cons of t * t               (* List *)
+| Cons of (t * t)               (* List *)
 | Nil                         (* [] *)
-| Append of t * t             (* @ *)
+| Append of (t * t)            (* @ *)
 | Tuple of t list             (* (1, 2) *)
 
 let string_of_op = function
@@ -156,6 +156,8 @@ let rec to_string = function
     Printf.sprintf
       "Tuple (%s)"
       (List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ ", ") xs))
+| Function patmatch ->
+    Printf.sprintf "Function %s" (to_string_patmatch patmatch)
 | Match (e, patmatch) ->
     Printf.sprintf
       "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
@@ -163,7 +165,7 @@ let rec to_string = function
 and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
-| PatTuple _ -> "tuple"
+| PatTuple _ -> "PatTuple"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
@@ -220,6 +222,8 @@ let rec of_real_ocaml_expression_desc = function
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
 | Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, exp) ->
     Fun (txt, of_real_ocaml exp)
+| Pexp_function cases ->
+    Function (List.map of_real_ocaml_case cases)
 | Pexp_let
     (r, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr}], e') ->
        if r = Recursive
@@ -294,9 +298,14 @@ and of_real_ocaml_pattern = function
   Ppat_var {txt} -> PatVar txt
 | Ppat_constant (Pconst_integer (s, None)) -> PatInt (int_of_string s)
 | Ppat_any -> PatAny
+| Ppat_tuple patterns ->
+    PatTuple
+      (List.map of_real_ocaml_pattern (List.map (fun x -> x.ppat_desc) patterns))
 | Ppat_construct ({txt = Longident.Lident "[]"}, _) -> PatNil
 | Ppat_construct ({txt = Longident.Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
     PatCons (of_real_ocaml_pattern a.ppat_desc, of_real_ocaml_pattern b.ppat_desc)
+| Ppat_alias (pattern, {txt}) ->
+    PatAlias (txt, of_real_ocaml_pattern pattern.ppat_desc)
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
@@ -365,6 +374,8 @@ let rec recurse f = function
 | Append (e, e') -> Append (recurse f e, recurse f e')
 | Match (e, patmatch) ->
     Match (e, List.map (recurse_case f) patmatch)
+| Function patmatch ->
+    Function (List.map (recurse_case f) patmatch)
 | Tuple l -> Tuple (List.map f l)
 
 and recurse_case f (pat, guard, rhs) =
