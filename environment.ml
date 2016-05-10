@@ -100,11 +100,12 @@ type patmatchresult =
 | EvaluatedGuardStep of case
 | FailedToMatch
 
-let matches expr pattern =
+let matches expr pattern rhs =
   match expr, pattern with
-    _, PatAny -> true
-  | Int i, PatInt i' when i = i' -> true
-  | _ -> false
+    _, PatAny -> Some rhs
+  | Int i, PatInt i' when i = i' -> Some rhs
+  | e, PatVar v -> Some (Let (PatVar v, e, rhs))
+  | _ -> None
 
 let rec eval peek env expr =
   match expr with
@@ -287,16 +288,15 @@ into a value and then c) apply all the arguments to the function at once. *)
 | InChannel _ | String _ | Nil | ExceptionDef _ -> failwith "already a value"
 
 and eval_case peek env expr (pattern, guard, rhs) =
-  if matches expr pattern then (* FIXME matches must return the bindings! This
-  is new environment which we must return with rhs and/or use to evaluate the
-  guard *)
-    match guard with
-      None -> Matched rhs
+  match matches expr pattern rhs with
+  | Some rhs' ->
+    begin match guard with
+      None -> Matched rhs'
     | Some (Bool false) -> FailedToMatch
-    | Some (Bool true) -> Matched rhs
-    | Some x -> EvaluatedGuardStep (pattern, Some (eval peek env x), rhs)
-  else
-    FailedToMatch
+    | Some (Bool true) -> Matched rhs'
+    | Some x -> EvaluatedGuardStep (pattern, Some (eval peek env x), rhs')
+    end
+  | None -> FailedToMatch
 
 (* Apply curried function appliation App (App (f, x), x') etc. *)
 (* 1. If the function 'f' is not a value, evaluate one step *)
