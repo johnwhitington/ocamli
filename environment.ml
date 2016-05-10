@@ -18,6 +18,8 @@ let rec bound_in_pattern = function
   PatAny -> []
 | PatVar v -> [v]
 | PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
+| PatNil -> []
+| PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
 
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
@@ -100,12 +102,20 @@ type patmatchresult =
 | EvaluatedGuardStep of case
 | FailedToMatch
 
-let matches expr pattern rhs =
-  match expr, pattern with
-    _, PatAny -> Some rhs
-  | Int i, PatInt i' when i = i' -> Some rhs
-  | e, PatVar v -> Some (Let (PatVar v, e, rhs))
-  | _ -> None
+let rec matches expr pattern rhs =
+  let yes = Some rhs in
+  let no = None in
+    match expr, pattern with
+      _, PatAny -> yes
+    | Int i, PatInt i' when i = i' -> yes
+    | e, PatVar v -> Some (Let (PatVar v, e, rhs))
+    | Nil, PatNil -> yes
+    | Cons (h, t), PatCons (ph, pt) ->
+        begin match matches h ph rhs with
+        | Some rhs' -> matches t pt rhs'
+        | None -> no
+        end
+    | _ -> no
 
 let rec eval peek env expr =
   match expr with
@@ -195,9 +205,6 @@ let rec eval peek env expr =
           App (Var v, eval peek env x)
     | _ -> failwith (Printf.sprintf "Malformed app (%s) (%s)" v (Tinyocaml.to_string x))
     end
-(* Two applications in a row for currying. e.g (f 1) 2. This will be extended to 'n' in a
-row, of course. We must a) recognise the pattern b) turn each non-value argument
-into a value and then c) apply all the arguments to the function at once. *)
 | App (App _, _) when !fastcurry ->
     eval_curry peek env expr
 | App (f, x) -> App (eval peek env f, x)

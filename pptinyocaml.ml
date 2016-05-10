@@ -323,6 +323,11 @@ and print_pattern f isleft parent pat =
         str (string_of_int i)
     | PatTuple _ ->
         str "FIXMEtuple"
+    | PatNil -> str "[]"
+    | PatCons (h, t) ->
+        print_pattern f isleft parent h;
+        str "::";
+        print_pattern f isleft parent t
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

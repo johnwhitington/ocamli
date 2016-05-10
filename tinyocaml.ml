@@ -14,6 +14,8 @@ type pattern =
 | PatVar of string
 | PatInt of int
 | PatTuple of pattern list
+| PatNil
+| PatCons of pattern * pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -230,7 +232,7 @@ let rec of_real_ocaml_expression_desc = function
            None -> Raise (s, None)
          | Some x -> Raise (s, Some (of_real_ocaml x))
          end
-| Pexp_apply (* 2 opearands *)
+| Pexp_apply (* 2 operands *)
     ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
      [(Nolabel, l); (Nolabel, r)]) ->
        let e = of_real_ocaml l in
@@ -284,14 +286,17 @@ and of_real_ocaml_record_entry = function
 | _ -> raise (UnknownNode "unknown record entry type")
 
 and of_real_ocaml_case {pc_lhs; pc_guard; pc_rhs} =
-  (of_real_ocaml_pattern pc_lhs,
+  (of_real_ocaml_pattern pc_lhs.ppat_desc,
    begin match pc_guard with None -> None | Some x -> Some (of_real_ocaml x) end,
    of_real_ocaml pc_rhs)
 
 and of_real_ocaml_pattern = function
-  {ppat_desc = Ppat_var {txt}} -> PatVar txt
-| {ppat_desc = Ppat_constant (Pconst_integer (s, None))} -> PatInt (int_of_string s)
-| {ppat_desc = Ppat_any} -> PatAny
+  Ppat_var {txt} -> PatVar txt
+| Ppat_constant (Pconst_integer (s, None)) -> PatInt (int_of_string s)
+| Ppat_any -> PatAny
+| Ppat_construct ({txt = Longident.Lident "[]"}, _) -> PatNil
+| Ppat_construct ({txt = Longident.Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
+    PatCons (of_real_ocaml_pattern a.ppat_desc, of_real_ocaml_pattern b.ppat_desc)
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc

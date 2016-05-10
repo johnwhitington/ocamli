@@ -15,6 +15,8 @@ type pattern =
 | PatVar of string
 | PatInt of int
 | PatTuple of pattern list
+| PatNil
+| PatCons of pattern * pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
