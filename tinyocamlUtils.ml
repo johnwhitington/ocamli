@@ -17,7 +17,7 @@ let rec is_value = function
     List.for_all is_value items -> true
 | Cons (e, e') when
     is_value e && is_value e' -> true
-| LetDef (_,  _, e) when is_value e -> true
+| LetDef (_, bindings) when List.for_all (fun (_, e) -> is_value e) bindings -> true
 | ExceptionDef _ -> true
 | _ -> false
 
@@ -51,16 +51,16 @@ let rec underline_redex e =
     | Cmp (op, a, b) -> Cmp (op, underline_redex a, b)
     | If (Bool _, _, _) -> underline e
     | If (cond, a, b) -> If (underline_redex cond, a, b)
-    | Let (false, n, v, e') ->
-        if is_value v
-          then Let (false, n, v, underline_redex e')
-          else Let (false, n, underline_redex v, e')
-    | Let (true, n, Fun f, e') ->
-        Let (true, n, Fun f, underline_redex e')
-    | LetDef (recflag, k, v) ->
-        if is_value v
-          then failwith "letdef already a value"
-          else LetDef (recflag, k, underline_redex v)
+    | Let (recflag, bindings, e') ->
+        if List.for_all (fun (_, v) -> is_value v) bindings then
+          Let (recflag, bindings, underline_redex e')
+        else
+          Let (recflag, underline_first_non_value_binding bindings, e')
+    | LetDef (recflag, bindings) ->
+        if List.for_all (fun (_, v) -> is_value v) bindings then
+          failwith "letdef already a value"
+        else
+          LetDef (recflag, underline_first_non_value_binding bindings)
     | App (Fun f, x) ->
         if is_value x then underline e else App (Fun f, underline_redex x)
     | App (Function f, x) ->
@@ -136,6 +136,13 @@ and underline_first_non_value = function
       then h::underline_first_non_value t
       else underline_redex h::t
 
+and underline_first_non_value_binding = function
+  [] -> []
+| (k, v)::t ->
+    if is_value v
+      then (k, v)::underline_first_non_value_binding t
+      else (k, underline_redex v)::t
+
 and underline_first_non_value_ref items =
   try
     List.iter (fun (_, v) -> if not (is_value !v) then v := underline_redex !v) items
@@ -150,8 +157,8 @@ let rec strip_control = function
 | x -> Tinyocaml.recurse strip_control x
 
 let rec remove_named_recursive_functions all fns = function
-  Let (true, PatVar n, v, e) ->
+  Let (true, [(PatVar n, v)], e) ->
     let r = Tinyocaml.recurse (remove_named_recursive_functions all fns) e in
-      if all || List.mem n fns then r else Let (true, PatVar n, v, r)
+      if all || List.mem n fns then r else Let (true, [(PatVar n, v)], r)
 | x -> Tinyocaml.recurse (remove_named_recursive_functions all fns) x
 

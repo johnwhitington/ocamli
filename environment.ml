@@ -33,16 +33,20 @@ let rec appears var = function
     appears var a || appears var b || appears var c || appears var copy
 | If (a, b, c) -> appears var a || appears var b || appears var c
 | Control (_, x) -> appears var x
-| Let (recflag, PatVar v, e, e') ->
+| Let (recflag, bindings, e') ->
     if recflag then
-      v <> var && (appears var e || appears var e')
+      List.exists
+        (fun (PatVar v, e) -> v <> var && (appears var e || appears var e'))
+        bindings
     else
-      appears var e || v <> var && appears var e'
-| LetDef (recflag, PatVar v, e) ->
+      List.exists
+        (fun (PatVar v, e) -> appears var e || v <> var && appears var e')
+        bindings
+| LetDef (recflag, bindings) ->
     if recflag then
-      v <> var && appears var e
+      List.exists (fun (PatVar v, e) -> v <> var && appears var e) bindings
     else
-      appears var e
+      List.exists (fun (_, e) -> appears var e) bindings
 | Match (e, patmatch) ->
     appears var e || List.exists (appears_in_case var) patmatch
 | Fun (fname, fexp) -> fname <> var && appears var fexp
@@ -71,11 +75,11 @@ and appears_in_case var (pat, guard, rhs) =
       (appears_in_guard || appears var rhs) && not (List.mem var bound)
 
 let rec collect_unused_lets = function
-  Let (recflag, PatVar n, v, e) ->
+  Let (recflag, [(PatVar n, v)], e) -> (* FIXME: let ... and... *)
     (* Must be a value: side effects *)
     if is_value v && not (appears n e)
       then collect_unused_lets e
-      else Let (recflag, PatVar n, collect_unused_lets v, collect_unused_lets e)
+      else Let (recflag, [(PatVar n, collect_unused_lets v)], collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
 (* Evaluate one step, assuming not already a value *)
@@ -106,7 +110,7 @@ let rec matches expr pattern rhs =
     match expr, pattern with
       _, PatAny -> yes
     | Int i, PatInt i' when i = i' -> yes
-    | e, PatVar v -> Some (Let (false, PatVar v, e, rhs))
+    | e, PatVar v -> Some (Let (false, [(PatVar v, e)], rhs))
     | Nil, PatNil -> yes
     | Cons (h, t), PatCons (ph, pt) ->
         begin match matches h ph rhs with
@@ -116,7 +120,7 @@ let rec matches expr pattern rhs =
     | Tuple es, PatTuple ps ->
         match_many_binders es ps rhs
     | e, PatAlias (a, p) ->
-       matches e p (Let (false, PatVar a, e, rhs))
+        matches e p (Let (false, [(PatVar a, e)], rhs))
     | _ -> no
 
 and match_many_binders es ps rhs =
@@ -170,8 +174,6 @@ let rec eval peek env expr =
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
-(*| Let (PatTuple t, v, e) ->
-    (* Convert to n 'anded' lets *)*)
 | Let (false, PatVar n, v, e) ->
     (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
     to the environment, retain, and continue search for redex.  If v not a

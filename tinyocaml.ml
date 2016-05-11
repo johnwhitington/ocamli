@@ -22,6 +22,8 @@ and case = pattern * t option * t (* pattern, guard, rhs *)
 
 and expatmatch = string * t (* for now *)
 
+and binding = pattern * t
+
 and t =
   Unit                        (* () *)
 | Int of int                  (* 1 *)
@@ -37,8 +39,8 @@ and t =
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t)           (* if e then e1 else e2 *)
-| Let of (bool * pattern * t * t)    (* let x = e in e' *)
-| LetDef of (bool * pattern * t)     (* let x = e *)
+| Let of (bool * binding list * t)    (* let x = e in e' *)
+| LetDef of (bool * binding list)     (* let x = e *)
 | Fun of (string * t)         (* fun x -> e *)
 | Function of case list     
 | App of (t * t)              (* e e' *)
@@ -107,10 +109,12 @@ let rec to_string = function
     Printf.sprintf "Cmp (%s, %s, %s)" (to_string_cmp cmp) (to_string l) (to_string r)
 | If (a, b, c) ->
     Printf.sprintf "If (%s, %s, %s)" (to_string a) (to_string b) (to_string c)
-| Let (recflag, x, e, e') ->
-    Printf.sprintf "%s (%s, %s, %s)" (if recflag then "LetRec" else "Let") (to_string_pat x) (to_string e) (to_string e')
-| LetDef (recflag, x, e) ->
-    Printf.sprintf "%s (%s, %s)" (if recflag then "LetDefRec" else "LetDef") (to_string_pat x) (to_string e)
+| Let (recflag, bindings, e') ->
+    Printf.sprintf "%s (%s, %s)"
+      (if recflag then "LetRec" else "Let") (to_string_bindings bindings) (to_string e')
+| LetDef (recflag, bindings) ->
+    Printf.sprintf "%s (%s)"
+      (if recflag then "LetDefRec" else "LetDef") (to_string_bindings bindings)
 | Fun (fname, fexp) ->
     Printf.sprintf "Fun (%s, %s)" fname (to_string fexp)
 | App (e, e') ->
@@ -156,6 +160,12 @@ let rec to_string = function
     Printf.sprintf
       "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
 
+and to_string_bindings bs =
+  List.fold_left ( ^ ) "" (List.map to_string_binding bs)
+
+and to_string_binding (pat, e) =
+  Printf.sprintf "%s = %s\n" (to_string_pat pat) (to_string e)
+
 and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
@@ -197,6 +207,7 @@ and to_string_struct l =
 
 exception UnknownNode of string
 
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -218,11 +229,8 @@ let rec of_real_ocaml_expression_desc = function
     Fun (txt, of_real_ocaml exp)
 | Pexp_function cases ->
     Function (List.map of_real_ocaml_case cases)
-| Pexp_let
-    (r, [{pvb_pat = {ppat_desc}; pvb_expr}], e') ->
-       if r = Recursive
-         then Let (true, of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
-         else Let (false, of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
+| Pexp_let (r, bindings, e') ->
+    Let (r = Recursive, List.map of_real_ocaml_binding bindings, of_real_ocaml e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
@@ -274,6 +282,9 @@ let rec of_real_ocaml_expression_desc = function
     Match (of_real_ocaml e, List.map of_real_ocaml_case cases)
 | _ -> raise (UnknownNode "unknown node")
 
+and of_real_ocaml_binding {pvb_pat = {ppat_desc}; pvb_expr} =
+  (of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr)
+
 and of_real_ocaml_apps = function
   [] -> assert false
 | [x] -> of_real_ocaml x
@@ -309,13 +320,13 @@ and of_real_ocaml_structure_item = function
   {pstr_desc = Pstr_eval (e, _)} -> of_real_ocaml e
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr = e}])} ->
-     LetDef (recflag = Recursive, PatVar txt, of_real_ocaml e) 
+     LetDef (recflag = Recursive, [(PatVar txt, of_real_ocaml e)]) 
   (* let _ = 1 *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
-     LetDef (recflag = Recursive, PatVar "_", of_real_ocaml e) 
+     LetDef (recflag = Recursive, [(PatVar "_", of_real_ocaml e)]) 
   (* let () = ... *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_construct ({txt}, None)}; pvb_expr = e}])} ->
-     LetDef (recflag = Recursive, PatVar "()", of_real_ocaml e) 
+     LetDef (recflag = Recursive, [(PatVar "()", of_real_ocaml e)]) 
   (* let a, b, c = ... *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_tuple items}; pvb_expr = e}])} ->
     failwith "found a tuple"
@@ -335,8 +346,10 @@ let rec recurse f = function
 | Or (a, b) -> Or (f a, f b)
 | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
 | If (e, e1, e2) -> If (f e, f e1, f e2)
-| Let (recflag, n, v, e) -> Let (recflag, n, f v, f e)
-| LetDef (recflag, n, v) -> LetDef (recflag, n, f v)
+| Let (recflag, bindings, e) ->
+    Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, f e)
+| LetDef (recflag, bindings) ->
+    LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
 | Fun (n, fexp) -> Fun (n, f fexp)
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)

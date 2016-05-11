@@ -23,6 +23,8 @@ and case = pattern * t option * t (* pattern, guard, rhs *)
 
 and expatmatch = string * t (* for now *)
 
+and binding = pattern * t
+
 (** The type of tiny-ocaml programs *)
 and t =
   Unit                         (** () *)
@@ -39,8 +41,8 @@ and t =
 | Or of (t * t)                (** || *)
 | Cmp of (cmp * t * t)         (** < > <> = <= >= *)
 | If of (t * t * t)            (** if e then e1 else e2 *)
-| Let of (bool * pattern * t * t) (** let x = e in e' *)
-| LetDef of (bool * pattern * t)  (** let x = e *)
+| Let of (bool * binding list * t) (** let x = e in e' *)
+| LetDef of (bool * binding list)  (** let x = e *)
 | Fun of (string * t)          (** fun x -> e *)
 | Function of case list        (** function x -> e | y -> f ... *)
 | App of (t * t)               (** e e' *)

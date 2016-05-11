@@ -70,7 +70,6 @@ let rec print_tiny_inner f isleft parent node =
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
-  let boldstr s = bold (); str s; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
   | Match (e, patmatch) ->
@@ -161,27 +160,43 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " else ";
       print_tiny_inner f false (Some node) e2;
       str rp
-  | Let (recflag, v, e, e') ->
-      let morefuns, e = find_funs e in
+  | Let (recflag, bindings, e') ->
       str lp;
-      if recflag then boldtxt "let rec " else boldtxt "let ";
-      print_pattern f false (Some node) v;
-      txt " ";
-      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
-      txt "= ";
-      print_tiny_inner f false (Some node) e;
+      let first = ref true in
+        List.iter
+          (fun (v, e) ->
+             if !first then
+               if recflag then
+                 boldtxt "let rec " else boldtxt "let "
+               else
+                 boldtxt "and ";
+             print_pattern f false (Some node) v;
+             txt " ";
+             let morefuns, e = find_funs e in
+             List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+             txt "= ";
+             print_tiny_inner f false (Some node) e)
+          bindings;
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | LetDef (recflag, v, e) ->
-      let morefuns, e = find_funs e in
+  | LetDef (recflag, bindings) ->
       str lp;
-      if recflag then boldtxt "let rec " else boldtxt "let ";
-      print_pattern f false (Some node) v;
-      txt " ";
-      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
-      txt "= ";
-      print_tiny_inner f false (Some node) e;
+      let first = ref true in
+      List.iter
+        (fun (v, e) -> 
+           if !first then
+             if recflag then boldtxt "let rec " else boldtxt "let "
+           else
+             boldtxt "and ";
+           first := false;
+           print_pattern f false (Some node) v;
+           txt " ";
+           let morefuns, e = find_funs e in
+             List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+           txt "= ";
+           print_tiny_inner f false (Some node) e)
+        bindings;
       str rp
   | Fun (fname, fexp) ->
       str lp;
