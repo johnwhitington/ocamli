@@ -37,10 +37,8 @@ and t =
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t)           (* if e then e1 else e2 *)
-| Let of (pattern * t * t)    (* let x = e in e' *)
-| LetRec of (pattern * t * t) (* let rec x = e in e' *)
-| LetDef of (pattern * t)     (* let x = e *)
-| LetRecDef of (pattern * t)  (* let rec x = e *)
+| Let of (bool * pattern * t * t)    (* let x = e in e' *)
+| LetDef of (bool * pattern * t)     (* let x = e *)
 | Fun of (string * t)         (* fun x -> e *)
 | Function of case list     
 | App of (t * t)              (* e e' *)
@@ -109,14 +107,10 @@ let rec to_string = function
     Printf.sprintf "Cmp (%s, %s, %s)" (to_string_cmp cmp) (to_string l) (to_string r)
 | If (a, b, c) ->
     Printf.sprintf "If (%s, %s, %s)" (to_string a) (to_string b) (to_string c)
-| Let (x, e, e') ->
-    Printf.sprintf "Let (%s, %s, %s)" (to_string_pat x) (to_string e) (to_string e')
-| LetRec (x, e, e') ->
-    Printf.sprintf "LetRec (%s, %s, %s)" (to_string_pat x) (to_string e) (to_string e')
-| LetDef (x, e) ->
-    Printf.sprintf "LetDef (%s, %s)" (to_string_pat x) (to_string e)
-| LetRecDef (x, e) ->
-    Printf.sprintf "LetRecDef (%s, %s)" (to_string_pat x) (to_string e)
+| Let (recflag, x, e, e') ->
+    Printf.sprintf "%s (%s, %s, %s)" (if recflag then "LetRec" else "Let") (to_string_pat x) (to_string e) (to_string e')
+| LetDef (recflag, x, e) ->
+    Printf.sprintf "%s (%s, %s)" (if recflag then "LetDefRec" else "LetDef") (to_string_pat x) (to_string e)
 | Fun (fname, fexp) ->
     Printf.sprintf "Fun (%s, %s)" fname (to_string fexp)
 | App (e, e') ->
@@ -227,8 +221,8 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_let
     (r, [{pvb_pat = {ppat_desc}; pvb_expr}], e') ->
        if r = Recursive
-         then LetRec (of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
-         else Let (of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
+         then Let (true, of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
+         else Let (false, of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr, of_real_ocaml e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
@@ -315,22 +309,13 @@ and of_real_ocaml_structure_item = function
   {pstr_desc = Pstr_eval (e, _)} -> of_real_ocaml e
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr = e}])} ->
-    if recflag = Nonrecursive then
-      LetDef (PatVar txt, of_real_ocaml e) 
-    else
-      LetRecDef (PatVar txt, of_real_ocaml e)
+     LetDef (recflag = Recursive, PatVar txt, of_real_ocaml e) 
   (* let _ = 1 *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
-    if recflag = Nonrecursive then
-      LetDef (PatVar "_", of_real_ocaml e) 
-    else
-      LetRecDef (PatVar "_", of_real_ocaml e)
+     LetDef (recflag = Recursive, PatVar "_", of_real_ocaml e) 
   (* let () = ... *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_construct ({txt}, None)}; pvb_expr = e}])} ->
-    if recflag = Nonrecursive then
-      LetDef (PatVar "()", of_real_ocaml e) 
-    else
-      LetRecDef (PatVar "()", of_real_ocaml e)
+     LetDef (recflag = Recursive, PatVar "()", of_real_ocaml e) 
   (* let a, b, c = ... *)
 | {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_tuple items}; pvb_expr = e}])} ->
     failwith "found a tuple"
@@ -350,10 +335,8 @@ let rec recurse f = function
 | Or (a, b) -> Or (f a, f b)
 | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
 | If (e, e1, e2) -> If (f e, f e1, f e2)
-| Let (n, v, e) -> Let (n, f v, f e)
-| LetRec (n, v, e) -> LetRec (n, f v, f e)
-| LetDef (n, v) -> LetDef (n, f v)
-| LetRecDef (n, v) -> LetRecDef (n, f v)
+| Let (recflag, n, v, e) -> Let (recflag, n, f v, f e)
+| LetDef (recflag, n, v) -> LetDef (recflag, n, f v)
 | Fun (n, fexp) -> Fun (n, f fexp)
 | App (a, b) -> App (f a, f b)
 | Seq (a, b) -> Seq (f a, f b)

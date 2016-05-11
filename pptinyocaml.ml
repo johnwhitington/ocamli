@@ -28,7 +28,7 @@ let prec = function
 | Or _ -> 60
 | SetField _ -> 55
 | If _ -> 50
-| Fun _ | Function _ | Let _ | LetRec _ -> 10
+| Fun _ | Function _ | Let _ -> 10
 | Struct _ -> 0 | Tuple _ -> 0 (* FIXME *)
 | _ -> max_int
 
@@ -161,10 +161,10 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " else ";
       print_tiny_inner f false (Some node) e2;
       str rp
-  | Let (v, e, e') ->
+  | Let (recflag, v, e, e') ->
       let morefuns, e = find_funs e in
       str lp;
-      boldtxt "let ";
+      if recflag then boldtxt "let rec " else boldtxt "let ";
       print_pattern f false (Some node) v;
       txt " ";
       List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
@@ -173,39 +173,14 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | LetRec (v, e, e') ->
+  | LetDef (recflag, v, e) ->
       let morefuns, e = find_funs e in
       str lp;
-      boldstr "let rec";
-      txt " ";
+      if recflag then boldtxt "let rec " else boldtxt "let ";
       print_pattern f false (Some node) v;
       txt " ";
       List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
       txt "= ";
-      if not !simple then txt "\n";
-      print_tiny_inner f false (Some node) e;
-      boldtxt " in ";
-      print_tiny_inner f false (Some node) e';
-      str rp
-  | LetDef (v, e) ->
-      let morefuns, e = find_funs e in
-      str lp;
-      boldtxt "let ";
-      print_pattern f false (Some node) v;
-      txt " ";
-      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
-      txt "= ";
-      print_tiny_inner f false (Some node) e;
-      str rp
-  | LetRecDef (v, e) ->
-      let morefuns, e = find_funs e in
-      str lp;
-      boldstr "let rec ";
-      print_pattern f false (Some node) v;
-      txt " ";
-      List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
-      txt "= ";
-      if not !simple then txt "\n";
       print_tiny_inner f false (Some node) e;
       str rp
   | Fun (fname, fexp) ->

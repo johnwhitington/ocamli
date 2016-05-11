@@ -34,8 +34,8 @@ let make_tiny s =
   match
     s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
   with
-    Struct [LetDef (PatVar n, x)]
-  | Struct [LetRecDef (PatVar n, x)] -> (n, x)
+    Struct [LetDef (false, PatVar n, x)]
+  | Struct [LetDef (true, PatVar n, x)] -> (n, x)
   | Struct [ExceptionDef (n, _) as h] -> (n, h)
   | exception e -> print_string s; print_newline (); raise e
   | _ -> failwith "make_tiny"
