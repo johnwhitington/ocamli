@@ -202,7 +202,6 @@ let rec eval peek env expr =
         failwith "letdef already a value"
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
-        (*LetDef (recflag, [PatVar v, eval peek (if recflag then (v,e)::env else * env) e])*)
 | App (Fun ((fname, fexp) as f), x) ->
     if is_value x
       then Let (false, [PatVar fname, x], fexp)
