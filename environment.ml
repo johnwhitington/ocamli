@@ -174,7 +174,7 @@ let rec eval peek env expr =
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
-| Let (false, PatVar n, v, e) ->
+| Let (false, [PatVar n, v], e) ->
     (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
     to the environment, retain, and continue search for redex.  If v not a
     value, evaluate its rhs one step *)
@@ -188,25 +188,27 @@ let rec eval peek env expr =
         if appears n e then
           match e with
             Fun (fname, fexp) ->
-              if fname = n then e else Fun (fname, Let (false, PatVar n, v, fexp))
+              if fname = n then e else Fun (fname, Let (false, [PatVar n, v], fexp))
           | _ -> failwith "should not be here / eval Let (n, v, e)"
         else e
       else
-        Let (false, PatVar n, v, eval peek ((n, v)::env) e)
+        Let (false, [PatVar n, v], eval peek ((n, v)::env) e)
     else
-      Let (false, PatVar n, eval peek env v, e)
-| Let (true, PatVar n, (Fun r as f), e) ->
+      Let (false, [PatVar n, eval peek env v], e)
+| Let (true, [PatVar n, (Fun r as f)], e) ->
     if namestarred n then last := InsidePervasive::!last;
     if is_value e then e else
-      Let (true, PatVar n, f, eval peek ((n, f)::env) e)
-| Let (true, _, _, _) -> failwith "malformed letrec"
-| LetDef (recflag, PatVar v, e) ->
+      Let (true, [PatVar n, f], eval peek ((n, f)::env) e)
+| Let (true, _, _) -> failwith "malformed letrec"
+| LetDef (recflag, [PatVar v, e]) ->
     if is_value e
-      then failwith "letdef already a value"
-      else LetDef (recflag, PatVar v, eval peek (if recflag then (v,e)::env else env) e)
+      then
+        failwith "letdef already a value"
+      else
+        LetDef (recflag, [PatVar v, eval peek (if recflag then (v,e)::env else env) e])
 | App (Fun ((fname, fexp) as f), x) ->
     if is_value x
-      then Let (false, PatVar fname, x, fexp)
+      then Let (false, [PatVar fname, x], fexp)
       else App (Fun f, eval peek env x)
 | App (Function [], x) ->
     Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
@@ -223,7 +225,7 @@ let rec eval peek env expr =
     begin match List.assoc v env with
       Fun (fname, fexp) ->
         if is_value x then
-          Let (false, PatVar fname, x, fexp)
+          Let (false, [PatVar fname, x], fexp)
         else
           App (Var v, eval peek env x)
     | _ -> failwith (Printf.sprintf "Malformed app (%s) (%s)" v (Tinyocaml.to_string x))
@@ -361,9 +363,9 @@ and eval_curry_collect_args args = function
 and eval_curry_makelets f args =
   match f, args with
   | Fun (a, fexp), [x] ->
-      Let (false, PatVar a, x, fexp)
+      Let (false, [PatVar a, x], fexp)
   | Fun (a, fexp), x::xs ->
-      Let (false, PatVar a, x, eval_curry_makelets fexp xs)
+      Let (false, [PatVar a, x], eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
 
 and eval_first_non_value_item peek env r = function
@@ -373,8 +375,8 @@ and eval_first_non_value_item peek env r = function
       then
         let env' =
           match h with
-            LetDef (false, PatVar x, y) -> (x, y)::env
-          | LetDef (true, PatVar x, y) -> (x, y)::env
+            LetDef (false, [PatVar x, y]) -> (x, y)::env
+          | LetDef (true, [PatVar x, y]) -> (x, y)::env
           | _ -> env
         in
           eval_first_non_value_item peek env' (h::r) t
@@ -403,9 +405,6 @@ let next e =
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
       Malformed "environment"
 
-(*let tree x =
-  makestructure (Tinyocaml.to_real_ocaml x)*)
-
 let to_string x =
   Pptinyocaml.to_string (TinyocamlUtils.underline_redex x) 
 
@@ -425,6 +424,4 @@ let last x = !last
 let newlines = function
   Struct (_::_::_) -> true
 | _ -> false
-
-
 
