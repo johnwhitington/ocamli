@@ -14,6 +14,7 @@ type pattern =
   PatAny
 | PatVar of string
 | PatInt of int
+| PatUnit
 | PatTuple of pattern list
 | PatNil
 | PatCons of pattern * pattern

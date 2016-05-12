@@ -13,6 +13,7 @@ type pattern =
   PatAny
 | PatVar of string
 | PatInt of int
+| PatUnit
 | PatTuple of pattern list
 | PatNil
 | PatCons of pattern * pattern
@@ -39,8 +40,8 @@ and t =
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t)           (* if e then e1 else e2 *)
-| Let of (bool * binding list * t)    (* let x = e in e' *)
-| LetDef of (bool * binding list)     (* let x = e *)
+| Let of (bool * binding list * t)    (* let x = e [and ...] in e' *)
+| LetDef of (bool * binding list)     (* let x = e [and ...] *)
 | Fun of (string * t)         (* fun x -> e *)
 | Function of case list     
 | App of (t * t)              (* e e' *)
@@ -207,7 +208,6 @@ and to_string_struct l =
 
 exception UnknownNode of string
 
-
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -307,6 +307,7 @@ and of_real_ocaml_pattern = function
     PatTuple
       (List.map of_real_ocaml_pattern (List.map (fun x -> x.ppat_desc) patterns))
 | Ppat_construct ({txt = Longident.Lident "[]"}, _) -> PatNil
+| Ppat_construct ({txt = Longident.Lident "()"}, _) -> PatUnit
 | Ppat_construct ({txt = Longident.Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
     PatCons (of_real_ocaml_pattern a.ppat_desc, of_real_ocaml_pattern b.ppat_desc)
 | Ppat_alias (pattern, {txt}) ->
@@ -319,17 +320,8 @@ and of_real_ocaml_structure_item = function
   (* "1" or "let x = 1 in 2" *)
   {pstr_desc = Pstr_eval (e, _)} -> of_real_ocaml e
   (* let x = 1 *)
-| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_var {txt}}; pvb_expr = e}])} ->
-     LetDef (recflag = Recursive, [(PatVar txt, of_real_ocaml e)]) 
-  (* let _ = 1 *)
-| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_any}; pvb_expr = e}])} ->
-     LetDef (recflag = Recursive, [(PatVar "_", of_real_ocaml e)]) 
-  (* let () = ... *)
-| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_construct ({txt}, None)}; pvb_expr = e}])} ->
-     LetDef (recflag = Recursive, [(PatVar "()", of_real_ocaml e)]) 
-  (* let a, b, c = ... *)
-| {pstr_desc = Pstr_value (recflag, [{pvb_pat = {ppat_desc = Ppat_tuple items}; pvb_expr = e}])} ->
-    failwith "found a tuple"
+| {pstr_desc = Pstr_value (recflag, bindings)} ->
+     LetDef (recflag = Recursive, List.map of_real_ocaml_binding bindings) 
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
     ExceptionDef (txt, t) 

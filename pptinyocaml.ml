@@ -169,7 +169,7 @@ let rec print_tiny_inner f isleft parent node =
                if recflag then
                  boldtxt "let rec " else boldtxt "let "
                else
-                 boldtxt "and ";
+                 boldtxt " and ";
              print_pattern f false (Some node) v;
              txt " ";
              let morefuns, e = find_funs e in
@@ -188,7 +188,7 @@ let rec print_tiny_inner f isleft parent node =
            if !first then
              if recflag then boldtxt "let rec " else boldtxt "let "
            else
-             boldtxt "and ";
+             boldtxt " and ";
            first := false;
            print_pattern f false (Some node) v;
            txt " ";
@@ -316,6 +316,8 @@ and print_pattern f isleft parent pat =
     match pat with
       PatAny ->
         str "_"
+    | PatUnit ->
+        str "()"
     | PatVar v ->
         str (Evalutils.unstar v)
     | PatInt i ->

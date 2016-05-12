@@ -200,12 +200,13 @@ let rec eval peek env expr =
     if is_value e then e else
       Let (true, [PatVar n, f], eval peek ((n, f)::env) e)
 | Let (true, _, _) -> failwith "malformed letrec"
-| LetDef (recflag, [PatVar v, e]) ->
-    if is_value e
+| LetDef (recflag, bindings) ->
+    if List.for_all (fun (_, e) -> is_value e) bindings
       then
         failwith "letdef already a value"
       else
-        LetDef (recflag, [PatVar v, eval peek (if recflag then (v,e)::env else env) e])
+        LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
+        (*LetDef (recflag, [PatVar v, eval peek (if recflag then (v,e)::env else * env) e])*)
 | App (Fun ((fname, fexp) as f), x) ->
     if is_value x
       then Let (false, [PatVar fname, x], fexp)
@@ -375,12 +376,24 @@ and eval_first_non_value_item peek env r = function
       then
         let env' =
           match h with
-            LetDef (false, [PatVar x, y]) -> (x, y)::env
-          | LetDef (true, [PatVar x, y]) -> (x, y)::env
+            LetDef (_, [PatVar x, y]) -> (x, y)::env
           | _ -> env
         in
           eval_first_non_value_item peek env' (h::r) t
       else List.rev r @ [eval peek env h] @ t
+
+and eval_first_non_value_binding peek recflag env r = function
+  [] -> List.rev r
+| (v, e)::t ->
+    let env' =
+      if recflag then
+        match v with PatVar v -> (v, e)::env | _ -> env
+      else env
+    in
+      if is_value e then
+          eval_first_non_value_binding peek recflag env' ((v, e)::r) t
+      else
+        List.rev r @ [(v, eval peek env' e)] @ t
 
 and eval_first_non_value_record_item peek env items =
   try
