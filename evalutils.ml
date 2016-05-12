@@ -62,3 +62,11 @@ let unstar s =
   if String.length s > 7 && String.sub s 0 7 = "__PER__"
     then String.sub s 7 (String.length s - 7)
     else s
+
+let rec option_map f = function
+  | [] -> []
+  | h::t ->
+      match f h with
+        None -> option_map f t
+      | Some x -> x::option_map f t
+

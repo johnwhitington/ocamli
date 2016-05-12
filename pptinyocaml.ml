@@ -167,9 +167,11 @@ let rec print_tiny_inner f isleft parent node =
           (fun (v, e) ->
              if !first then
                if recflag then
-                 boldtxt "let rec " else boldtxt "let "
-               else
-                 boldtxt " and ";
+                 boldtxt "let rec "
+               else boldtxt "let "
+             else
+               boldtxt " and ";
+             first := false;
              print_pattern f false (Some node) v;
              txt " ";
              let morefuns, e = find_funs e in

@@ -75,11 +75,17 @@ and appears_in_case var (pat, guard, rhs) =
       (appears_in_guard || appears var rhs) && not (List.mem var bound)
 
 let rec collect_unused_lets = function
-  Let (recflag, [(PatVar n, v)], e) -> (* FIXME: let ... and... *)
-    (* Must be a value: side effects *)
-    if is_value v && not (appears n e)
-      then collect_unused_lets e
-      else Let (recflag, [(PatVar n, collect_unused_lets v)], collect_unused_lets e)
+  Let (recflag, bindings, e) ->
+    if
+      List.for_all (fun (_, v) -> is_value v) bindings &&
+      not (List.exists (function (PatVar n, _) -> appears n e | _ -> false) bindings)
+    then
+      collect_unused_lets e
+    else
+      Let
+        (recflag,
+         List.map (fun (n, e) -> (n, collect_unused_lets e)) bindings,
+         collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
 (* Evaluate one step, assuming not already a value *)
@@ -174,27 +180,17 @@ let rec eval peek env expr =
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
-| Let (false, [PatVar n, v], e) ->
-    (* If v a value, see if e is a value. If it is, remove Let. Otherwise add
-    to the environment, retain, and continue search for redex.  If v not a
-    value, evaluate its rhs one step *)
-    (* In fact, we must check to see if the value is **closed**. For example
-         let x = 1 in fun y -> x + y
-         fun y -> let x = 1 in x + y
-     *)
-    if namestarred n then last := InsidePervasive::!last;
-    if is_value v then
-      if is_value e then
-        if appears n e then
-          match e with
-            Fun (fname, fexp) ->
-              if fname = n then e else Fun (fname, Let (false, [PatVar n, v], fexp))
-          | _ -> failwith "should not be here / eval Let (n, v, e)"
-        else e
-      else
-        Let (false, [PatVar n, v], eval peek ((n, v)::env) e)
+| Let (false, bindings, e) ->
+    if List.exists (function (PatVar v, e) -> namestarred v | _ -> false) bindings then
+      last := InsidePervasive::!last;
+    if List.for_all (fun (_, e) -> is_value e) bindings then
+      let env' =
+          Evalutils.option_map (function (PatVar v, e) -> Some (v, e) | _ -> None) bindings
+        @ env
+      in
+        Let (false, bindings, eval peek env' e)
     else
-      Let (false, [PatVar n, eval peek env v], e)
+      Let (false, eval_first_non_value_binding peek false env [] bindings, e)
 | Let (true, [PatVar n, (Fun r as f)], e) ->
     if namestarred n then last := InsidePervasive::!last;
     if is_value e then e else

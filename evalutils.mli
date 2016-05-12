@@ -36,3 +36,5 @@ val namestarred : string -> bool
 
 val unstar : string -> string
 
+val option_map : ('a -> 'b option) -> 'a list -> 'b list
+
