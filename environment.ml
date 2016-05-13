@@ -252,19 +252,14 @@ let rec eval peek env expr =
     While (cg, cb, cg, cb)
 | While (e, e', cg, cb) ->
     While (eval peek env e, e', cg, cb)
-(* If start number unevaluted, work on it *)
 | For (v, e, ud, e', e'', copy) when not (is_value e) ->
     For (v, eval peek env e, ud, e', e'', copy)
-(* If end number unevaluated, work on it *)
 | For (v, e, ud, e', e'', copy) when not (is_value e') ->
     For (v, e, ud, eval peek env e', e'', copy)
-(* If start number > end number (UP) or end number > start number (DOWN), we are done *)
 | For (_, Int x, UpTo, Int y, _, _) when x > y -> Unit
 | For (_, Int x, DownTo, Int y, _, _) when y > x -> Unit
-(* If body a value, increment to next for loop *)
 | For (v, Int x, ud, e', e'', copy) when is_value e'' ->
     For (v, Int (x + 1), ud, e', copy, copy)
-(* If body not a value, put the var in the environment and evaluate body one step. *)
 | For (v, x, ud, e', e'', copy) ->
     For (v, x, ud, e', eval peek ((v, x)::env) e'', copy)
 | Record items ->
@@ -368,7 +363,7 @@ and eval_curry peek env e =
 
 and eval_curry_collect_args args = function
     App (f, e) -> eval_curry_collect_args (e::args) f
-  | _ -> List.rev args
+  | _ -> args
 
 and eval_curry_makelets f args =
   match f, args with
