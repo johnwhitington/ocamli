@@ -139,6 +139,9 @@ and match_many_binders es ps rhs =
       end
   | _ -> failwith "match_many_binders"
 
+let filter_bindings x bs =
+  Evalutils.option_map (function (x', v) when x = x -> Some (x', v) | _ -> None) bs
+
 let rec eval peek env expr =
   match expr with
 | Control (_, x) -> eval peek env x
@@ -188,7 +191,17 @@ let rec eval peek env expr =
           Evalutils.option_map (function (PatVar v, e) -> Some (v, e) | _ -> None) bindings
         @ env
       in
-        Let (false, bindings, eval peek env' e)
+        (* If e is a function closure, move this Let inside the function (unless
+        it is occluded. FIXME: Mutually-recursive bindings with a name clash may
+        break this. See commentary in programs/and.ml *)
+        begin match e with
+          Fun (fx, fe) ->
+            begin match filter_bindings fx bindings with
+              [] -> Fun (fx, fe)
+            | bindings' -> Fun (fx, Let (false, bindings', fe))
+            end
+        | _ -> Let (false, bindings, eval peek env' e)
+        end
     else
       Let (false, eval_first_non_value_binding peek false env [] bindings, e)
 | Let (true, [PatVar n, (Fun r as f)], e) ->
@@ -345,7 +358,8 @@ and eval_curry_inner peek env e =
 and eval_curry_findfun = function
   App (App (e, _), _) -> eval_curry_findfun e
 | App (f, _) -> f
-| _ -> failwith "eval_curry_findfun"
+| Fun f -> Fun f
+| e -> failwith (Printf.sprintf "eval_curry_findfun: %s" (Tinyocaml.to_string e))
 
 and eval_curry peek env e =
   let x, did = eval_curry_inner peek env e in

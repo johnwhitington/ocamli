@@ -8,7 +8,8 @@ let comp = function
 
 (* Predicate on value-ness of expressions. *)
 let rec is_value = function
-  Unit | Int _ | Bool _ | Fun _ | Function _ | OutChannel _ | InChannel _ | String _ | Nil -> true
+  Unit | Int _ | Bool _ | Fun _ | Function _
+| OutChannel _ | InChannel _ | String _ | Nil -> true
 | Record items when
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | Struct items when
@@ -17,7 +18,10 @@ let rec is_value = function
     List.for_all is_value items -> true
 | Cons (e, e') when
     is_value e && is_value e' -> true
-| LetDef (_, bindings) when List.for_all (fun (_, e) -> is_value e) bindings -> true
+| LetDef (_, bindings) when
+    List.for_all (fun (_, e) -> is_value e) bindings -> true
+| Let (_, bindings, e) when
+    List.for_all (fun (_, e) -> is_value e) bindings && is_value e -> true
 | ExceptionDef _ -> true
 | _ -> false
 
