@@ -4,5 +4,5 @@
       let (rx, ry) = split l in (x::rx, y::ry)*)
 
 let p = 
-  let (x, y) = (1, 2) in
+  let (x, y) = (1 + 1, 2 + 2) in
     x + y
