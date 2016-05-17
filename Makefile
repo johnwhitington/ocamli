@@ -8,10 +8,12 @@ OCAMLNCFLAGS = -safe-string -g -w -3
 OCAMLBCFLAGS = -safe-string -g -w -3
 OCAMLLDFLAGS = -g
 
-all : native-code
+all : native-code native-code-library byte-code-library 
 
 clean ::
-	rm -rf doc foo foo2 a.out
+	rm -rf doc foo foo2 a.out eval.top
+
+install : libinstall
 
 -include OCamlMakefile
 

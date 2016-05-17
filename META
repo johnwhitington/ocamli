@@ -1,0 +1,6 @@
+name="ocamli"
+description="Evaluate OCaml expressions"
+version="0.1"
+requires="unix compiler-libs.common"
+archive(byte)="ocamli.cma"
+archive(native)="ocamli.cmxa"

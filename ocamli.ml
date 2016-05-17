@@ -20,7 +20,7 @@ let argspec =
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-peek", Arg.Clear Environment.dopeek, " Avoid peeking for debug")]
 
-let () =
+let go () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>
              [-pp <ocaml | tiny* | simple ]
@@ -124,4 +124,7 @@ let () =
      | e ->
          if !debug then raise e else Printf.eprintf "Error: [%s]\n" (Printexc.to_string e);
          exit 1
+
+let () =
+  if not !Sys.interactive then go ()
 
