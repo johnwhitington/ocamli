@@ -64,6 +64,7 @@ and t =
 | Nil                          (** [] *)
 | Append of (t * t)              (** @ *)
 | Tuple of t list              (** (a, b) *)
+| Assert of t                  (** assert e *)
 
 val string_of_op : op -> string
 

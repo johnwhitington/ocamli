@@ -78,7 +78,11 @@ let rec collect_unused_lets = function
   Let (recflag, bindings, e) ->
     if
       List.for_all (fun (_, v) -> is_value v) bindings &&
-      not (List.exists (function (PatVar n, _) -> appears n e | _ -> false) bindings)
+      not
+        (let all_names_bound =
+          List.flatten (List.map bound_in_pattern (List.map fst bindings))
+        in
+          List.exists (fun n -> appears n e) all_names_bound)
     then
       collect_unused_lets e
     else
@@ -140,7 +144,16 @@ and match_many_binders es ps rhs =
   | _ -> failwith "match_many_binders"
 
 let filter_bindings x bs =
-  Evalutils.option_map (function (x', v) when x = x -> Some (x', v) | _ -> None) bs
+  Evalutils.option_map (function (PatVar x', v) when x' = x -> Some (PatVar x', v) | _ -> None) bs
+
+let rec read_bindings (bs : binding list) =
+  List.flatten
+    (List.map
+      (function
+        | (PatVar v, e) -> [(v, e)]
+        | (PatTuple ps, Tuple ts) -> read_bindings (List.combine ps ts)
+        | _ -> [])
+      bs)
 
 let rec eval peek env expr =
   match expr with
@@ -187,10 +200,7 @@ let rec eval peek env expr =
     if List.exists (function (PatVar v, e) -> namestarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
-      let env' =
-          Evalutils.option_map (function (PatVar v, e) -> Some (v, e) | _ -> None) bindings
-        @ env
-      in
+      let env' = read_bindings bindings @ env in
         (* If e is a function closure, move this Let inside the function (unless
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)

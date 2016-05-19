@@ -202,11 +202,12 @@ let rec split = function
   | (x,y)::l ->
       let (rx, ry) = split l in (x::rx, y::ry)
 
-(*let rec combine l1 l2 =
+let rec combine l1 l2 =
   match (l1, l2) with
     ([], []) -> []
   | (a1::l1, a2::l2) -> (a1, a2) :: combine l1 l2
   | (_, _) -> invalid_arg "List.combine"
+
 
 (** sorting *)
 
@@ -228,7 +229,7 @@ let rec chop k l =
   end
 ;;
 
-let stable_sort cmp l =
+(*let stable_sort cmp l =
   let rec rev_merge l1 l2 accu =
     match l1, l2 with
     | [], l2 -> rev_append l2 accu

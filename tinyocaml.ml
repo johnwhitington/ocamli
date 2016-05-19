@@ -58,10 +58,11 @@ and t =
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
 | Struct of t list            (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
-| Cons of (t * t)               (* List *)
+| Cons of (t * t)             (* List *)
 | Nil                         (* [] *)
-| Append of (t * t)            (* @ *)
+| Append of (t * t)           (* @ *)
 | Tuple of t list             (* (1, 2) *)
+| Assert of t                 (* assert *)
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
@@ -280,6 +281,8 @@ let rec of_real_ocaml_expression_desc = function
     Tuple (List.map of_real_ocaml xs)
 | Pexp_match (e, cases) ->
     Match (of_real_ocaml e, List.map of_real_ocaml_case cases)
+| Pexp_assert e ->
+    Assert (of_real_ocaml e)
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_binding {pvb_pat = {ppat_desc}; pvb_expr} =
@@ -318,17 +321,19 @@ and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
 
 and of_real_ocaml_structure_item = function
   (* "1" or "let x = 1 in 2" *)
-  {pstr_desc = Pstr_eval (e, _)} -> of_real_ocaml e
+  {pstr_desc = Pstr_eval (e, _)} -> Some (of_real_ocaml e)
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
-     LetDef (recflag = Recursive, List.map of_real_ocaml_binding bindings) 
+     Some (LetDef (recflag = Recursive, List.map of_real_ocaml_binding bindings))
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
-    ExceptionDef (txt, t) 
+     Some (ExceptionDef (txt, t))
+| {pstr_desc = Pstr_attribute _} -> None
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml x =
-  Struct (List.map of_real_ocaml_structure_item x)
+  Printf.printf "there are %i structure items\n";
+  Struct (Evalutils.option_map of_real_ocaml_structure_item x)
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
