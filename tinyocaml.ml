@@ -370,6 +370,7 @@ let rec recurse f = function
 | Function patmatch ->
     Function (List.map (recurse_case f) patmatch)
 | Tuple l -> Tuple (List.map f l)
+| Assert e -> Assert (recurse f e)
 
 and recurse_case f (pat, guard, rhs) =
   (pat,

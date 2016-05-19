@@ -208,7 +208,6 @@ let rec combine l1 l2 =
   | (a1::l1, a2::l2) -> (a1, a2) :: combine l1 l2
   | (_, _) -> invalid_arg "List.combine"
 
-
 (** sorting *)
 
 let rec merge cmp l1 l2 =
@@ -229,7 +228,7 @@ let rec chop k l =
   end
 ;;
 
-(*let stable_sort cmp l =
+let stable_sort cmp l =
   let rec rev_merge l1 l2 accu =
     match l1, l2 with
     | [], l2 -> rev_append l2 accu
@@ -431,4 +430,4 @@ let sort_uniq cmp l =
   in
   let len = length l in
   if len < 2 then l else sort len l
-;;*)
+;;

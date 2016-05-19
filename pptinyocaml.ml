@@ -72,6 +72,11 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
+  | Assert e ->
+      str lp;
+      boldtxt "assert ";
+      print_tiny_inner f false (Some node) e;
+      str rp;
   | Match (e, patmatch) ->
       str lp;
       boldtxt "match ";

@@ -17,6 +17,8 @@ let dopeek = ref true
 let rec bound_in_pattern = function
   PatAny -> []
 | PatVar v -> [v]
+| PatInt _ -> []
+| PatUnit -> []
 | PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
 | PatNil -> []
 | PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
