@@ -4,8 +4,9 @@ open Tinyocaml
 (* This contains externals from Core / Pervasives *)
 let builtin_output_string = function
   [OutChannel c; String s] -> output_string c s; Unit
-| l -> failwith (Printf.sprintf "builtin_output_string: %s" (Tinyocaml.to_string
-(Struct l)))
+| l ->
+    failwith
+      (Printf.sprintf "builtin_output_string: %s" (Tinyocaml.to_string (Struct ("_", l))))
 
 let builtin_print_int = function
   [Int i] -> output_string stdout (string_of_int i); Unit
@@ -35,8 +36,8 @@ let make_tiny s =
   match
     s |> Lexing.from_string |> Parse.implementation |> of_real_ocaml
   with
-    Struct [LetDef (_, [(PatVar n, x)])] -> (n, x)
-  | Struct [ExceptionDef (n, _) as h] -> (n, h)
+    Struct (_, [LetDef (_, [(PatVar n, x)])]) -> (n, x)
+  | Struct (_, [ExceptionDef (n, _) as h]) -> (n, h)
   | exception e -> print_string s; print_newline (); raise e
   | _ -> failwith "make_tiny"
 

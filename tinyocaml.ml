@@ -56,7 +56,7 @@ and t =
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
-| Struct of t list            (* Module implementation. *)
+| Struct of (string * t list)   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
 | Cons of (t * t)             (* List *)
 | Nil                         (* [] *)
@@ -204,10 +204,20 @@ and to_string_record l =
     (List.map (fun (n, t) -> Printf.sprintf "(%s, %s); " n (to_string !t)) l) ^
   "]"
 
-and to_string_struct l =
-  "Struct [" ^ List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^ "]"
+and to_string_struct (name, l) =
+  Printf.sprintf "Struct %s = [" name ^
+  List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
+  "]"
 
 exception UnknownNode of string
+
+let rec dots_between = function
+  [] -> ""
+| [h] -> h
+| h::t -> h ^ "." ^ dots_between t
+
+let string_of_longident l =
+  dots_between (Longident.flatten l)
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc = function
@@ -223,7 +233,7 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_ident {txt = Longident.Lident "stdout"} -> OutChannel stdout
 | Pexp_ident {txt = Longident.Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Longident.Lident "stdin"} -> InChannel stdin
-| Pexp_ident {txt = Longident.Lident v} -> Var v
+| Pexp_ident {txt = v} -> Var (string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
 | Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, exp) ->
@@ -332,8 +342,7 @@ and of_real_ocaml_structure_item = function
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml x =
-  Printf.printf "there are %i structure items\n";
-  Struct (Evalutils.option_map of_real_ocaml_structure_item x)
+  Struct ("Main", Evalutils.option_map of_real_ocaml_structure_item x)
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f = function
@@ -362,7 +371,7 @@ let rec recurse f = function
 | TryWith (a, s) -> TryWith (f a, s)
 | ExceptionDef e -> ExceptionDef e
 | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
-| Struct l -> Struct (List.map f l)
+| Struct (n, l) -> Struct (n, List.map f l)
 | Cons (e, e') -> Cons (recurse f e, recurse f e')
 | Append (e, e') -> Append (recurse f e, recurse f e')
 | Match (e, patmatch) ->

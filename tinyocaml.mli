@@ -58,7 +58,7 @@ and t =
 | ExceptionDef of (string * Parsetree.constructor_arguments) (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
-| Struct of t list             (** Module implementation *)
+| Struct of (string * t list)  (** Module implementation *)
 | Sig of t list                (** Module signature *)
 | Cons of (t * t)                (** :: *)
 | Nil                          (** [] *)

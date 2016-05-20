@@ -89,13 +89,22 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt "function ";
       List.iter (print_case f false (Some node)) patmatch;
       str rp
-  | Struct structure_items ->
+  | Struct (n, structure_items) ->
+      if n <> "Main" then
+        begin
+          boldtxt "module ";
+          str n;
+          txt " = ";
+          boldtxt "struct "
+        end;
       let l = List.length structure_items in
         List.iteri
           (fun i x ->
              print_tiny_inner f false (Some node) x;
              if i < l - 1 then txt "\n\n")
-          structure_items
+          structure_items;
+      if n <> "Main" then
+        boldtxt "end"
   | Tuple xs ->
       let l = List.length xs in
       str "(";

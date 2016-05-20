@@ -12,7 +12,7 @@ let rec is_value = function
 | OutChannel _ | InChannel _ | String _ | Nil -> true
 | Record items when
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
-| Struct items when
+| Struct (_, items) when
     List.for_all is_value items -> true
 | Tuple items when
     List.for_all is_value items -> true
@@ -96,10 +96,10 @@ let rec underline_redex e =
         if List.for_all is_value args
           then underline e
           else CallBuiltIn (name, underline_first_non_value args, fn)
-    | Struct ls ->
+    | Struct (n, ls) ->
         if List.for_all is_value ls
           then failwith "module already a value"
-          else Struct (underline_first_non_value ls)
+          else Struct (n, underline_first_non_value ls)
     | Tuple ls ->
         if List.for_all is_value ls
           then failwith "tuple already a value"

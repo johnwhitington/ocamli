@@ -58,7 +58,7 @@ let rec appears var = function
 | SetField (e, n, e') -> appears var e || appears var e'
 | TryWith (e, (s, e')) -> appears var e || appears var e'
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
-| Struct ls -> List.exists (appears var) ls
+| Struct (_, ls) -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
@@ -277,8 +277,8 @@ let rec eval peek env expr =
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
-| Struct ls ->
-    Struct (eval_first_non_value_item peek env [] ls)
+| Struct (n, ls) ->
+    Struct (n, eval_first_non_value_item peek env [] ls)
 | Tuple ls ->
     Tuple (eval_first_non_value_item peek env [] ls)
 | Field (Record items, n) -> !(List.assoc n items)
@@ -451,6 +451,6 @@ let peek x =
 let last x = !last
 
 let newlines = function
-  Struct (_::_::_) -> true
+  Struct (_, _::_::_) -> true
 | _ -> false
 
