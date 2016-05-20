@@ -90,7 +90,7 @@ let go () =
         printer := "tiny"
       end;
     Pptinyocaml.width := !width;
-    let state = I.init (ast code) in
+    let state = I.init (Evalutils.ast code) in
        if !debugtiny then
          begin
            print_string (Tinyocaml.to_string (I.tiny state));

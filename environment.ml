@@ -14,6 +14,10 @@ let fastcurry = ref false
 
 let dopeek = ref true
 
+let add_prefix x (y, v) =
+  (x ^ "." ^ y, v)
+
+
 let rec bound_in_pattern = function
   PatAny -> []
 | PatVar v -> [v]
@@ -94,9 +98,13 @@ let rec collect_unused_lets = function
          collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
+let lookup_value v env =
+  try List.assoc v env with
+    Not_found -> List.assoc ("Pervasives." ^ v) env
+
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
-  match List.assoc v env with
+  match lookup_value v env with
     Int i -> i
   | _ -> failwith "comparison not an integer"
 
@@ -243,7 +251,7 @@ let rec eval peek env expr =
         end
       else App (Function (p::ps), eval peek env x)
 | App (Var v, x) ->
-    begin match List.assoc v env with
+    begin match lookup_value v env with
       Fun (fname, fexp) ->
         if is_value x then
           Let (false, [PatVar fname, x], fexp)
@@ -308,7 +316,7 @@ let rec eval peek env expr =
       then if not peek then fn args else Unit
       else CallBuiltIn (name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
-    begin try List.assoc v env with
+    begin try lookup_value v env with
       Not_found -> failwith (Printf.sprintf "Var %s not found" v)
     end
 | Cons (x, y) ->
@@ -417,6 +425,32 @@ and eval_first_non_value_record_item peek env items =
   with
     Exit -> ()
 
+let pervasives =
+  List.map (add_prefix "Pervasives") Core.pervasives
+
+let definitions_of_module = function
+  Struct (_, items) ->
+    Evalutils.option_map
+      (fun x ->
+        match x with
+          LetDef (_, [(PatVar v, _)]) -> Some (v, x)
+        | _ -> None) 
+      items
+
+(* Load a module from disk *)
+let load_module name file =
+  Printf.printf "Loading module %s...%!" name;
+  let themod = Tinyocaml.of_real_ocaml (ast (load_file file)) in
+    let themod' = eval false (*FIXME current env! *)pervasives themod in
+      Printf.printf "done\n%!";
+      List.map (add_prefix name) (definitions_of_module themod')
+
+let stdlib_list =
+  load_module "List" "stdlib/list.ml"
+
+let lib =
+  stdlib_list @ pervasives
+
 let init x =
   Tinyocaml.of_real_ocaml x
 
@@ -427,7 +461,7 @@ let next e =
   try
     if is_value e
       then IsValue
-      else Next (collect_unused_lets (eval false Core.pervasives e))
+      else Next (collect_unused_lets (eval false lib e))
   with
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->
@@ -443,7 +477,7 @@ let peek x =
   if is_value x || not !dopeek then [] else
     let t = !last in
       last := [];
-      ignore (eval true Core.pervasives x);
+      ignore (eval true lib x);
       let r = !last in
         last := t;
         r

@@ -16,9 +16,7 @@ type mode = FromFile of string | FromText of string
 val source : mode option ref
 val setfile : string -> unit
 val settext : string -> unit
-val load_file : string -> string
-val env : Env.t
-val ast : string -> Parsetree.structure
+
 module type Evaluator =
   sig
     type t

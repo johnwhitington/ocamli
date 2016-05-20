@@ -38,3 +38,8 @@ val unstar : string -> string
 
 val option_map : ('a -> 'b option) -> 'a list -> 'b list
 
+val load_file : string -> string
+
+val env : Env.t
+val ast : string -> Parsetree.structure
+
