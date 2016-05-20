@@ -171,7 +171,12 @@ and to_string_binding (pat, e) =
 and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
+| PatInt i -> string_of_int i
+| PatUnit -> "()"
 | PatTuple _ -> "PatTuple"
+| PatNil -> "[]"
+| PatCons _ -> "PatCons"
+| PatAlias _ -> "PatAlias"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)

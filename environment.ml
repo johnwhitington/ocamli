@@ -17,7 +17,6 @@ let dopeek = ref true
 let add_prefix x (y, v) =
   (x ^ "." ^ y, v)
 
-
 let rec bound_in_pattern = function
   PatAny -> []
 | PatVar v -> [v]
@@ -257,7 +256,11 @@ let rec eval peek env expr =
           Let (false, [PatVar fname, x], fexp)
         else
           App (Var v, eval peek env x)
-    | _ -> failwith (Printf.sprintf "Malformed app (%s) (%s)" v (Tinyocaml.to_string x))
+    | Function cases ->
+        eval peek env (App (Function cases, x)) (* FIXME this is substitution *)
+    | got ->
+        Printf.printf "Malformed app applying %s\n to %s\n - got %s\n" v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
+        failwith "malformed app"
     end
 | App (App _, _) when !fastcurry ->
     eval_curry peek env expr
@@ -433,7 +436,7 @@ let definitions_of_module = function
     Evalutils.option_map
       (fun x ->
         match x with
-          LetDef (_, [(PatVar v, _)]) -> Some (v, x)
+          LetDef (_, [(PatVar v, def)]) -> Some (v, def)
         | _ -> None) 
       items
 
@@ -450,6 +453,10 @@ let stdlib_list =
 
 let lib =
   stdlib_list @ pervasives
+
+(*let _ =
+  List.iter
+    (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) lib*)
 
 let init x =
   Tinyocaml.of_real_ocaml x
