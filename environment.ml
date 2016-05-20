@@ -55,6 +55,7 @@ let rec appears var = function
 | Match (e, patmatch) ->
     appears var e || List.exists (appears_in_case var) patmatch
 | Fun (fname, fexp) -> fname <> var && appears var fexp
+| Function cases -> List.exists (appears_in_case var) cases
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
 | Field (e, n) -> appears var e
@@ -65,6 +66,7 @@ let rec appears var = function
 | Tuple ls -> List.exists (appears var) ls
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
+| Assert x -> appears var x
 | Int _ | Bool _ | Var _ | Float _ | Unit
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
