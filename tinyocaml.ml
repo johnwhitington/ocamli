@@ -93,6 +93,7 @@ let string_of_constructor_arg = function
 
 let rec to_string = function
   Unit -> "Unit"
+| Assert e -> Printf.sprintf "Assert %s" (to_string e)
 | Int i -> Printf.sprintf "Int %i" i
 | Bool b -> Printf.sprintf "Bool %b" b
 | Float f -> Printf.sprintf "Float %f" f
@@ -350,44 +351,45 @@ let of_real_ocaml x =
   Struct ("Main", Evalutils.option_map of_real_ocaml_structure_item x)
 
 (* Recurse over the tinyocaml data type *)
-let rec recurse f = function
-| (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
-| Op (op, a, b) -> Op (op, f a, f b)
-| And (a, b) -> And (f a, f b)
-| Or (a, b) -> Or (f a, f b)
-| Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
-| If (e, e1, e2) -> If (f e, f e1, f e2)
-| Let (recflag, bindings, e) ->
-    Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, f e)
-| LetDef (recflag, bindings) ->
-    LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
-| Fun (n, fexp) -> Fun (n, f fexp)
-| App (a, b) -> App (f a, f b)
-| Seq (a, b) -> Seq (f a, f b)
-| While (a, b, c, d) -> While (f a, f b, f c, f d)
-| For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
-| Control (c, x) -> Control (c, f x)
-| Record items ->
-    List.iter (fun (k, v) -> v := f !v) items;
-    Record items
-| Field (a, n) -> Field (recurse f a, n)
-| SetField (a, n, b) -> SetField (f a, n, f b)
-| Raise s -> Raise s
-| TryWith (a, s) -> TryWith (f a, s)
-| ExceptionDef e -> ExceptionDef e
-| CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
-| Struct (n, l) -> Struct (n, List.map f l)
-| Cons (e, e') -> Cons (recurse f e, recurse f e')
-| Append (e, e') -> Append (recurse f e, recurse f e')
-| Match (e, patmatch) ->
-    Match (e, List.map (recurse_case f) patmatch)
-| Function patmatch ->
-    Function (List.map (recurse_case f) patmatch)
-| Tuple l -> Tuple (List.map f l)
-| Assert e -> Assert (recurse f e)
+let rec recurse f exp =
+  match exp with
+  | (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
+  | Op (op, a, b) -> Op (op, f a, f b)
+  | And (a, b) -> And (f a, f b)
+  | Or (a, b) -> Or (f a, f b)
+  | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
+  | If (e, e1, e2) -> If (f e, f e1, f e2)
+  | Let (recflag, bindings, e) ->
+      Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, recurse f e)
+  | LetDef (recflag, bindings) ->
+      LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
+  | Fun (n, fexp) -> Fun (n, f fexp)
+  | App (a, b) -> App (f a, f b)
+  | Seq (a, b) -> Seq (f a, f b)
+  | While (a, b, c, d) -> While (f a, f b, f c, f d)
+  | For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
+  | Control (c, x) -> Control (c, f x)
+  | Record items ->
+      List.iter (fun (k, v) -> v := f !v) items;
+      Record items
+  | Field (a, n) -> Field (f a, n)
+  | SetField (a, n, b) -> SetField (f a, n, f b)
+  | Raise s -> Raise s
+  | TryWith (a, s) -> TryWith (f a, s)
+  | ExceptionDef e -> ExceptionDef e
+  | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
+  | Struct (n, l) -> Struct (n, List.map f l)
+  | Cons (e, e') -> Cons (f e, f e')
+  | Append (e, e') -> Append (f e, f e')
+  | Match (e, patmatch) ->
+      Match (e, List.map (recurse_case f) patmatch)
+  | Function patmatch ->
+      Function (List.map (recurse_case f) patmatch)
+  | Tuple l -> Tuple (List.map f l)
+  | Assert e -> Assert (f e)
 
 and recurse_case f (pat, guard, rhs) =
   (pat,
-   begin match guard with None -> None | Some g -> Some (recurse f g) end,
-   recurse f rhs)
+   begin match guard with None -> None | Some g -> Some (f g) end,
+   f rhs)
 
