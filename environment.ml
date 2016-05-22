@@ -168,6 +168,10 @@ let rec read_bindings (bs : binding list) =
 
 let rec eval peek env expr =
   match expr with
+| Assert (Bool false) ->
+    Raise ("Assert_failure", Some (Tuple [String "//unknown//"; Int 0; Int 0]))
+| Assert (Bool true) -> Unit
+| Assert e -> Assert (eval peek env e)
 | Control (_, x) -> eval peek env x
 | Op (op, Int a, Int b) ->
     last := Arith::!last;
