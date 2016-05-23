@@ -99,9 +99,21 @@ let rec collect_unused_lets = function
          collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
+let print_env env =
+  List.iter
+    (fun (s, _) -> Printf.printf "%s\n" s)
+    env
+
 let lookup_value v env =
+  (*Printf.printf "looking up %s\n" v;
+  print_env env;*)
   try List.assoc v env with
-    Not_found -> List.assoc ("Pervasives." ^ v) env
+    Not_found ->
+      try List.assoc ("Pervasives." ^ v) env with
+        Not_found ->
+          (* Huge bodge. We will introduce proper environments for separate
+           * modules soon *)
+          List.assoc ("List." ^ v) env
 
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
