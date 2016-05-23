@@ -23,6 +23,10 @@ let builtin_int_of_string = function
     end
 | _ -> failwith "builtin_int_of_string"
 
+let builtin_compare = function
+  [x; y] -> Int (compare x y) (* FIXME: Obviously not... *)
+| _ -> failwith "builtin_compare"
+
 (* The initial asterisk will be used to elide these variables when not showing
 pervasives in the output. When showing pervasives, we just remove the asterisk. *)
 let mk name f =
@@ -53,6 +57,7 @@ let pervasives =
    mk "print_int" builtin_print_int;
    mk "int_of_string" builtin_int_of_string;
    mk "input_line" builtin_input_line;
+   mk2 "compare" builtin_compare;
    make_tiny "let failwith = fun __PER__s -> raise (Failure __PER__s)";
    make_tiny "let invalid_arg = fun __PER__s -> raise (Invalid_argument __PER__s)"]
 

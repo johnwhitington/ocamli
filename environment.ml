@@ -41,11 +41,16 @@ let rec appears var = function
 | Let (recflag, bindings, e') ->
     if recflag then
       List.exists
-        (fun (PatVar v, e) -> v <> var && (appears var e || appears var e'))
+        (function
+            (PatVar v, e) -> v <> var && (appears var e || appears var e')
+          | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e || appears
+          var e'))
         bindings
     else
       List.exists
-        (fun (PatVar v, e) -> appears var e || v <> var && appears var e')
+        (function
+            (PatVar v, e) -> v <> var && (appears var e')
+          | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e'))
         bindings
 | LetDef (recflag, bindings) ->
     if recflag then
@@ -207,7 +212,7 @@ let rec eval peek env expr =
     last := Boolean::!last;
     Bool b
 | Or (Bool false, b) -> eval peek env b
-| Or (a, b) -> And (eval peek env a, b)
+| Or (a, b) -> Or (eval peek env a, b)
 | Cmp (op, Int a, Int b) ->
     last := Comparison::!last;
     Bool (comp op a b)
