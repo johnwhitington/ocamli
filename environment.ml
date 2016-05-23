@@ -167,7 +167,9 @@ and match_many_binders es ps rhs =
   | _ -> failwith "match_many_binders"
 
 let filter_bindings x bs =
-  Evalutils.option_map (function (PatVar x', v) when x' = x -> Some (PatVar x', v) | _ -> None) bs
+  Evalutils.option_map
+    (function (PatVar x', v) when x' <> x -> Some (PatVar x', v) | _ -> None)
+    bs
 
 let rec read_bindings (bs : binding list) =
   List.flatten
@@ -237,6 +239,30 @@ let rec eval peek env expr =
               [] -> Fun (fx, fe)
             | bindings' -> Fun (fx, Let (false, bindings', fe))
             end
+        | Function cases ->
+            (* Put in the guard of any case where it appears unoccluded by the
+             * pattern. Put in the rhs of any case where it appears unoccluded
+             * by the pattern *)
+             let add_to_case (pat, guard, rhs) =
+               (* Filter the bindings to remove anything bound in the pattern *)
+               (* If non-empty, add the let-binding to guard and rhs *)
+               let bindings' =
+                 List.fold_left
+                   (fun a b -> filter_bindings b bindings) bindings (bound_in_pattern pat)
+               in
+               match bindings' with
+                 [] -> (pat, guard, rhs)
+               | l ->
+                   let rhs' =
+                     Let (false, bindings', rhs)
+                   and guard' =
+                     match guard with
+                     | None -> None
+                     | Some g -> Some (Let (false, bindings', g))
+                   in
+                     (pat, guard', rhs')
+             in
+               Function (List.map add_to_case cases)
         | _ -> Let (false, bindings, eval peek env' e)
         end
     else
