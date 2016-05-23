@@ -27,6 +27,10 @@ let builtin_compare = function
   [x; y] -> Int (compare x y) (* FIXME: Obviously not... *)
 | _ -> failwith "builtin_compare"
 
+let builtin_physeq = function
+  [x; y] -> Bool (compare x y = 0) (* FIXME: Obviously not... *)
+| _ -> failwith "builtin_physeq"
+
 (* The initial asterisk will be used to elide these variables when not showing
 pervasives in the output. When showing pervasives, we just remove the asterisk. *)
 let mk name f =
@@ -58,6 +62,7 @@ let pervasives =
    mk "int_of_string" builtin_int_of_string;
    mk "input_line" builtin_input_line;
    mk2 "compare" builtin_compare;
+   mk2 "==" builtin_physeq;
    make_tiny "let failwith = fun __PER__s -> raise (Failure __PER__s)";
    make_tiny "let invalid_arg = fun __PER__s -> raise (Invalid_argument __PER__s)"]
 

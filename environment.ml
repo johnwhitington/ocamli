@@ -307,6 +307,8 @@ let rec eval peek env expr =
           App (Var v, eval peek env x)
     | Function cases ->
         eval peek env (App (Function cases, x)) (* FIXME this is substitution *)
+    | Var v' ->
+        App (Var v', x)
     | got ->
         Printf.printf "Malformed app applying %s\n to %s\n - got %s\n" v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
         failwith "malformed app"
