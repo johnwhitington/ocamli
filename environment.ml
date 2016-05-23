@@ -497,7 +497,7 @@ let load_module name file =
   let themod = Tinyocaml.of_real_ocaml (ast (load_file file)) in
     let themod' = eval false (*FIXME current env! *)pervasives themod in
       Printf.printf "done\n%!";
-      List.map (add_prefix name) (definitions_of_module themod')
+      List.rev (List.map (add_prefix name) (definitions_of_module themod'))
 
 let stdlib_list =
   load_module "List" "stdlib/list.ml"

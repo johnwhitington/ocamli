@@ -2,6 +2,9 @@ open Tinyocaml
 open Asttypes
 open Parsetree
 
+(* Use bold and underlining *)
+let syntax = ref true
+
 (* If true, whole program printed on one line *)
 let simple = ref false
 
@@ -383,15 +386,19 @@ let print ?(preamble="") f t =
     {Format.mark_open_tag = (fun _ -> "");
      Format.mark_close_tag = (fun _ -> "");
      Format.print_open_tag =
-       (fun tag ->
-         tags := tag::!tags;
-         output_tag f tag);
+       (if !syntax then
+         (fun tag -> tags := tag::!tags; output_tag f tag)
+       else
+         (fun _ -> ()));
      Format.print_close_tag =
-       (fun _ ->
-          if !tags = [] then failwith "ill-matched tags: pop";
-          tags := List.tl !tags;
-          Format.pp_print_string f code_end;
-          if !tags <> [] then output_tags f)}
+       (if !syntax then
+         (fun _ ->
+            if !tags = [] then failwith "ill-matched tags: pop";
+            tags := List.tl !tags;
+            Format.pp_print_string f code_end;
+            if !tags <> [] then output_tags f)
+       else
+         (fun _ -> ()))}
   in
     Format.pp_set_formatter_tag_functions f tagfuns;
     Format.pp_set_tags f true;
