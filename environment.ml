@@ -57,7 +57,7 @@ let rec appears var = function
       List.exists (fun (_, e) -> appears var e) bindings
 | Match (e, patmatch) ->
     appears var e || List.exists (appears_in_case var) patmatch
-| Fun (fname, fexp) -> fname <> var && appears var fexp
+| Fun (fname, fexp) -> not (List.mem var (bound_in_pattern fname)) && appears var fexp
 | Function cases -> List.exists (appears_in_case var) cases
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
@@ -169,9 +169,15 @@ and match_many_binders es ps rhs =
       end
   | _ -> failwith "match_many_binders"
 
-let filter_bindings x bs =
+(* Remove any binding in [bs] which binds a variable found in [pat]. FIXME this
+whole thing is wrong. e.g let x, y, z = ... should go to let x, y, _ if we
+must remove z. This will all go away when we deal properly with the lets
+problem? *)
+let filter_bindings (pat : pattern) (bs : binding list) : binding list =
   Evalutils.option_map
-    (function (PatVar x', v) when x' <> x -> Some (PatVar x', v) | _ -> None)
+    (function
+     | (PatVar x, v) -> if List.mem x (bound_in_pattern pat) then None else Some (PatVar x, v)
+     | _ -> None)
     bs
 
 let rec read_bindings (bs : binding list) =
@@ -251,7 +257,7 @@ let rec eval peek env expr =
                (* If non-empty, add the let-binding to guard and rhs *)
                let bindings' =
                  List.fold_left
-                   (fun a b -> filter_bindings b bindings) bindings (bound_in_pattern pat)
+                   (fun a b -> filter_bindings (PatVar b) bindings) bindings (bound_in_pattern pat)
                in
                match bindings' with
                  [] -> (pat, guard, rhs)
@@ -283,7 +289,7 @@ let rec eval peek env expr =
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
 | App (Fun ((fname, fexp) as f), x) ->
     if is_value x
-      then Let (false, [PatVar fname, x], fexp)
+      then Let (false, [fname, x], fexp)
       else App (Fun f, eval peek env x)
 | App (Function [], x) ->
     Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
@@ -302,7 +308,7 @@ let rec eval peek env expr =
     begin match lookup_value v env with
       Fun (fname, fexp) ->
         if is_value x then
-          Let (false, [PatVar fname, x], fexp)
+          Let (false, [fname, x], fexp)
         else
           App (Var v, eval peek env x)
     | Function cases ->
@@ -442,9 +448,9 @@ and eval_curry_collect_args args = function
 and eval_curry_makelets f args =
   match f, args with
   | Fun (a, fexp), [x] ->
-      Let (false, [PatVar a, x], fexp)
+      Let (false, [a, x], fexp)
   | Fun (a, fexp), x::xs ->
-      Let (false, [PatVar a, x], eval_curry_makelets fexp xs)
+      Let (false, [a, x], eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
 
 and eval_first_non_value_item peek env r = function

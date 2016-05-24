@@ -192,7 +192,7 @@ let rec print_tiny_inner f isleft parent node =
              print_pattern f false (Some node) v;
              txt " ";
              let morefuns, e = find_funs e in
-             List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+             List.iter (fun l -> print_pattern f false (Some node) l; txt " ") morefuns;
              txt "= ";
              print_tiny_inner f false (Some node) e)
           bindings;
@@ -212,7 +212,7 @@ let rec print_tiny_inner f isleft parent node =
            print_pattern f false (Some node) v;
            txt " ";
            let morefuns, e = find_funs e in
-             List.iter (fun l -> str (Evalutils.unstar l); txt " ") morefuns;
+             List.iter (fun l -> print_pattern f false (Some node) l; txt " ") morefuns;
            txt "= ";
            print_tiny_inner f false (Some node) e)
         bindings;
@@ -220,7 +220,7 @@ let rec print_tiny_inner f isleft parent node =
   | Fun (fname, fexp) ->
       str lp;
       boldtxt "fun ";
-      str (Evalutils.unstar fname);
+      print_pattern f false (Some node) fname;
       txt " -> ";
       print_tiny_inner f false (Some node) fexp;
       str rp

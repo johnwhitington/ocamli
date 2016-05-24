@@ -44,7 +44,7 @@ and t =
 | If of (t * t * t)            (** if e then e1 else e2 *)
 | Let of (bool * binding list * t) (** let x = e in e' *)
 | LetDef of (bool * binding list)  (** let x = e *)
-| Fun of (string * t)          (** fun x -> e *)
+| Fun of (pattern * t)          (** fun x -> e *)
 | Function of case list        (** function x -> e | y -> f ... *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)

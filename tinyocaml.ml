@@ -42,7 +42,7 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (bool * binding list * t)    (* let x = e [and ...] in e' *)
 | LetDef of (bool * binding list)     (* let x = e [and ...] *)
-| Fun of (string * t)         (* fun x -> e *)
+| Fun of (pattern * t)         (* fun x -> e *)
 | Function of case list     
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
@@ -119,7 +119,7 @@ let rec to_string = function
     Printf.sprintf "%s (%s)"
       (if recflag then "LetDefRec" else "LetDef") (to_string_bindings bindings)
 | Fun (fname, fexp) ->
-    Printf.sprintf "Fun (%s, %s)" fname (to_string fexp)
+    Printf.sprintf "Fun (%s, %s)" (to_string_pat fname) (to_string fexp)
 | App (e, e') ->
     Printf.sprintf "App (%s, %s)" (to_string e) (to_string e')
 | Seq (e, e') ->
@@ -242,8 +242,9 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_ident {txt = v} -> Var (string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
-| Pexp_fun (Nolabel, None, {ppat_desc = Ppat_var {txt}}, exp) ->
-    Fun (txt, of_real_ocaml exp)
+| Pexp_fun (Nolabel, None, pat, exp) ->
+    Fun (of_real_ocaml_pattern pat.ppat_desc, of_real_ocaml exp)
+| Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
     Function (List.map of_real_ocaml_case cases)
 | Pexp_let (r, bindings, e') ->
