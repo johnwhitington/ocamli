@@ -40,18 +40,16 @@ let rec appears var = function
 | Control (_, x) -> appears var x
 | Let (recflag, bindings, e') ->
     if recflag then
+      (* FIXME as per non-recursive case below *)
       List.exists
         (function
             (PatVar v, e) -> v <> var && (appears var e || appears var e')
-          | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e || appears
-          var e'))
+          | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e || appears var e'))
         bindings
     else
-      List.exists
-        (function
-            (PatVar v, e) -> v <> var && (appears var e')
-          | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e'))
-        bindings
+      (* If appears in e' or rhs of a let but not bound by a let *)
+         (appears var e' || List.exists (appears var) (List.map snd bindings))
+      && not (List.mem var (List.flatten (List.map bound_in_pattern (List.map fst bindings))))
 | LetDef (recflag, bindings) ->
     if recflag then
       List.exists (fun (PatVar v, e) -> v <> var && appears var e) bindings
@@ -293,7 +291,9 @@ let rec eval peek env expr =
     if is_value x
       then 
         begin match eval_case peek env x p with
-        | Matched e -> e
+        | Matched e ->
+            Printf.printf "Matched: %s\n" (Pptinyocaml.to_string e);
+            e
         | EvaluatedGuardStep p' -> App (Function (p'::ps), x)
         | FailedToMatch -> App (Function ps, x)
         end

@@ -1,8 +1,8 @@
-let rec chop k l =
-  if k = 0 then l else begin
-    match l with
-    | _::t -> chop (k-1) t
-    | _ -> assert false
-  end
-;;
+let find x = raise Not_found
 
+let x =
+  let rec find accu = function
+    | [] -> []
+    | h::t -> find 0 t
+  in
+    find 0 [1]
