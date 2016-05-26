@@ -17,16 +17,6 @@ let dopeek = ref true
 let add_prefix x (y, v) =
   (x ^ "." ^ y, v)
 
-let rec bound_in_pattern = function
-  PatAny -> []
-| PatVar v -> [v]
-| PatInt _ -> []
-| PatUnit -> []
-| PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
-| PatNil -> []
-| PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
-| PatAlias (a, p) -> a::bound_in_pattern p
-
 (* True if a variable appears not occluded by a let. *)
 let rec appears var = function
   Var v when v = var -> true

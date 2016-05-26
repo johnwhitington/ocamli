@@ -66,6 +66,49 @@ and t =
 | Tuple of t list             (* (1, 2) *)
 | Assert of t                 (* assert *)
 
+(* Recurse over the tinyocaml data type *)
+let rec recurse f exp =
+  match exp with
+  | (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
+  | Op (op, a, b) -> Op (op, f a, f b)
+  | And (a, b) -> And (f a, f b)
+  | Or (a, b) -> Or (f a, f b)
+  | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
+  | If (e, e1, e2) -> If (f e, f e1, f e2)
+  | Let (recflag, bindings, e) ->
+      Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, recurse f e)
+  | LetDef (recflag, bindings) ->
+      LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
+  | Fun (n, fexp, env) -> Fun (n, f fexp, env)
+  | App (a, b) -> App (f a, f b)
+  | Seq (a, b) -> Seq (f a, f b)
+  | While (a, b, c, d) -> While (f a, f b, f c, f d)
+  | For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
+  | Control (c, x) -> Control (c, f x)
+  | Record items ->
+      List.iter (fun (k, v) -> v := f !v) items;
+      Record items
+  | Field (a, n) -> Field (f a, n)
+  | SetField (a, n, b) -> SetField (f a, n, f b)
+  | Raise s -> Raise s
+  | TryWith (a, s) -> TryWith (f a, s)
+  | ExceptionDef e -> ExceptionDef e
+  | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
+  | Struct (n, l) -> Struct (n, List.map f l)
+  | Cons (e, e') -> Cons (f e, f e')
+  | Append (e, e') -> Append (f e, f e')
+  | Match (e, patmatch) ->
+      Match (e, List.map (recurse_case f) patmatch)
+  | Function (patmatch, env) ->
+      Function (List.map (recurse_case f) patmatch, env)
+  | Tuple l -> Tuple (List.map f l)
+  | Assert e -> Assert (f e)
+
+and recurse_case f (pat, guard, rhs) =
+  (pat,
+   begin match guard with None -> None | Some g -> Some (f g) end,
+   f rhs)
+
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
 
@@ -227,6 +270,63 @@ let rec dots_between = function
 let string_of_longident l =
   dots_between (Longident.flatten l)
 
+let rec bound_in_pattern = function
+  PatAny -> []
+| PatVar v -> [v]
+| PatInt _ -> []
+| PatUnit -> []
+| PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
+| PatNil -> []
+| PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
+| PatAlias (a, p) -> a::bound_in_pattern p
+
+(* List the identifiers used in an expression which are not defined in it. *)
+let rec free bound = function
+  | Var s -> if List.mem s bound then [] else [s]
+  (* Things which can bind names (and may contain subexpressions too) *)
+  | Let (recflag, bindings, e) ->
+      free_in_bindings bound recflag bindings e
+  | LetDef (recflag, bindings) ->
+      free_in_bindings bound recflag bindings Unit
+  | Fun (pattern, e, _) ->
+      free (bound_in_pattern pattern @ bound) e
+  | Function (cases, _) ->
+      free_in_cases bound cases
+  | For (name, e, _, e', e'', _) ->
+      free bound e @ free bound e' @ free (name::bound) e''
+  | Match (e, cases) ->
+      free bound e @ free_in_cases bound cases
+  (* Other things which contain subexpressions *)
+  | Record items ->
+      List.fold_left ( @ ) []
+        (List.map (free bound) (List.map (fun (_, {contents}) -> contents) items))
+  | Struct (_, es)
+  | Tuple es
+  | Sig es ->
+      List.fold_left ( @ ) [] (List.map (free bound) es)
+  | Raise (_, Some e)
+  | Assert e
+  | Field (e, _)
+  | TryWith (e, _)
+  | Control (_, e) ->
+      free bound e
+  | Op (_, e, e')
+  | Cmp (_, e, e')
+  | Append (e, e')
+  | While (e, e', _, _)
+  | SetField (e, _, e')
+  | App (e, e')
+  | Seq (e, e') ->
+      free bound e @ free bound e'
+  | If (e, e', e'') ->
+      free bound e @ free bound e' @ free bound e''
+  (* All others *)
+  | x -> []
+
+and free_in_cases bound cases = []
+
+and free_in_bindings bound recflag bindings e = []
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -353,46 +453,4 @@ and of_real_ocaml_structure_item env = function
 let of_real_ocaml x =
   Struct ("Main", Evalutils.option_map (of_real_ocaml_structure_item []) x)
 
-(* Recurse over the tinyocaml data type *)
-let rec recurse f exp =
-  match exp with
-  | (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
-  | Op (op, a, b) -> Op (op, f a, f b)
-  | And (a, b) -> And (f a, f b)
-  | Or (a, b) -> Or (f a, f b)
-  | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
-  | If (e, e1, e2) -> If (f e, f e1, f e2)
-  | Let (recflag, bindings, e) ->
-      Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, recurse f e)
-  | LetDef (recflag, bindings) ->
-      LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
-  | Fun (n, fexp, env) -> Fun (n, f fexp, env)
-  | App (a, b) -> App (f a, f b)
-  | Seq (a, b) -> Seq (f a, f b)
-  | While (a, b, c, d) -> While (f a, f b, f c, f d)
-  | For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
-  | Control (c, x) -> Control (c, f x)
-  | Record items ->
-      List.iter (fun (k, v) -> v := f !v) items;
-      Record items
-  | Field (a, n) -> Field (f a, n)
-  | SetField (a, n, b) -> SetField (f a, n, f b)
-  | Raise s -> Raise s
-  | TryWith (a, s) -> TryWith (f a, s)
-  | ExceptionDef e -> ExceptionDef e
-  | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
-  | Struct (n, l) -> Struct (n, List.map f l)
-  | Cons (e, e') -> Cons (f e, f e')
-  | Append (e, e') -> Append (f e, f e')
-  | Match (e, patmatch) ->
-      Match (e, List.map (recurse_case f) patmatch)
-  | Function (patmatch, env) ->
-      Function (List.map (recurse_case f) patmatch, env)
-  | Tuple l -> Tuple (List.map f l)
-  | Assert e -> Assert (f e)
-
-and recurse_case f (pat, guard, rhs) =
-  (pat,
-   begin match guard with None -> None | Some g -> Some (f g) end,
-   f rhs)
 

@@ -83,3 +83,5 @@ val of_real_ocaml : Parsetree.structure -> t
 
 val recurse : (t -> t) -> t -> t
 
+val bound_in_pattern : pattern -> string list
+
