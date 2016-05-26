@@ -228,7 +228,7 @@ let string_of_longident l =
   dots_between (Longident.flatten l)
 
 (* Convert from a parsetree to a t, assuming we can *)
-let rec of_real_ocaml_expression_desc = function
+let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
 | Pexp_constant (Pconst_string (s, None)) -> String s
 | Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
@@ -237,32 +237,32 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
 | Pexp_construct ({txt = Longident.Lident "[]"}, _) -> Nil
 | Pexp_construct ({txt = Longident.Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
-    Cons (of_real_ocaml e, of_real_ocaml e')
+    Cons (of_real_ocaml env e, of_real_ocaml env e')
 | Pexp_ident {txt = Longident.Lident "stdout"} -> OutChannel stdout
 | Pexp_ident {txt = Longident.Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Longident.Lident "stdin"} -> InChannel stdin
 | Pexp_ident {txt = v} -> Var (string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
-    If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
+    If (of_real_ocaml env e, of_real_ocaml env e1, of_real_ocaml env e2)
 | Pexp_fun (Nolabel, None, pat, exp) ->
-    Fun (of_real_ocaml_pattern pat.ppat_desc, of_real_ocaml exp, []) (* FIXME put env in here *)
+    Fun (of_real_ocaml_pattern env pat.ppat_desc, of_real_ocaml env exp, []) (* FIXME put env in here *)
 | Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
-    Function (List.map of_real_ocaml_case cases, []) (* FIXME put env in here *)
+    Function (List.map (of_real_ocaml_case env) cases, []) (* FIXME put env in here *)
 | Pexp_let (r, bindings, e') ->
-    Let (r = Recursive, List.map of_real_ocaml_binding bindings, of_real_ocaml e')
+    Let (r = Recursive, List.map (of_real_ocaml_binding env) bindings, of_real_ocaml env e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
          begin match payload with
            None -> Raise (s, None)
-         | Some x -> Raise (s, Some (of_real_ocaml x))
+         | Some x -> Raise (s, Some (of_real_ocaml env x))
          end
 | Pexp_apply (* 2 operands *)
     ({pexp_desc = Pexp_ident {txt = Longident.Lident f}},
      [(Nolabel, l); (Nolabel, r)]) ->
-       let e = of_real_ocaml l in
-       let e' = of_real_ocaml r in
+       let e = of_real_ocaml env l in
+       let e' = of_real_ocaml env r in
          begin match f with
            "&&" -> And (e, e')
          | "||" -> Or (e, e')
@@ -274,76 +274,76 @@ let rec of_real_ocaml_expression_desc = function
          | _ -> App (App (Var f, e), e') 
          end
 | Pexp_apply (e, [(Nolabel, e')]) -> (* one operand *)
-    App (of_real_ocaml e, of_real_ocaml e')
+    App (of_real_ocaml env e, of_real_ocaml env e')
 | Pexp_apply (e, apps) -> (* more than two operands *)
-    of_real_ocaml_apps (List.rev (e::List.map snd apps))
+    of_real_ocaml_apps env (List.rev (e::List.map snd apps))
 | Pexp_sequence (e, e') ->
-    Seq (of_real_ocaml e, of_real_ocaml e')
+    Seq (of_real_ocaml env e, of_real_ocaml env e')
 | Pexp_while (e, e') ->
-    While (of_real_ocaml e, of_real_ocaml e', of_real_ocaml e, of_real_ocaml e')
+    While (of_real_ocaml env e, of_real_ocaml env e', of_real_ocaml env e, of_real_ocaml env e')
 | Pexp_for ({ppat_desc = Ppat_var {txt}}, e, e', flag, e'') ->
     let convert_flag = function Upto -> UpTo | Downto -> DownTo in
       For
-        (txt, of_real_ocaml e, convert_flag flag,
-         of_real_ocaml e', of_real_ocaml e'', of_real_ocaml e'')
+        (txt, of_real_ocaml env e, convert_flag flag,
+         of_real_ocaml env e', of_real_ocaml env e'', of_real_ocaml env e'')
 | Pexp_record (items, _) ->
-    Record (List.map of_real_ocaml_record_entry items)
+    Record (List.map (of_real_ocaml_record_entry env) items)
 | Pexp_field (e, {txt = Longident.Lident n}) ->
-    Field (of_real_ocaml e, n)
+    Field (of_real_ocaml env e, n)
 | Pexp_setfield (e, {txt = Longident.Lident n}, e') ->
-    SetField (of_real_ocaml e, n, of_real_ocaml e')
+    SetField (of_real_ocaml env e, n, of_real_ocaml env e')
 | Pexp_try
     (e, [{pc_lhs = {ppat_desc = Ppat_construct ({txt = Longident.Lident n}, _)}; pc_rhs}])
   ->
-    TryWith (of_real_ocaml e, (n, of_real_ocaml pc_rhs))
+    TryWith (of_real_ocaml env e, (n, of_real_ocaml env pc_rhs))
 | Pexp_tuple xs ->
-    Tuple (List.map of_real_ocaml xs)
+    Tuple (List.map (of_real_ocaml env) xs)
 | Pexp_match (e, cases) ->
-    Match (of_real_ocaml e, List.map of_real_ocaml_case cases)
+    Match (of_real_ocaml env e, List.map (of_real_ocaml_case env) cases)
 | Pexp_assert e ->
-    Assert (of_real_ocaml e)
+    Assert (of_real_ocaml env e)
 | _ -> raise (UnknownNode "unknown node")
 
-and of_real_ocaml_binding {pvb_pat = {ppat_desc}; pvb_expr} =
-  (of_real_ocaml_pattern ppat_desc, of_real_ocaml pvb_expr)
+and of_real_ocaml_binding env {pvb_pat = {ppat_desc}; pvb_expr} =
+  (of_real_ocaml_pattern env ppat_desc, of_real_ocaml env pvb_expr)
 
-and of_real_ocaml_apps = function
+and of_real_ocaml_apps env = function
   [] -> assert false
-| [x] -> of_real_ocaml x
-| h::t -> App (of_real_ocaml_apps t, of_real_ocaml h)
+| [x] -> of_real_ocaml env x
+| h::t -> App (of_real_ocaml_apps env t, of_real_ocaml env h)
 
-and of_real_ocaml_record_entry = function
-  ({txt = Longident.Lident n}, e) -> (n, ref (of_real_ocaml e))
+and of_real_ocaml_record_entry env = function
+  ({txt = Longident.Lident n}, e) -> (n, ref (of_real_ocaml env e))
 | _ -> raise (UnknownNode "unknown record entry type")
 
-and of_real_ocaml_case {pc_lhs; pc_guard; pc_rhs} =
-  (of_real_ocaml_pattern pc_lhs.ppat_desc,
-   begin match pc_guard with None -> None | Some x -> Some (of_real_ocaml x) end,
-   of_real_ocaml pc_rhs)
+and of_real_ocaml_case env {pc_lhs; pc_guard; pc_rhs} =
+  (of_real_ocaml_pattern env pc_lhs.ppat_desc,
+   begin match pc_guard with None -> None | Some x -> Some (of_real_ocaml env x) end,
+   of_real_ocaml env pc_rhs)
 
-and of_real_ocaml_pattern = function
+and of_real_ocaml_pattern env = function
   Ppat_var {txt} -> PatVar txt
 | Ppat_constant (Pconst_integer (s, None)) -> PatInt (int_of_string s)
 | Ppat_any -> PatAny
 | Ppat_tuple patterns ->
     PatTuple
-      (List.map of_real_ocaml_pattern (List.map (fun x -> x.ppat_desc) patterns))
+      (List.map (of_real_ocaml_pattern env) (List.map (fun x -> x.ppat_desc) patterns))
 | Ppat_construct ({txt = Longident.Lident "[]"}, _) -> PatNil
 | Ppat_construct ({txt = Longident.Lident "()"}, _) -> PatUnit
 | Ppat_construct ({txt = Longident.Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
-    PatCons (of_real_ocaml_pattern a.ppat_desc, of_real_ocaml_pattern b.ppat_desc)
+    PatCons (of_real_ocaml_pattern env a.ppat_desc, of_real_ocaml_pattern env b.ppat_desc)
 | Ppat_alias (pattern, {txt}) ->
-    PatAlias (txt, of_real_ocaml_pattern pattern.ppat_desc)
+    PatAlias (txt, of_real_ocaml_pattern env pattern.ppat_desc)
 | _ -> failwith "unknown pattern"
 
-and of_real_ocaml x = of_real_ocaml_expression_desc x.pexp_desc
+and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
 
-and of_real_ocaml_structure_item = function
+and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
-  {pstr_desc = Pstr_eval (e, _)} -> Some (of_real_ocaml e)
+  {pstr_desc = Pstr_eval (e, _)} -> Some (of_real_ocaml env e)
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
-     Some (LetDef (recflag = Recursive, List.map of_real_ocaml_binding bindings))
+     Some (LetDef (recflag = Recursive, List.map (of_real_ocaml_binding env) bindings))
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
      Some (ExceptionDef (txt, t))
@@ -351,7 +351,7 @@ and of_real_ocaml_structure_item = function
 | _ -> failwith "unknown structure item"
 
 let of_real_ocaml x =
-  Struct ("Main", Evalutils.option_map of_real_ocaml_structure_item x)
+  Struct ("Main", Evalutils.option_map (of_real_ocaml_structure_item []) x)
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =
