@@ -323,9 +323,24 @@ let rec free bound = function
   (* All others *)
   | x -> []
 
-and free_in_cases bound cases = []
+(* A variable is free in a case if it is free in the guard or rhs *)
+and free_in_case bound (pat, guard, rhs) =
+  let bound = bound_in_pattern pat @ bound in
+      free bound rhs @ (match guard with None -> [] | Some g -> free bound g)
 
-and free_in_bindings bound recflag bindings e = []
+and free_in_cases bound cases =
+  List.flatten (List.map (free_in_case bound) cases)
+
+and free_in_binding bound (pat, t) =
+  free bound t
+
+and free_in_bindings bound recflag bindings e =
+  let bound' =
+    List.flatten (List.map (fun (p, _) -> bound_in_pattern p) bindings)
+  in
+     List.flatten
+       (List.map (free_in_binding (if recflag then bound' else bound)) bindings)
+   @ free bound' e
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
