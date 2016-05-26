@@ -57,8 +57,8 @@ let rec appears var = function
       List.exists (fun (_, e) -> appears var e) bindings
 | Match (e, patmatch) ->
     appears var e || List.exists (appears_in_case var) patmatch
-| Fun (fname, fexp) -> not (List.mem var (bound_in_pattern fname)) && appears var fexp
-| Function cases -> List.exists (appears_in_case var) cases
+| Fun (fname, fexp, env) -> not (List.mem var (bound_in_pattern fname)) && appears var fexp
+| Function (cases, env) -> List.exists (appears_in_case var) cases
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
 | Field (e, n) -> appears var e
@@ -243,12 +243,12 @@ let rec eval peek env expr =
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)
         begin match e with
-          Fun (fx, fe) ->
+          Fun (fx, fe, fenv) ->
             begin match filter_bindings fx bindings with
-              [] -> Fun (fx, fe)
-            | bindings' -> Fun (fx, Let (false, bindings', fe))
+              [] -> Fun (fx, fe, fenv)
+            | bindings' -> Fun (fx, Let (false, bindings', fe), fenv)
             end
-        | Function cases ->
+        | Function (cases, fenv) ->
             (* Put in the guard of any case where it appears unoccluded by the
              * pattern. Put in the rhs of any case where it appears unoccluded
              * by the pattern *)
@@ -271,7 +271,7 @@ let rec eval peek env expr =
                    in
                      (pat, guard', rhs')
              in
-               Function (List.map add_to_case cases)
+               Function (List.map add_to_case cases, fenv)
         | _ -> Let (false, bindings, eval peek env' e)
         end
     else
@@ -287,26 +287,26 @@ let rec eval peek env expr =
         failwith "letdef already a value"
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
-| App (Fun ((fname, fexp) as f), x) ->
+| App (Fun ((fname, fexp, fenv) as f), x) ->
     if is_value x
       then Let (false, [fname, x], fexp)
       else App (Fun f, eval peek env x)
-| App (Function [], x) ->
+| App (Function ([], fenv), x) ->
     Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
-| App (Function (p::ps), x) ->
+| App (Function ((p::ps), fenv), x) ->
     if is_value x
       then 
         begin match eval_case peek env x p with
         | Matched e ->
             Printf.printf "Matched: %s\n" (Pptinyocaml.to_string e);
             e
-        | EvaluatedGuardStep p' -> App (Function (p'::ps), x)
-        | FailedToMatch -> App (Function ps, x)
+        | EvaluatedGuardStep p' -> App (Function ((p'::ps), fenv), x)
+        | FailedToMatch -> App (Function (ps, fenv), x)
         end
-      else App (Function (p::ps), eval peek env x)
+      else App (Function ((p::ps), fenv), eval peek env x)
 | App (Var v, x) ->
     begin match lookup_value v env with
-      Fun (fname, fexp) ->
+      Fun (fname, fexp, fenv) ->
         if is_value x then
           Let (false, [fname, x], fexp)
         else
@@ -447,9 +447,9 @@ and eval_curry_collect_args args = function
 
 and eval_curry_makelets f args =
   match f, args with
-  | Fun (a, fexp), [x] ->
+  | Fun (a, fexp, fenv), [x] ->
       Let (false, [a, x], fexp)
-  | Fun (a, fexp), x::xs ->
+  | Fun (a, fexp, fenv), x::xs ->
       Let (false, [a, x], eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
 

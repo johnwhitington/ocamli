@@ -26,6 +26,8 @@ and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
+and env = (string * t) list
+
 (** The type of tiny-ocaml programs *)
 and t =
   Unit                         (** () *)
@@ -44,8 +46,8 @@ and t =
 | If of (t * t * t)            (** if e then e1 else e2 *)
 | Let of (bool * binding list * t) (** let x = e in e' *)
 | LetDef of (bool * binding list)  (** let x = e *)
-| Fun of (pattern * t)          (** fun x -> e *)
-| Function of case list        (** function x -> e | y -> f ... *)
+| Fun of (pattern * t * env)          (** fun x -> e *)
+| Function of (case list * env)       (** function x -> e | y -> f ... *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)
 | While of (t * t * t * t)     (** while e do e' done (e, e', copy_of_e, copy_of_e') *)

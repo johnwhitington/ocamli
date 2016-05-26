@@ -34,10 +34,12 @@ let builtin_physeq = function
 (* The initial asterisk will be used to elide these variables when not showing
 pervasives in the output. When showing pervasives, we just remove the asterisk. *)
 let mk name f =
-  (name, Fun (PatVar "__PER__x", CallBuiltIn (name, [Var "__PER__x"], f)))
+  (name, Fun (PatVar "__PER__x", CallBuiltIn (name, [Var "__PER__x"], f), [])) (* FIXME Add environment *)
 
 let mk2 name f =
-  (name, Fun (PatVar "__PER__x", Fun (PatVar "__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f))))
+  (name,
+   Fun (PatVar "__PER__x",
+     Fun (PatVar "__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f), []), [])) (* FIXME Add environement *)
 
 (* String to tinyocaml *)
 let make_tiny s =

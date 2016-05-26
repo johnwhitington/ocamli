@@ -54,7 +54,7 @@ let string_of_tag = function
 
 let rec find_funs e =
   match e with
-    Fun (fname, fexp) ->
+    Fun (fname, fexp, _) ->
       let more, e' = find_funs fexp in
         (fname::more, e')
   | _ -> ([], e)
@@ -87,7 +87,7 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " with ";
       List.iter (print_case f false (Some node)) patmatch;
       str rp
-  | Function patmatch ->
+  | Function (patmatch, _) ->
       str lp;
       boldtxt "function ";
       List.iter (print_case f false (Some node)) patmatch;
@@ -217,7 +217,7 @@ let rec print_tiny_inner f isleft parent node =
            print_tiny_inner f false (Some node) e)
         bindings;
       str rp
-  | Fun (fname, fexp) ->
+  | Fun (fname, fexp, _) ->
       str lp;
       boldtxt "fun ";
       print_pattern f false (Some node) fname;

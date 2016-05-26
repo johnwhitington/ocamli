@@ -25,6 +25,8 @@ and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
+and env = (string * t) list 
+
 and t =
   Unit                        (* () *)
 | Int of int                  (* 1 *)
@@ -40,10 +42,10 @@ and t =
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t)           (* if e then e1 else e2 *)
-| Let of (bool * binding list * t)    (* let x = e [and ...] in e' *)
-| LetDef of (bool * binding list)     (* let x = e [and ...] *)
-| Fun of (pattern * t)         (* fun x -> e *)
-| Function of case list     
+| Let of (bool * binding list * t) (* let x = e [and ...] in e' *)
+| LetDef of (bool * binding list) (* let x = e [and ...] *)
+| Fun of (pattern * t * env)  (* fun x -> e *)
+| Function of (case list * env)   
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -118,7 +120,7 @@ let rec to_string = function
 | LetDef (recflag, bindings) ->
     Printf.sprintf "%s (%s)"
       (if recflag then "LetDefRec" else "LetDef") (to_string_bindings bindings)
-| Fun (fname, fexp) ->
+| Fun (fname, fexp, fenv) ->
     Printf.sprintf "Fun (%s, %s)" (to_string_pat fname) (to_string fexp)
 | App (e, e') ->
     Printf.sprintf "App (%s, %s)" (to_string e) (to_string e')
@@ -157,7 +159,7 @@ let rec to_string = function
     Printf.sprintf
       "Tuple (%s)"
       (List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ ", ") xs))
-| Function patmatch ->
+| Function (patmatch, env) ->
     Printf.sprintf "Function %s" (to_string_patmatch patmatch)
 | Match (e, patmatch) ->
     Printf.sprintf
@@ -243,10 +245,10 @@ let rec of_real_ocaml_expression_desc = function
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml e, of_real_ocaml e1, of_real_ocaml e2)
 | Pexp_fun (Nolabel, None, pat, exp) ->
-    Fun (of_real_ocaml_pattern pat.ppat_desc, of_real_ocaml exp)
+    Fun (of_real_ocaml_pattern pat.ppat_desc, of_real_ocaml exp, []) (* FIXME put env in here *)
 | Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
-    Function (List.map of_real_ocaml_case cases)
+    Function (List.map of_real_ocaml_case cases, []) (* FIXME put env in here *)
 | Pexp_let (r, bindings, e') ->
     Let (r = Recursive, List.map of_real_ocaml_binding bindings, of_real_ocaml e')
 | Pexp_apply
@@ -364,7 +366,7 @@ let rec recurse f exp =
       Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, recurse f e)
   | LetDef (recflag, bindings) ->
       LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
-  | Fun (n, fexp) -> Fun (n, f fexp)
+  | Fun (n, fexp, env) -> Fun (n, f fexp, env)
   | App (a, b) -> App (f a, f b)
   | Seq (a, b) -> Seq (f a, f b)
   | While (a, b, c, d) -> While (f a, f b, f c, f d)
@@ -384,8 +386,8 @@ let rec recurse f exp =
   | Append (e, e') -> Append (f e, f e')
   | Match (e, patmatch) ->
       Match (e, List.map (recurse_case f) patmatch)
-  | Function patmatch ->
-      Function (List.map (recurse_case f) patmatch)
+  | Function (patmatch, env) ->
+      Function (List.map (recurse_case f) patmatch, env)
   | Tuple l -> Tuple (List.map f l)
   | Assert e -> Assert (f e)
 
