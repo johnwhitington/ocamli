@@ -25,7 +25,7 @@ and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
-and env = (string * t) list 
+and env = binding list 
 
 and t =
   Unit                        (* () *)

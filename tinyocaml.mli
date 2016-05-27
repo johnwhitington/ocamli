@@ -26,7 +26,7 @@ and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
-and env = (string * t) list
+and env = binding list
 
 (** The type of tiny-ocaml programs *)
 and t =
