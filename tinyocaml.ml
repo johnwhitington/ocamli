@@ -25,7 +25,7 @@ and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
-and env = binding list 
+and env = (bool * binding list) list
 
 and t =
   Unit                        (* () *)
@@ -342,6 +342,22 @@ and free_in_bindings bound recflag bindings e =
        (List.map (free_in_binding (if recflag then bound' else bound)) bindings)
    @ free bound' e
 
+(* Given a list of variables free in some code, and the current environment,
+produce a new environment containing just those ones which are free.
+Duplicates and the order are retained *)
+let any_var_in_bindings free ((_, bindings) as envitem) =
+  if
+    List.exists
+      (fun x -> List.mem x free)
+      (List.flatten (List.map (fun (p, _) -> bound_in_pattern p) bindings))
+  then
+    Some envitem
+  else
+    None
+
+let prune_environment (free : string list) (env : env) =
+  Evalutils.option_map (any_var_in_bindings free) env
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -365,7 +381,10 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_function cases ->
     Function (List.map (of_real_ocaml_case env) cases, []) (* FIXME put env in here *)
 | Pexp_let (r, bindings, e') ->
-    Let (r = Recursive, List.map (of_real_ocaml_binding env) bindings, of_real_ocaml env e')
+    let recflag = r = Recursive
+    and bindings' = List.map (of_real_ocaml_binding env) bindings in
+      let env' = (recflag, bindings')::env in
+        Let (recflag, bindings', of_real_ocaml env' e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
      [(Nolabel, {pexp_desc = Pexp_construct ({txt = Longident.Lident s}, payload)})]) ->
@@ -455,17 +474,26 @@ and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
 
 and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
-  {pstr_desc = Pstr_eval (e, _)} -> Some (of_real_ocaml env e)
+  {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
-     Some (LetDef (recflag = Recursive, List.map (of_real_ocaml_binding env) bindings))
+     let recflag' = recflag = Recursive
+     and bindings' = List.map (of_real_ocaml_binding env) bindings in
+       let env' = (recflag', bindings')::env in
+         (Some (LetDef (recflag', bindings')), env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
-     Some (ExceptionDef (txt, t))
-| {pstr_desc = Pstr_attribute _} -> None
+     (Some (ExceptionDef (txt, t)), env)
+| {pstr_desc = Pstr_attribute _} -> (None, env)
 | _ -> failwith "unknown structure item"
 
-let of_real_ocaml x =
-  Struct ("Main", Evalutils.option_map (of_real_ocaml_structure_item []) x)
+let rec of_real_ocaml env acc = function
+  | [] -> List.rev acc
+  | s::ss ->
+      match of_real_ocaml_structure_item env s with
+        (None, _) -> of_real_ocaml env acc ss
+      | (Some s, env') -> of_real_ocaml env' (s::acc) ss
 
+let of_real_ocaml x =
+  Struct ("Main", of_real_ocaml [] [] x)
 
