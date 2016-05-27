@@ -280,8 +280,15 @@ let rec bound_in_pattern = function
 | PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
 | PatAlias (a, p) -> a::bound_in_pattern p
 
+let bound_in_environment_item (_, bindings) =
+  List.flatten (List.map (fun (p, _) -> bound_in_pattern p) bindings)
+
+let bound_in_environment env =
+  List.flatten (List.map bound_in_environment_item env)
+
 (* List the identifiers used in an expression which are not defined in it. *)
-let rec free bound = function
+let rec free (bound : string list) (expr : t) =
+  match expr with
   | Var s -> if List.mem s bound then [] else [s]
   (* Things which can bind names (and may contain subexpressions too) *)
   | Let (recflag, bindings, e) ->
@@ -355,7 +362,7 @@ let any_var_in_bindings free ((_, bindings) as envitem) =
   else
     None
 
-let prune_environment (free : string list) (env : env) =
+let prune_environment (free : string list) (env : env) : env =
   Evalutils.option_map (any_var_in_bindings free) env
 
 (* Convert from a parsetree to a t, assuming we can *)
@@ -376,7 +383,10 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml env e, of_real_ocaml env e1, of_real_ocaml env e2)
 | Pexp_fun (Nolabel, None, pat, exp) ->
-    Fun (of_real_ocaml_pattern env pat.ppat_desc, of_real_ocaml env exp, []) (* FIXME put env in here *)
+    let ocaml_exp = of_real_ocaml env exp in
+    let bound = bound_in_environment env in
+      let environment = prune_environment (free bound ocaml_exp) env in
+        Fun (of_real_ocaml_pattern env pat.ppat_desc, ocaml_exp, environment)
 | Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
     Function (List.map (of_real_ocaml_case env) cases, []) (* FIXME put env in here *)
