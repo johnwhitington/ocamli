@@ -389,7 +389,10 @@ let rec of_real_ocaml_expression_desc env = function
         Fun (of_real_ocaml_pattern env pat.ppat_desc, ocaml_exp, environment)
 | Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
-    Function (List.map (of_real_ocaml_case env) cases, []) (* FIXME put env in here *)
+    let cases = List.map (of_real_ocaml_case env) cases in
+      let bound = bound_in_environment env in
+      let environment = prune_environment (free bound (Function (cases, []))) env in 
+        Function (cases, environment)
 | Pexp_let (r, bindings, e') ->
     let recflag = r = Recursive
     and bindings' = List.map (of_real_ocaml_binding env) bindings in

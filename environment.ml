@@ -14,6 +14,8 @@ let fastcurry = ref false
 
 let dopeek = ref true
 
+let docollectunusedlets = ref true
+
 let add_prefix x (y, v) =
   (x ^ "." ^ y, v)
 
@@ -37,9 +39,10 @@ let rec appears var = function
           | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e || appears var e'))
         bindings
     else
-      (* If appears in e' or rhs of a let but not bound by a let *)
-         (appears var e' || List.exists (appears var) (List.map snd bindings))
-      && not (List.mem var (List.flatten (List.map bound_in_pattern (List.map fst bindings))))
+      (* If appears in rhs of a let or in (e' but not bound by the let) *)
+        List.exists (appears var) (List.map snd bindings)
+      || 
+        (appears var e' && not (List.mem var (List.flatten (List.map bound_in_pattern (List.map fst bindings)))))
 | LetDef (recflag, bindings) ->
     if recflag then
       List.exists (fun (PatVar v, e) -> v <> var && appears var e) bindings
@@ -287,9 +290,7 @@ let rec eval peek env expr =
     if is_value x
       then 
         begin match eval_case peek env x p with
-        | Matched e ->
-            Printf.printf "Matched: %s\n" (Pptinyocaml.to_string e);
-            e
+        | Matched e -> e
         | EvaluatedGuardStep p' -> App (Function ((p'::ps), fenv), x)
         | FailedToMatch -> App (Function (ps, fenv), x)
         end
@@ -515,7 +516,7 @@ let next e =
   try
     if is_value e
       then IsValue
-      else Next (collect_unused_lets (eval false lib e))
+      else Next ((if !docollectunusedlets then collect_unused_lets else (fun x ->x)) (eval false lib e))
   with
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->

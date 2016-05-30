@@ -29,3 +29,5 @@ val fastcurry : bool ref
 
 val dopeek : bool ref
 
+val docollectunusedlets : bool ref
+
