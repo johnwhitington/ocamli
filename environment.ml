@@ -19,7 +19,10 @@ let docollectunusedlets = ref true
 let add_prefix x (y, v) =
   (x ^ "." ^ y, v)
 
-(* True if a variable appears not occluded by a let. *)
+let bound_in_bindings bindings =
+  List.flatten (List.map bound_in_pattern (List.map fst bindings))
+
+(* True if a variable appears not shadowed. *)
 let rec appears var = function
   Var v when v = var -> true
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
@@ -32,20 +35,18 @@ let rec appears var = function
 | Control (_, x) -> appears var x
 | Let (recflag, bindings, e') ->
     if recflag then
-      (* FIXME as per non-recursive case below *)
-      List.exists
-        (function
-            (PatVar v, e) -> v <> var && (appears var e || appears var e')
-          | (PatTuple ls, e) -> not (List.mem (PatVar var) ls) && (appears var e || appears var e'))
-        bindings
+      (* Inside expression e', or in a rhs, all bindings in the letrec occlude *)
+         (appears var e' || (List.exists (appears var) (List.map snd bindings)))
+      && not (List.mem var (bound_in_bindings bindings)) 
     else
       (* If appears in rhs of a let or in (e' but not bound by the let) *)
-        List.exists (appears var) (List.map snd bindings)
-      || 
-        (appears var e' && not (List.mem var (List.flatten (List.map bound_in_pattern (List.map fst bindings)))))
+         List.exists (appears var) (List.map snd bindings)
+      || (appears var e' && not (List.mem var (bound_in_bindings bindings)))
 | LetDef (recflag, bindings) ->
+    (* If recursive, the bound names in all patterns occlude *)
     if recflag then
-      List.exists (fun (PatVar v, e) -> v <> var && appears var e) bindings
+         not (List.mem var (bound_in_bindings bindings))
+      && List.exists (fun (_, e) -> appears var e) bindings
     else
       List.exists (fun (_, e) -> appears var e) bindings
 | Match (e, patmatch) ->
@@ -307,7 +308,8 @@ let rec eval peek env expr =
     | Var v' ->
         App (Var v', x)
     | got ->
-        Printf.printf "Malformed app applying %s\n to %s\n - got %s\n" v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
+        Printf.printf "Malformed app applying %s\n to %s\n - got %s\n"
+        v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
         failwith "malformed app"
     end
 | App (App _, _) when !fastcurry ->
