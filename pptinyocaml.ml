@@ -118,9 +118,11 @@ let rec print_tiny_inner f isleft parent node =
         xs;
       str ")"
   | Cons (x, y) ->
-      print_tiny_inner f isleft parent x;
-      str "::";
-      print_tiny_inner f isleft parent y;
+      if not (try_printing_literal_list f isleft parent node) then begin
+        print_tiny_inner f isleft parent x;
+        str "::";
+        print_tiny_inner f isleft parent y
+      end
   | Append (x, y) ->
       print_tiny_inner f isleft parent x;
       txt " @ ";
@@ -308,6 +310,28 @@ let rec print_tiny_inner f isleft parent node =
       | _ -> ()
       end;
       str rp
+
+(* We can print a list as a literal iff it has a Nil at the end of a series of
+one or more conses. *)
+and try_printing_literal_list f isleft parent e =
+  let str = Format.fprintf f "%s" in
+  let rec get_list_elements = function
+    Cons (h, t) -> h::get_list_elements t
+  | Nil -> []
+  | _ -> raise Exit
+  in
+    match get_list_elements e with
+      ls ->
+        let l = List.length ls in
+        str "[";
+        List.iteri
+         (fun i e ->
+           print_tiny_inner f isleft parent e;
+           if i < l - 1 then str "; ")
+         ls;
+        str "]";
+        true
+  | exception Exit -> false
 
 and print_case f isleft parent (pattern, guard, rhs) =
   let txt = Format.pp_print_text f in

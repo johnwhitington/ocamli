@@ -1,8 +1,13 @@
 (* Environments must relate to the point of definition *)
+(*let _ =
+  let a = 6 in
+    let f () = print_int a in
+      let a = 7 in
+        f ()*)
 
 let _ =
   let a = 6 in
-    let f () = print_int a in
+    let f () = a in
       let a = 7 in
         f ()
 
