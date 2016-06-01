@@ -349,6 +349,8 @@ and free_in_bindings bound recflag bindings e =
        (List.map (free_in_binding (if recflag then bound' else bound)) bindings)
    @ free bound' e
 
+let free = free []
+
 (* Given a list of variables free in some code, and the current environment,
 produce a new environment containing just those ones which are free.
 Duplicates and the order are retained *)
@@ -385,13 +387,17 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_fun (Nolabel, None, pat, exp) ->
     let ocaml_exp = of_real_ocaml env exp in
     let bound = bound_in_environment env in
-      let environment = prune_environment (free bound ocaml_exp) env in
+      (*Printf.printf "%i variables bound in environment\n" (List.length env);*)
+      let free_in_exp = free ocaml_exp in
+        (*Printf.printf "%i variable free in function\n" (List.length * free_in_exp);*)
+      let environment = prune_environment free_in_exp env in
+        (*Printf.printf "Built function environment of %i bindings\n" * (List.length environment);*)
         Fun (of_real_ocaml_pattern env pat.ppat_desc, ocaml_exp, environment)
 | Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
     let cases = List.map (of_real_ocaml_case env) cases in
       let bound = bound_in_environment env in
-      let environment = prune_environment (free bound (Function (cases, []))) env in 
+      let environment = prune_environment (free (Function (cases, []))) env in 
         Function (cases, environment)
 | Pexp_let (r, bindings, e') ->
     let recflag = r = Recursive

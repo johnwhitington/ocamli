@@ -289,14 +289,14 @@ let rec eval peek env expr =
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
 | App (Fun ((fname, fexp, fenv) as f), x) ->
-    (* FIXME closure-env *)
+    (* 1. FIXME closure-env *)
     if is_value x
       then Let (false, [fname, x], fexp)
       else App (Fun f, eval peek env x)
 | App (Function ([], fenv), x) ->
     Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
 | App (Function ((p::ps), fenv), x) ->
-    (* FIXME closure-env *)
+    (* 2. FIXME closure-env *)
     if is_value x
       then 
         begin match eval_case peek env x p with
@@ -306,15 +306,14 @@ let rec eval peek env expr =
         end
       else App (Function ((p::ps), fenv), eval peek env x)
 | App (Var v, x) ->
-    (* FIXME closure-env *)
-    Printf.printf "Applying function %s\n" v;
+    (*Printf.printf "Applying function %s\n" v*)
     begin match lookup_value v env with
       Fun (fname, fexp, fenv) ->
         if is_value x then
           (* We must use fenv to build lets here. This will go away when we have
           implicit-lets in the Tinyocaml.t data type *)
           begin
-            Printf.printf "Building %i lets\n" (List.length fenv);
+            (*Printf.printf "Building %i lets\n" (List.length fenv);*)
             build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
           end
         else
@@ -329,7 +328,7 @@ let rec eval peek env expr =
         failwith "malformed app"
     end
 | App (App _, _) when !fastcurry ->
-    (* FIXME: closure-env-fastcurry *)
+    (* 3. FIXME: closure-env-fastcurry *)
     eval_curry peek env expr
 | App (f, x) -> App (eval peek env f, x)
 | Seq (e, e') ->
