@@ -518,6 +518,31 @@ let definitions_of_module = function
         | _ -> None) 
       items
 
+let stdlib_dir =
+  let tname = Filename.temp_file "ocaml" "ocamli" in
+    ignore (Sys.command ("ocamlc -config >" ^ tname));
+    let tmp = open_in tname in
+      let line = ref "" in
+        try
+          while true do
+            let s = input_line tmp in
+              if
+                String.length s >= 18 &&
+                String.sub s 0 18 = "standard_library: "
+              then
+                line := s
+          done;
+          assert false
+        with
+          End_of_file ->
+            close_in tmp;
+            Sys.remove tname;
+            if !line <> "" then
+              (Filename.dir_sep ^
+              (String.sub !line 19 (String.length !line - 19)))
+            else
+              raise (Failure "could not find standard library")
+
 (* Load a module from disk *)
 let load_module name file =
   Printf.printf "Loading module %s...%!" name;
@@ -527,7 +552,7 @@ let load_module name file =
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
 
 let stdlib_list =
-  load_module "List" "stdlib/list.ml"
+  load_module "List" (Filename.concat stdlib_dir "list.ml")
 
 let lib =
   stdlib_list @ pervasives
