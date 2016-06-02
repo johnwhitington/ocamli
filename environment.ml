@@ -282,7 +282,8 @@ let rec eval peek env expr =
     if namestarred n then last := InsidePervasive::!last;
     if is_value e then e else
       Let (true, [PatVar n, f], eval peek ((n, f)::env) e)
-| Let (true, _, _) -> failwith "malformed letrec"
+| Let (true, _, _) ->
+    failwith (Printf.sprintf "malformed letrec: %s" (Tinyocaml.to_string expr))
 | LetDef (recflag, bindings) ->
     if List.for_all (fun (_, e) -> is_value e) bindings
       then
