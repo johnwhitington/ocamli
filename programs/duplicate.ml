@@ -7,10 +7,9 @@
 
 let _ =
   let a = 6 in
-    let f () = a in
+    let f = function () -> a in
       let a = 7 in
         f ()
-
 
 (*let a = 6
 

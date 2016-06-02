@@ -139,6 +139,7 @@ let rec matches expr pattern rhs =
   let no = None in
     match expr, pattern with
       _, PatAny -> yes
+    | Unit, PatUnit -> yes
     | Int i, PatInt i' when i = i' -> yes
     | e, PatVar v -> Some (Let (false, [(PatVar v, e)], rhs))
     | Nil, PatNil -> yes
@@ -289,33 +290,43 @@ let rec eval peek env expr =
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
 | App (Fun ((fname, fexp, fenv) as f), x) ->
-    (* 1. FIXME closure-env *)
     if is_value x
-      then Let (false, [fname, x], fexp)
+      then build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
       else App (Fun f, eval peek env x)
 | App (Function ([], fenv), x) ->
     Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
 | App (Function ((p::ps), fenv), x) ->
-    (* 2. FIXME closure-env *)
-    if is_value x
-      then 
-        begin match eval_case peek env x p with
+    if is_value x then 
+      let p =
+        (* add the closure bindings to guard and rhs if not occluded by particular pattern *)
+        let (pat, guard, rhs) = p in
+          let patbound = bound_in_pattern pat in
+            let fenv' =
+              Evalutils.option_map
+                (fun (recflag, bindings) ->
+                   match filter_bindings pat bindings with
+                     [] -> None
+                   | bs -> Some (recflag, bindings))
+                fenv
+            in
+              (pat,
+               begin match guard with None -> None | Some g -> Some (build_lets_from_fenv fenv' g) end,
+               build_lets_from_fenv fenv' rhs) 
+      in
+        begin match eval_case peek env x p with (* 1 *)
         | Matched e -> e
         | EvaluatedGuardStep p' -> App (Function ((p'::ps), fenv), x)
         | FailedToMatch -> App (Function (ps, fenv), x)
         end
-      else App (Function ((p::ps), fenv), eval peek env x)
+    else
+      App (Function ((p::ps), fenv), eval peek env x) (* 2 *)
 | App (Var v, x) ->
-    (*Printf.printf "Applying function %s\n" v*)
     begin match lookup_value v env with
       Fun (fname, fexp, fenv) ->
         if is_value x then
           (* We must use fenv to build lets here. This will go away when we have
           implicit-lets in the Tinyocaml.t data type *)
-          begin
-            (*Printf.printf "Building %i lets\n" (List.length fenv);*)
-            build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
-          end
+          build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
         else
           App (Var v, eval peek env x)
     | Function cases ->
