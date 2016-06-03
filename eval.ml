@@ -1,4 +1,6 @@
 open Evalutils
+open Asttypes
+open Parsetree
 
 let silent = ref false
 let quiet = ref false
@@ -108,4 +110,9 @@ let eval s =
           failwith "unimplemented"
     in
       eval_inner state
+
+let eval_ast _ =
+  {pexp_desc = Pexp_constant (Pconst_integer ("42", None));
+   pexp_loc = Location.none;
+   pexp_attributes = []}
 
