@@ -1,3 +1,6 @@
+OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
+export OCAMLFIND_IGNORE_DUPS_IN
+
 MODS = evalutils tinyocaml tinyocamlUtils pptinyocaml core environment eval ocamli
 
 SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli)

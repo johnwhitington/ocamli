@@ -2,3 +2,9 @@ rm -f programs/*.cm* programs/a.out
 rm -f stdlib/*.cm* stdlib/a.out
 rm -f *.cm* a.out
 make clean
+cd ppx_eval
+make clean
+cd example
+make clean
+
+
