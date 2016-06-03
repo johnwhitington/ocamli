@@ -545,10 +545,10 @@ let stdlib_dir =
 
 (* Load a module from disk *)
 let load_module name file =
-  Printf.printf "Loading module %s...%!" name;
+  (*Printf.printf "Loading module %s...%!" name;*)
   let themod = Tinyocaml.of_real_ocaml (ast (load_file file)) in
     let themod' = eval false (*FIXME current env! *)pervasives themod in
-      Printf.printf "done\n%!";
+      (*Printf.printf "done\n%!";*)
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
 
 let stdlib_list =

@@ -81,6 +81,8 @@ exception UnknownNode of string
 the given program *)
 val of_real_ocaml : Parsetree.structure -> t
 
+val to_real_ocaml : t -> Parsetree.structure
+
 val recurse : (t -> t) -> t -> t
 
 val bound_in_pattern : pattern -> string list

@@ -111,8 +111,21 @@ let eval s =
     in
       eval_inner state
 
-let eval_ast _ =
-  {pexp_desc = Pexp_constant (Pconst_integer ("42", None));
+let extract_expression [{pstr_desc = Pstr_eval (e, _)}] = e
+
+let eval_ast structure =
+  let state = Environment.init structure in
+    let rec eval_inner state =
+      match Environment.next state with
+      | Next state ->
+          eval_inner state
+      | IsValue ->
+          extract_expression (Tinyocaml.to_real_ocaml (Environment.tiny state))
+      | Malformed _ | Unimplemented _ ->
+          failwith "evaluation failed"
+    in
+      eval_inner state
+  (*{pexp_desc = Pexp_constant (Pconst_integer ("42", None));
    pexp_loc = Location.none;
-   pexp_attributes = []}
+   pexp_attributes = []}*)
 

@@ -516,3 +516,67 @@ let rec of_real_ocaml env acc = function
 let of_real_ocaml x =
   Struct ("Main", of_real_ocaml [] [] x)
 
+(* Convert from t to an OCaml parsetree. *)
+let rec to_real_ocaml_expression_desc = function
+  | Control (_, x) -> to_real_ocaml_expression_desc x
+  | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
+  | Int i -> Pexp_constant (Pconst_integer (string_of_int i, None)) 
+  | Bool b ->
+      Pexp_construct
+        ({txt = Longident.Lident (string_of_bool b); loc = Location.none},
+          None)
+  | Var v ->
+      Pexp_ident {txt = Longident.Lident v; loc = Location.none}
+  | Op (op, l, r) -> to_real_ocaml_apply l r (string_of_op op)
+  | And (l, r) -> to_real_ocaml_apply l r "&&"
+  | Or (l, r) -> to_real_ocaml_apply l r "||"
+  | Cmp (cmp, l, r) -> to_real_ocaml_apply l r (string_of_cmp cmp)
+  | If (e, e1, e2) ->
+      Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
+  | Let (flag, bindings, e) -> to_real_ocaml_let flag bindings e
+  | Fun (pat, e, _) ->
+      Pexp_fun (Nolabel, None, to_real_ocaml_pattern pat, to_real_ocaml e)
+  | App (e, e') ->
+      Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
+  | Seq (e, e') ->
+      Pexp_sequence (to_real_ocaml e, to_real_ocaml e')
+  | Struct (_, [x]) -> to_real_ocaml_expression_desc x (* FIXME *)
+  | e ->
+      Printf.printf "Unknown thing in to_real_ocaml_expression_desc: %s\n"
+      (to_string e);
+      failwith "fix to_real_ocaml_expression_desc"
+
+and to_real_ocaml_pattern = function
+  PatInt i ->
+    {ppat_desc = Ppat_constant (Pconst_integer (string_of_int i, None));
+     ppat_loc = Location.none;
+     ppat_attributes = []}
+
+and to_real_ocaml_binding (pat, t) =
+  {pvb_pat = to_real_ocaml_pattern pat;
+   pvb_expr = to_real_ocaml t;
+   pvb_attributes = [];
+   pvb_loc = Location.none}
+
+and to_real_ocaml_let r bs e =
+  let bindings = List.map to_real_ocaml_binding bs in
+    Pexp_let
+      ((if r then Recursive else Nonrecursive), bindings, to_real_ocaml e)
+
+and to_real_ocaml_apply l r n =
+  let exprs =
+    [(Nolabel, to_real_ocaml l); (Nolabel, to_real_ocaml r)] in
+  let expr =
+    Evalutils.with_desc
+      (Pexp_ident
+         {txt = Longident.Lident n; loc = Location.none})
+  in
+    Pexp_apply (expr, exprs)
+
+and to_real_ocaml x =
+  Evalutils.with_desc (to_real_ocaml_expression_desc x)
+
+(* Just a single structure item for now *)
+let to_real_ocaml x =
+  [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
+    pstr_loc = Location.none}]

@@ -1,4 +1,4 @@
-name="ppx_blob"
-description="Include a file as a string at compile time"
+name="ppx_eval"
+description="Compile-time and run-time evaluation"
 version="0.1"
-ppx="./ppx_blob"
+ppx="./ppx_eval"
