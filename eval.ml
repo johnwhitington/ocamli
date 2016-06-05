@@ -113,6 +113,7 @@ let eval s =
 
 let extract_expression [{pstr_desc = Pstr_eval (e, _)}] = e
 
+(* Structure to structure/expression *)
 let eval_ast structure =
   let state = Environment.init structure in
     let rec eval_inner state =
@@ -125,7 +126,21 @@ let eval_ast structure =
           failwith "evaluation failed"
     in
       eval_inner state
-  (*{pexp_desc = Pexp_constant (Pconst_integer ("42", None));
-   pexp_loc = Location.none;
-   pexp_attributes = []}*)
 
+let extract_tiny = function
+  Tinyocaml.Struct (_, [x]) -> x
+
+(* String to Tinyocaml.t result *)
+let eval_string s =
+  let state = Environment.init (ast s) in
+    let rec eval_inner state =
+      match Environment.next state with
+      | Next state ->
+          eval_inner state
+      | IsValue ->
+          extract_tiny (Environment.tiny state)
+      | Malformed _ | Unimplemented _ ->
+          failwith "evaluation failed"
+    in
+      eval_inner state
+    

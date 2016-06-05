@@ -1,3 +1,3 @@
 make bc
-ocamlfind ocamlmktop -warn-error -31 -package compiler-libs.common -linkpkg -g -o ocamli.top evalutils.cmo tinyocaml.cmo tinyocamlUtils.cmo pptinyocaml.cmo core.cmo environment.cmo eval.cmo
+ocamlfind ocamlmktop -warn-error -31 -package compiler-libs.common -linkpkg ocamlival.o -custom -g -o ocamli.top evalutils.cmo tinyocaml.cmo tinyocamlUtils.cmo pptinyocaml.cmo core.cmo environment.cmo eval.cmo
 

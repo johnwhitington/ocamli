@@ -66,6 +66,8 @@ and t =
 | Tuple of t list             (* (1, 2) *)
 | Assert of t                 (* assert *)
 
+external to_ocaml_value : t -> 'a = "to_ocaml_value"
+
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =
   match exp with

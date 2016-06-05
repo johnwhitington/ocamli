@@ -74,6 +74,8 @@ val string_of_cmp : cmp -> string
 
 val to_string : t -> string
 
+val to_ocaml_value : t -> 'a
+
 (** Raised by [of_real_ocaml] if the program cannot be represented in tiny ocaml.*)
 exception UnknownNode of string
 
