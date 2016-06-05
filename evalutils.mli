@@ -42,4 +42,5 @@ val load_file : string -> string
 
 val env : Env.t
 val ast : string -> Parsetree.structure
+val ast_no_typecheck : string -> Parsetree.structure
 

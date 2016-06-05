@@ -144,3 +144,15 @@ let eval_string s =
     in
       eval_inner state
     
+let eval_string_to_ast s =
+  let state = Environment.init (ast s) in
+    let rec eval_inner state =
+      match Environment.next state with
+      | Next state ->
+          eval_inner state
+      | IsValue ->
+          extract_expression (Tinyocaml.to_real_ocaml (Environment.tiny state))
+      | Malformed _ | Unimplemented _ ->
+          failwith "evaluation failed"
+    in
+      eval_inner state

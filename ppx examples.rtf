@@ -5,34 +5,54 @@
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
 \f0\b\fs28 \cf0 \CocoaLigature0 Compile-time, from code, which the compiler will typecheck at compile time\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f1\b0 \
+\f1\b0 \cf0 \
 let x = [%compiletime 1 + 2 + 3]\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\b \
+\f0\b \cf0 \
 Compile-time, from a string, which the compiler will typecheck at compile time\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f1\b0 \
+\f1\b0 \cf0 \
 let x = [%compiletimestr \'931 + 2 + 3\'94]\
 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\b Run-time, Fixed code, with a type, which is checked by ocamli if provided\
+\f0\b \cf0 Run-time, Fixed code, with a type, which is checked by ocamli if provided\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f1\b0 \
+\f1\b0 \cf0 \
 let x = [%runtime (1 + 2 + 3) : int]\
 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\b Run-time, Fixed code, from a string, which is type checked by ocamli if provided\
+\f0\b \cf0 Run-time, Fixed code, from a string, which is type checked by ocamli if provided\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f1\b0 \
+\f1\b0 \cf0 \
 let x = [%runtimestr \'931 + 2 + 3\'94]\
 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\b Run-time, from a string variable, which is type checked by ocamli provided\
+\f0\b \cf0 Run-time, from a string variable, which is type checked by ocamli provided\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f1\b0 \
-let f x = [%runtimestr (x : int)]\
-===> let f x = (Tinyocaml.to_ocaml_value (Eval.eval_string x) : int)\
+\f1\b0 \cf0 \
+\
+let f = [%runtimefunction (function x -> x + 1)]\
+\
+===>\
+\
+let f =\
+  function x ->\
+    Tinyocaml.to_ocaml_value (Eval.eval_string (\'93let x = \'93 ^ x ^ \'93 + 1\'94))\
+\
+\
 \
 Can have type-checked / un-type-checked variants. Provide a type if you want it checked.\
+\
+let sum x : int =\
+  Tinyocaml.to_ocaml_value (Eval.eval_string ("List.fold_left (fun a b -> a + b) 0 " ^ x));;\
 }

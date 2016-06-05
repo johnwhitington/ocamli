@@ -47,4 +47,5 @@ val print_string : string -> unit
 val eval : string -> string
 val eval_ast : Parsetree.structure -> Parsetree.expression
 val eval_string : string -> Tinyocaml.t
+val eval_string_to_ast : string -> Parsetree.expression
 

@@ -19,6 +19,9 @@ let ast code =
     let _, _ = Typemod.type_implementation "example.ml" "" "example" env ast in
       ast
 
+let ast_no_typecheck code =
+  code |> Lexing.from_string |> Parse.implementation
+
 type 'a result =
     Next of 'a
   | IsValue
