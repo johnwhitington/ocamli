@@ -2,3 +2,5 @@
 #include <caml/mlvalues.h>
 
 value to_ocaml_value(value t);
+value of_ocaml_value(value t);
+

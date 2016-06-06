@@ -55,4 +55,7 @@ Can have type-checked / un-type-checked variants. Provide a type if you want it 
 \
 let sum x : int =\
   Tinyocaml.to_ocaml_value (Eval.eval_string ("List.fold_left (fun a b -> a + b) 0 " ^ x));;\
+\
+\
+let y : Tinyocaml.t = Tinyocaml.of_ocaml_value 42\
 }

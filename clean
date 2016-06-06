@@ -1,10 +1,11 @@
 rm -f programs/*.cm* programs/a.out
 rm -f stdlib/*.cm* stdlib/a.out
 rm -f *.cm* a.out
+rm -f ppx_eval/*.cm* ppx_eval/a.out
 make clean
 cd ppx_eval
 make clean
 cd example
 make clean
-
-
+ocamlfind remove ocamli
+ocamlfind remove ppx_eval

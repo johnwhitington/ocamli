@@ -68,6 +68,8 @@ and t =
 
 external to_ocaml_value : t -> 'a = "to_ocaml_value"
 
+external of_ocaml_value : 'a -> t = "of_ocaml_value"
+
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =
   match exp with

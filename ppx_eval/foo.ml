@@ -1,2 +1,2 @@
-Tinyocaml.to_ocaml_value (Eval.eval_string "foo")
+let v = [%compiletime "int_of_string (input_line stdin)"]
 
