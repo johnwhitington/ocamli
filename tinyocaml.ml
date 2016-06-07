@@ -28,6 +28,7 @@ and binding = pattern * t
 and env = (bool * binding list) list
 
 and t =
+(* values *)
   Unit                        (* () *)
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
@@ -35,8 +36,14 @@ and t =
 | String of string            (* "foo" *)
 | OutChannel of out_channel   (* e.g stdout, stderr *)
 | InChannel of in_channel     (* e.g stdin *)
-| Var of string               (* x *)
 | Record of (string * t ref) list  (* Records. *)
+| Tuple of t list             (* (1, 2) *)
+| Cons of (t * t)             (* List *)
+| Nil                         (* [] *)
+| Fun of (pattern * t * env)  (* fun x -> e *)
+| Function of (case list * env)   
+(* non-values *)
+| Var of string               (* x *)
 | Op of (op * t * t)          (* + - / * *)
 | And of (t * t)              (* && *)
 | Or of (t * t)               (* || *)
@@ -44,8 +51,6 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (bool * binding list * t) (* let x = e [and ...] in e' *)
 | LetDef of (bool * binding list) (* let x = e [and ...] *)
-| Fun of (pattern * t * env)  (* fun x -> e *)
-| Function of (case list * env)   
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -60,10 +65,7 @@ and t =
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
 | Struct of (string * t list)   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
-| Cons of (t * t)             (* List *)
-| Nil                         (* [] *)
 | Append of (t * t)           (* @ *)
-| Tuple of t list             (* (1, 2) *)
 | Assert of t                 (* assert *)
 
 external to_ocaml_value : t -> 'a = "to_ocaml_value"
