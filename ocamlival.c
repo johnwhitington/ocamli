@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 /*
-
 type t =
   Unit                            <-- Val_int(0).
 | Int of int                      <-- Block with tag 0.
@@ -21,6 +20,7 @@ type t =
 */
 
 value to_ocaml_value(value);
+value of_ocaml_value(value);
 
 /* Read a list into the appropriately-sized block out */
 void read_list(value list, value out)
@@ -81,6 +81,9 @@ CAMLprim value to_ocaml_value(value t)
   }
   CAMLreturn(out);
 }
+
+/* For this to be of use, we would need to be given a type. We can then
+ * deconstruct the type and work out how to build up the Tinyocaml.t value */
 
 /* For now, just knows how to do int */
 CAMLprim value of_ocaml_value(value t)
