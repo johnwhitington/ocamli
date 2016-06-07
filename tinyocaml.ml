@@ -68,9 +68,19 @@ and t =
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 
+(* The type of OCaml values in memory *)
+type untyped_ocaml_value =
+  UInt of int
+| Block of int * untyped_ocaml_value array
+
 external to_ocaml_value : t -> 'a = "to_ocaml_value"
 
-external of_ocaml_value : 'a -> t = "of_ocaml_value"
+external untyped_of_ocaml_value : 'a -> untyped_ocaml_value = "untyped_of_ocaml_value"
+
+let read_untyped v typ = Int 42
+
+let of_ocaml_value x typ =
+  read_untyped (untyped_of_ocaml_value x) typ
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =

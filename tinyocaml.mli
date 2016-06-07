@@ -76,7 +76,13 @@ val to_string : t -> string
 
 val to_ocaml_value : t -> 'a
 
-val of_ocaml_value : 'a -> t
+val of_ocaml_value : 'a -> string -> t
+
+type untyped_ocaml_value =
+  UInt of int
+| Block of int * untyped_ocaml_value array
+
+val untyped_of_ocaml_value : 'a -> untyped_ocaml_value
 
 (** Raised by [of_real_ocaml] if the program cannot be represented in tiny ocaml.*)
 exception UnknownNode of string

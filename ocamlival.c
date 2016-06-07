@@ -20,7 +20,7 @@ type t =
 */
 
 value to_ocaml_value(value);
-value of_ocaml_value(value);
+value untyped_of_ocaml_value(value);
 
 /* Read a list into the appropriately-sized block out */
 void read_list(value list, value out)
@@ -56,7 +56,7 @@ void read_record(value record, value out)
 CAMLprim value to_ocaml_value(value t)
 {
   CAMLparam1(t);
-  value out;
+  CAMLlocal1(out);
   if (t == Val_int(0)) out = Val_unit; /* Unit */
   if (t == Val_int(1)) out = Val_unit; /* Nil */
   if (Is_block(t) && Tag_val(t) < 6) out = Field(t, 0); /* Int, Bool, Float, String, OutChannel, InChannel */
@@ -82,14 +82,31 @@ CAMLprim value to_ocaml_value(value t)
   CAMLreturn(out);
 }
 
-/* For this to be of use, we would need to be given a type. We can then
- * deconstruct the type and work out how to build up the Tinyocaml.t value */
+/*
+  type untyped_ocaml_value =
+  UInt of int                                <-- Block with tag 0
+| Block of tag * untyped_ocaml_value array   <-- Block with tag 1
+*/
 
-/* For now, just knows how to do int */
-CAMLprim value of_ocaml_value(value t)
+/* Read a Tinyocaml.untyped_ocaml_value from an ocaml heap value */
+CAMLprim value untyped_of_ocaml_value(value t)
 {
+  setbuf(stdout, NULL);
   CAMLparam1(t);
-  value out = caml_alloc(1, 0);
-  Store_field(out, 0, t);
+  CAMLlocal2(out, arr);
+  if (Is_long(t))
+  {
+    out = caml_alloc(1, 0);
+    Store_field(out, 0, t);
+  }
+  if (Is_block(t))
+  {
+    out = caml_alloc(2, 1);
+    Store_field(out, 0, Tag_val(t));
+    arr = caml_alloc_tuple(Wosize_val(t));
+    Store_field(out, 1, arr);
+    for(int p = 0; p < Wosize_val(t); p++)
+      Store_field(arr, p, untyped_of_ocaml_value (Field(t, p)));
+  }
   CAMLreturn(out);
 }
