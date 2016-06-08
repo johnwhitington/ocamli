@@ -80,7 +80,10 @@ val of_ocaml_value : 'a -> string -> t
 
 type untyped_ocaml_value =
   UInt of int
-| Block of int * untyped_ocaml_value array
+| UBlock of int * untyped_ocaml_value array
+| UString of string
+| UDouble of float
+| UDoubleArray of float array
 
 val untyped_of_ocaml_value : 'a -> untyped_ocaml_value
 

@@ -86,6 +86,9 @@ CAMLprim value to_ocaml_value(value t)
   type untyped_ocaml_value =
   UInt of int                                <-- Block with tag 0
 | Block of tag * untyped_ocaml_value array   <-- Block with tag 1
+| UString of string                          <-- Block with tag 2
+| UDouble of float                           <-- Block with tag 3
+| UDoubleArray of float array                <-- Block with tag 4
 */
 
 /* Read a Tinyocaml.untyped_ocaml_value from an ocaml heap value */
@@ -99,7 +102,7 @@ CAMLprim value untyped_of_ocaml_value(value t)
     out = caml_alloc(1, 0);
     Store_field(out, 0, t);
   }
-  if (Is_block(t))
+  if (Is_block(t) && Tag_val(t) < No_scan_tag)
   {
     out = caml_alloc(2, 1);
     Store_field(out, 0, Tag_val(t));
@@ -107,6 +110,21 @@ CAMLprim value untyped_of_ocaml_value(value t)
     Store_field(out, 1, arr);
     for(int p = 0; p < Wosize_val(t); p++)
       Store_field(arr, p, untyped_of_ocaml_value (Field(t, p)));
+  }
+  if (Is_block(t) && Tag_val(t) == String_tag)
+  {
+    out = caml_alloc(1, 2);
+    Store_field(out, 0, t);
+  }
+  if (Is_block(t) && Tag_val(t) == Double_tag)
+  {
+    out = caml_alloc(1, 3);
+    Store_field(out, 0, t);
+  }
+  if (Is_block(t) && Tag_val(t) == Double_array_tag)
+  {
+    out = caml_alloc(1, 4);
+    Store_field(out, 0, t);
   }
   CAMLreturn(out);
 }

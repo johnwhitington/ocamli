@@ -1,1 +1,2 @@
-function x -> x + 1
+([(1, 2); (3, 4)] : (int * int) list)
+

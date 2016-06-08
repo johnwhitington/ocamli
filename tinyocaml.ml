@@ -71,16 +71,35 @@ and t =
 (* The type of OCaml values in memory *)
 type untyped_ocaml_value =
   UInt of int
-| Block of int * untyped_ocaml_value array
+| UBlock of int * untyped_ocaml_value array
+| UString of string
+| UDouble of float
+| UDoubleArray of float array
 
 external to_ocaml_value : t -> 'a = "to_ocaml_value"
 
 external untyped_of_ocaml_value : 'a -> untyped_ocaml_value = "untyped_of_ocaml_value"
 
-let read_untyped v typ = Int 42
+let rec read_untyped v typ =
+  match v, typ.ptyp_desc with
+  | UInt n, Ptyp_constr ({txt = Longident.Lident "int"}, _) ->
+      Int n
+  | UInt 0, Ptyp_constr ({txt = Longident.Lident "list"}, _) ->
+      Nil
+  | UString s, Ptyp_constr ({txt = Longident.Lident "string"}, _) ->
+      String s
+  | UDouble d, Ptyp_constr ({txt = Longident.Lident "float"}, _) ->
+      Float d
+  | UBlock (0, vs), Ptyp_tuple ts when Array.length vs = List.length ts ->
+      Tuple (List.map2 read_untyped (Array.to_list vs) ts)
+  | UBlock (0, [|h; t|]), Ptyp_constr ({txt = Longident.Lident "list"}, [elt_typ]) ->
+      Cons (read_untyped h elt_typ, read_untyped t typ)
+
+let parse_type typ =
+  typ |> Lexing.from_string |> Parse.core_type
 
 let of_ocaml_value x typ =
-  read_untyped (untyped_of_ocaml_value x) typ
+  read_untyped (untyped_of_ocaml_value x) (parse_type typ)
 
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =
