@@ -1,5 +1,9 @@
 open Eval
 
+let setdebug () =
+  Eval.debug := true;
+  Environment.debug := true
+
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
    ("-quiet", Arg.Set quiet, " Print only the result");
@@ -16,7 +20,7 @@ let argspec =
    ("-fast-curry", Arg.Set fastcurry, " Apply all curried arguments at once. ");
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
-   ("-debug", Arg.Set debug, " Debug (for OCAMLRUNPARAM=b)");
+   ("-debug", Arg.Unit setdebug, " Debug (for OCAMLRUNPARAM=b)");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-peek", Arg.Clear Environment.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
@@ -79,11 +83,13 @@ let go () =
     | Malformed s ->
         print_string "Malformed AST node\n";
         print_string s;
-        print_string "\n"
+        print_string "\n";
+        if !debug then raise Exit
     | Unimplemented s ->
         print_string "Unimplemented AST node\n";
         print_string s;
-        print_string "\n"
+        print_string "\n";
+        if !debug then raise Exit
   in
    let run code =
     if !printer = "simple" then

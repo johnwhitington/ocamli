@@ -21,6 +21,8 @@ val tiny : t -> Tinyocaml.t
 
 val last : unit -> Evalutils.last_op list
 
+val debug : bool ref
+
 val peek : t -> Evalutils.last_op list
 
 val newlines : t -> bool

@@ -10,6 +10,8 @@ let comp = TinyocamlUtils.comp
 
 let is_value = TinyocamlUtils.is_value
 
+let debug = ref false
+
 let fastcurry = ref false
 
 let dopeek = ref true
@@ -477,15 +479,19 @@ and eval_curry_makelets f args =
 and eval_first_non_value_item peek env r = function
   [] -> List.rev r
 | h::t ->
-    if is_value h
-      then
-        let env' =
-          match h with
-            LetDef (_, [PatVar x, y]) -> (x, y)::env
-          | _ -> env
-        in
-          eval_first_non_value_item peek env' (h::r) t
-      else List.rev r @ [eval peek env h] @ t
+    let env_entries_of_bindings =
+      Evalutils.option_map
+        (function (PatVar x, y) -> Some (x, y) | _ -> None)
+    in
+      if is_value h
+        then
+          let env' =
+            match h with
+              LetDef (_, bs) ->  env_entries_of_bindings bs @ env
+            | _ -> env
+          in
+            eval_first_non_value_item peek env' (h::r) t
+        else List.rev r @ [eval peek env h] @ t
 
 and eval_first_non_value_binding peek recflag env r = function
   [] -> List.rev r
@@ -576,6 +582,7 @@ let next e =
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->
       Printf.printf "Error in environment %s\n" (Printexc.to_string x);
+      if !debug then raise Exit;
       Malformed "environment"
 
 let to_string x =
