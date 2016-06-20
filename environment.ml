@@ -238,7 +238,7 @@ let rec eval peek env expr =
 | If (Bool true, a, _) -> a
 | If (Bool false, _, b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
-| Let (false, bindings, e) ->
+| Let (recflag, bindings, e) ->
     if List.exists (function (PatVar v, e) -> namestarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
@@ -250,7 +250,7 @@ let rec eval peek env expr =
           Fun (fx, fe, fenv) ->
             begin match filter_bindings fx bindings with
               [] -> Fun (fx, fe, fenv)
-            | bindings' -> Fun (fx, Let (false, bindings', fe), fenv)
+            | bindings' -> Fun (fx, Let (recflag, bindings', fe), fenv)
             end
         | Function (cases, fenv) ->
             (* Put in the guard of any case where it appears unoccluded by the
@@ -267,25 +267,26 @@ let rec eval peek env expr =
                  [] -> (pat, guard, rhs)
                | l ->
                    let rhs' =
-                     Let (false, bindings', rhs)
+                     Let (recflag, bindings', rhs)
                    and guard' =
                      match guard with
                      | None -> None
-                     | Some g -> Some (Let (false, bindings', g))
+                     | Some g -> Some (Let (recflag, bindings', g))
                    in
                      (pat, guard', rhs')
              in
                Function (List.map add_to_case cases, fenv)
-        | _ -> Let (false, bindings, eval peek env' e)
+        | _ -> Let (recflag, bindings, eval peek env' e)
         end
     else
-      Let (false, eval_first_non_value_binding peek false env [] bindings, e)
-| Let (true, [PatVar n, (Fun r as f)], e) ->
+      Let (recflag, eval_first_non_value_binding peek false env [] bindings, e)
+(*| Let (true, [PatVar n, (Fun r as f)], e) ->
     if namestarred n then last := InsidePervasive::!last;
     if is_value e then e else
       Let (true, [PatVar n, f], eval peek ((n, f)::env) e)
 | Let (true, _, _) ->
-    failwith (Printf.sprintf "malformed letrec: %s" (Tinyocaml.to_string expr))
+    failwith (Printf.sprintf "malformed letrec: %s" (Tinyocaml.to_string
+    expr))*)
 | LetDef (recflag, bindings) ->
     if List.for_all (fun (_, e) -> is_value e) bindings
       then
