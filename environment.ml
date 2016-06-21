@@ -280,13 +280,6 @@ let rec eval peek env expr =
         end
     else
       Let (recflag, eval_first_non_value_binding peek false env [] bindings, e)
-(*| Let (true, [PatVar n, (Fun r as f)], e) ->
-    if namestarred n then last := InsidePervasive::!last;
-    if is_value e then e else
-      Let (true, [PatVar n, f], eval peek ((n, f)::env) e)
-| Let (true, _, _) ->
-    failwith (Printf.sprintf "malformed letrec: %s" (Tinyocaml.to_string
-    expr))*)
 | LetDef (recflag, bindings) ->
     if List.for_all (fun (_, e) -> is_value e) bindings
       then
