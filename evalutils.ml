@@ -2,6 +2,8 @@
 open Parsetree
 open Asttypes
 
+let typecheck = ref true
+
 let load_file f =
   let ic = open_in f in
   let n = in_channel_length ic in
@@ -16,11 +18,9 @@ let env =
 
 let ast code =
   let ast = code |> Lexing.from_string |> Parse.implementation in
-    let _, _ = Typemod.type_implementation "example.ml" "" "example" env ast in
-      ast
-
-let ast_no_typecheck code =
-  code |> Lexing.from_string |> Parse.implementation
+    if not !typecheck then ast else
+      let _, _ = Typemod.type_implementation "example.ml" "" "example" env ast in
+        ast
 
 type 'a result =
     Next of 'a

@@ -24,6 +24,7 @@ let argspec =
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-peek", Arg.Clear Environment.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
+   ("-no-typecheck", Arg.Clear Evalutils.typecheck, " Don't typecheck");
    ("-no-collect", Arg.Clear Environment.docollectunusedlets, " Don't collect unused lets")]
 
 let go () =

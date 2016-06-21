@@ -554,8 +554,15 @@ let load_module name file =
 let stdlib_list =
   load_module "List" (Filename.concat stdlib_dir "list.ml")
 
+let stdlib_pervasives =
+  load_module "Pervasives" (Filename.concat "stdlib" "pervasives.ml")
+
+(*let _ =
+  Printf.printf "Got %i definitions from pervasives\n" (List.length
+  stdlib_pervasives)*)
+
 let lib =
-  stdlib_list @ pervasives
+  stdlib_list @ stdlib_pervasives @ pervasives
 
 (*let _ =
   List.iter

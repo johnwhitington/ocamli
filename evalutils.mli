@@ -5,6 +5,8 @@ type 'a result =
   | Malformed of string
   | Unimplemented of string
 
+val typecheck : bool ref
+
 exception ExnUnimplemented of string
 
 exception ExnMalformed of string
@@ -42,5 +44,4 @@ val load_file : string -> string
 
 val env : Env.t
 val ast : string -> Parsetree.structure
-val ast_no_typecheck : string -> Parsetree.structure
 
