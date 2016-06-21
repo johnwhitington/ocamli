@@ -34,7 +34,7 @@ let runtests dir =
 let argspec =
   [("-args", Arg.Rest collect_strings, " Arguments for ocamli")]
 
-let usage = ""
+let usage = "syntax: test [-args <arguments to be passed to ocamli]"
 
 let _ =
   Arg.parse argspec (fun _ -> ()) usage;
