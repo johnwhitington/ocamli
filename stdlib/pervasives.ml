@@ -232,19 +232,19 @@ external format_float : string -> float -> string = "caml_format_float"
 
 let string_of_bool b =
   if b then "true" else "false"
+
 let bool_of_string = function
   | "true" -> true
   | "false" -> false
   | _ -> invalid_arg "bool_of_string"
-(*
+
 let string_of_int n =
   format_int "%d" n
 
 external int_of_string : string -> int = "caml_int_of_string"
 external string_get : string -> int -> char = "%string_safe_get"
-*)
 
-(*let valid_float_lexem s =
+let valid_float_lexem s =
   let l = string_length s in
   let rec loop i =
     if i >= l then s ^ "." else
@@ -265,10 +265,6 @@ let rec ( @ ) l1 l2 =
   match l1 with
     [] -> l2
   | hd :: tl -> hd :: (tl @ l2)
-  *)
-
-
-(*
 (* I/O operations *)
 
 type in_channel
@@ -299,6 +295,7 @@ let open_out_gen mode perm name =
   set_out_channel_name c name;
   c
 
+
 let open_out name =
   open_out_gen [Open_wronly; Open_creat; Open_trunc; Open_text] 0o666 name
 
@@ -316,6 +313,7 @@ let flush_all () =
     | a :: l -> (try flush a with _ -> ()); iter l
   in iter (out_channels_list ())
 
+(*
 external unsafe_output : out_channel -> bytes -> int -> int -> unit
                        = "caml_ml_output"
 external unsafe_output_string : out_channel -> string -> int -> int -> unit

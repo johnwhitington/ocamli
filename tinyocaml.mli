@@ -14,11 +14,18 @@ type pattern =
   PatAny
 | PatVar of string
 | PatInt of int
+| PatInt32 of Int32.t
+| PatInt64 of Int64.t
+| PatNativeInt of Nativeint.t
+| PatChar of char
+| PatCharRange of char * char
+| PatString of string
 | PatUnit
 | PatTuple of pattern list
 | PatNil
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
+| PatOr of pattern * pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -32,12 +39,13 @@ and env = (bool * binding list) list
 and t =
   Unit                         (** () *)
 | Int of int                   (** 1 *)
-| Int32 of Int32.t            (* 1l *)
-| Int64 of Int64.t            (* 1L *)
-| NativeInt of Nativeint.t    (* 1n *)
+| Int32 of Int32.t            (** 1l *)
+| Int64 of Int64.t            (** 1L *)
+| NativeInt of Nativeint.t    (** 1n *)
 | Bool of bool                 (** false *)
 | Float of float               (** 1.0 *)
 | String of string             (** "foo" *)
+| Char of char                 (** 'a' *)
 | OutChannel of out_channel    (** e.g stdout *)
 | InChannel of in_channel      (** e.g stdin *)
 | Record of (string * t ref) list (** {a = e; b = e' ...} *)

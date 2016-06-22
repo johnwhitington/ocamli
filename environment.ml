@@ -143,6 +143,12 @@ let rec matches expr pattern rhs =
       _, PatAny -> yes
     | Unit, PatUnit -> yes
     | Int i, PatInt i' when i = i' -> yes
+    | Int32 i, PatInt32 i' when i = i' -> yes
+    | Int64 i, PatInt64 i' when i = i' -> yes
+    | NativeInt i, PatNativeInt i' when i = i' -> yes
+    | String s, PatString s' when s = s' -> yes
+    | Char c, PatChar c' when c = c' -> yes
+    | Char x, PatCharRange (c, c') when x >= c && x <= c' -> yes 
     | e, PatVar v -> Some (Let (false, [(PatVar v, e)], rhs))
     | Nil, PatNil -> yes
     | Cons (h, t), PatCons (ph, pt) ->
@@ -154,6 +160,11 @@ let rec matches expr pattern rhs =
         match_many_binders es ps rhs
     | e, PatAlias (a, p) ->
         matches e p (Let (false, [(PatVar a, e)], rhs))
+    | e, PatOr (a, b) ->
+        begin match matches e a rhs with
+          Some _ -> yes
+        | _ -> matches e b rhs
+        end
     | _ -> no
 
 and match_many_binders es ps rhs =

@@ -13,11 +13,18 @@ type pattern =
   PatAny
 | PatVar of string
 | PatInt of int
+| PatInt32 of Int32.t
+| PatInt64 of Int64.t
+| PatNativeInt of Nativeint.t
+| PatChar of char
+| PatCharRange of char * char
+| PatString of string
 | PatUnit
 | PatTuple of pattern list
 | PatNil
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
+| PatOr of pattern * pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -37,6 +44,7 @@ and t =
 | Bool of bool                (* false *)
 | Float of float              (* 1.0 *)
 | String of string            (* "foo" *)
+| Char of char                (* 'a' *)
 | OutChannel of out_channel   (* e.g stdout, stderr *)
 | InChannel of in_channel     (* e.g stdin *)
 | Record of (string * t ref) list  (* Records. *)
@@ -110,7 +118,7 @@ let of_ocaml_value x typ =
 let rec recurse f exp =
   match exp with
   | (Bool _ | Float _ | Var _ | Int _ | Int32 _ | Int64 _ | NativeInt _
-     | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
+     | Char _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
   | Op (op, a, b) -> Op (op, f a, f b)
   | And (a, b) -> And (f a, f b)
   | Or (a, b) -> Or (f a, f b)
@@ -271,11 +279,18 @@ and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
 | PatInt i -> string_of_int i
+| PatInt32 i -> Int32.to_string i
+| PatInt64 i -> Int64.to_string i
+| PatNativeInt i -> Nativeint.to_string i
+| PatChar c -> Printf.sprintf "%C" c
+| PatCharRange (c, c') -> Printf.sprintf "%C .. %C" c c'
+| PatString s -> "\"" ^ String.escaped s ^ "\""
 | PatUnit -> "()"
 | PatTuple _ -> "PatTuple"
 | PatNil -> "[]"
 | PatCons _ -> "PatCons"
 | PatAlias _ -> "PatAlias"
+| PatOr _ -> "PatOr"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
@@ -327,11 +342,18 @@ let rec bound_in_pattern = function
   PatAny -> []
 | PatVar v -> [v]
 | PatInt _ -> []
+| PatString _ -> []
+| PatChar _ -> []
+| PatCharRange (_, _) -> []
+| PatInt32 _ -> []
+| PatInt64 _ -> []
+| PatNativeInt _ -> []
 | PatUnit -> []
 | PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
 | PatNil -> []
 | PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
 | PatAlias (a, p) -> a::bound_in_pattern p
+| PatOr (a, b) -> bound_in_pattern a @ bound_in_pattern b
 
 let bound_in_environment_item (_, bindings) =
   List.flatten (List.map (fun (p, _) -> bound_in_pattern p) bindings)
@@ -785,6 +807,7 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_constant (Pconst_integer (s, Some 'l')) -> Int32 (Int32.of_string s)
 | Pexp_constant (Pconst_integer (s, Some 'L')) -> Int64 (Int64.of_string s)
 | Pexp_constant (Pconst_integer (s, Some 'n')) -> NativeInt (Nativeint.of_string s)
+| Pexp_constant (Pconst_char c) -> Char c
 | Pexp_constant (Pconst_string (s, None)) -> String s
 | Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
 | Pexp_construct ({txt = Lident "()"}, _) -> Unit
@@ -896,6 +919,12 @@ and of_real_ocaml_case env {pc_lhs; pc_guard; pc_rhs} =
 and of_real_ocaml_pattern env = function
   Ppat_var {txt} -> PatVar txt
 | Ppat_constant (Pconst_integer (s, None)) -> PatInt (int_of_string s)
+| Ppat_constant (Pconst_integer (s, Some 'l')) -> PatInt32 (Int32.of_string s)
+| Ppat_constant (Pconst_integer (s, Some 'L')) -> PatInt64 (Int64.of_string s)
+| Ppat_constant (Pconst_integer (s, Some 'n')) -> PatNativeInt (Nativeint.of_string s)
+| Ppat_constant (Pconst_char c) -> PatChar c
+| Ppat_interval (Pconst_char c, Pconst_char c') -> PatCharRange (c, c')
+| Ppat_constant (Pconst_string (s, _)) -> PatString s
 | Ppat_any -> PatAny
 | Ppat_tuple patterns ->
     PatTuple
@@ -906,6 +935,10 @@ and of_real_ocaml_pattern env = function
     PatCons (of_real_ocaml_pattern env a.ppat_desc, of_real_ocaml_pattern env b.ppat_desc)
 | Ppat_alias (pattern, {txt}) ->
     PatAlias (txt, of_real_ocaml_pattern env pattern.ppat_desc)
+| Ppat_or (p, p') ->
+    PatOr
+      (of_real_ocaml_pattern env p.ppat_desc,
+       of_real_ocaml_pattern env p'.ppat_desc)
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc

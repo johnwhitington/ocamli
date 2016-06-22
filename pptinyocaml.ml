@@ -141,6 +141,7 @@ let rec print_tiny_inner f isleft parent node =
   | Bool b -> str (string_of_bool b)
   | Float f -> str (string_of_float f)
   | String s -> str ("\"" ^ String.escaped s ^ "\"")
+  | Char c -> str (Printf.sprintf "%C" c)
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
   | CallBuiltIn (name, args, fn) -> str "<<"; str name; str ">>"
@@ -370,6 +371,18 @@ and print_pattern f isleft parent pat =
         str (Evalutils.unstar v)
     | PatInt i ->
         str (string_of_int i)
+    | PatInt32 i ->
+        str (Int32.to_string i)
+    | PatInt64 i ->
+        str (Int64.to_string i)
+    | PatNativeInt i ->
+        str (Nativeint.to_string i)
+    | PatChar c ->
+        str (Printf.sprintf "%C" c)
+    | PatCharRange (c, c') ->
+        str (Printf.sprintf "%C .. %C" c c')
+    | PatString s ->
+        str (Printf.sprintf "\"%s\"" (String.escaped s))
     | PatTuple items ->
         str "(";
         let l = List.length items in
@@ -388,6 +401,10 @@ and print_pattern f isleft parent pat =
         print_pattern f isleft parent p;
         boldtxt " as ";
         str a
+    | PatOr (a, b) ->
+        print_pattern f isleft parent a;
+        txt " | ";
+        print_pattern f isleft parent b
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

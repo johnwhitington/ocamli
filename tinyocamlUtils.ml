@@ -10,7 +10,7 @@ let comp = function
 let rec is_value = function
   Unit | Int _ | Bool _ | Fun _ | Function _
 | Int32 _ | Int64 _ | NativeInt _ 
-| OutChannel _ | InChannel _ | String _ | Nil -> true
+| OutChannel _ | InChannel _ | Char _ | String _ | Nil -> true
 | Record items when
     List.for_all is_value (List.map (fun (_, {contents = e}) -> e) items) -> true
 | Struct (_, items) when
