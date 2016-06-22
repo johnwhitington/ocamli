@@ -173,7 +173,7 @@ let min_float =
 let epsilon_float =
   float_of_bits 0x3C_B0_00_00_00_00_00_00L
 
-(*type fpclass =
+type fpclass =
     FP_normal
   | FP_subnormal
   | FP_zero
@@ -181,7 +181,6 @@ let epsilon_float =
   | FP_nan
 external classify_float : (float [@unboxed]) -> fpclass =
   "caml_classify_float" "caml_classify_float_unboxed" [@@noalloc]
-
 (* String and byte sequence operations -- more in modules String and Bytes *)
 
 external string_length : string -> int = "%string_length"
@@ -192,7 +191,6 @@ external string_blit : string -> int -> bytes -> int -> int -> unit
 external bytes_blit : bytes -> int -> bytes -> int -> int -> unit
                         = "caml_blit_string" [@@noalloc]
 external bytes_unsafe_to_string : bytes -> string = "%identity"
-
 let ( ^ ) s1 s2 =
   let l1 = string_length s1 and l2 = string_length s2 in
   let s = bytes_create (l1 + l2) in
@@ -224,13 +222,11 @@ external ( ! ) : 'a ref -> 'a = "%field0"
 external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
 external incr : int ref -> unit = "%incr"
 external decr : int ref -> unit = "%decr"
-
 (* Result type *)
 
 type ('a,'b) result = Ok of 'a | Error of 'b
 
 (* String conversion functions *)
-
 external format_int : string -> int -> string = "caml_format_int"
 external format_float : string -> float -> string = "caml_format_float"
 
@@ -240,14 +236,15 @@ let bool_of_string = function
   | "true" -> true
   | "false" -> false
   | _ -> invalid_arg "bool_of_string"
-
+(*
 let string_of_int n =
   format_int "%d" n
 
 external int_of_string : string -> int = "caml_int_of_string"
 external string_get : string -> int -> char = "%string_safe_get"
+*)
 
-let valid_float_lexem s =
+(*let valid_float_lexem s =
   let l = string_length s in
   let rec loop i =
     if i >= l then s ^ "." else
@@ -268,7 +265,10 @@ let rec ( @ ) l1 l2 =
   match l1 with
     [] -> l2
   | hd :: tl -> hd :: (tl @ l2)
+  *)
 
+
+(*
 (* I/O operations *)
 
 type in_channel

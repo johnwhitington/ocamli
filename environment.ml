@@ -418,7 +418,7 @@ let rec eval peek env expr =
       | FailedToMatch -> Match (x, ps)
       end
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
-| InChannel _ | String _ | Nil | ExceptionDef _ -> failwith "already a value"
+| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ -> failwith "already a value"
 
 and eval_case peek env expr (pattern, guard, rhs) =
   match matches expr pattern rhs with

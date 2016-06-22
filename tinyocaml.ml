@@ -55,6 +55,7 @@ and t =
 | If of (t * t * t)           (* if e then e1 else e2 *)
 | Let of (bool * binding list * t) (* let x = e [and ...] in e' *)
 | LetDef of (bool * binding list) (* let x = e [and ...] *)
+| TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)
@@ -133,6 +134,7 @@ let rec recurse f exp =
   | Raise s -> Raise s
   | TryWith (a, s) -> TryWith (f a, s)
   | ExceptionDef e -> ExceptionDef e
+  | TypeDef e -> TypeDef e
   | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
   | Struct (n, l) -> Struct (n, List.map f l)
   | Cons (e, e') -> Cons (f e, f e')
@@ -230,6 +232,8 @@ let rec to_string = function
       n (match payload with None -> "" | Some x -> to_string x)
 | ExceptionDef (e, args) ->
     Printf.sprintf "Exception (%s, Some %s)" e (string_of_constructor_arg args)
+| TypeDef _ ->
+    "TypeDef"
 | TryWith (t, pat) ->
     Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_expatmatch pat)
 | Control (c, t) ->
@@ -929,6 +933,9 @@ and of_real_ocaml_structure_item env = function
     let bindings = [(PatVar n, primitive)] in
     let env' = (false, bindings)::env in
       (Some (LetDef (false, bindings)), env')
+  (* type t = A | B of int *)
+| {pstr_desc = Pstr_type (recflag, typedecls)} ->
+     (Some (TypeDef (recflag == Recursive, typedecls)), env)
 | _ -> failwith "unknown structure item"
 
 let rec of_real_ocaml env acc = function

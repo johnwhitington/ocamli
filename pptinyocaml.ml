@@ -313,6 +313,8 @@ let rec print_tiny_inner f isleft parent node =
       | _ -> ()
       end;
       str rp
+  | TypeDef t ->
+      str "TypeDef"
 
 (* We can print a list as a literal iff it has a Nil at the end of a series of
 one or more conses. *)
