@@ -31,6 +31,9 @@ and t =
 (* values *)
   Unit                        (* () *)
 | Int of int                  (* 1 *)
+| Int32 of Int32.t            (* 1l *)
+| Int64 of Int64.t            (* 1L *)
+| NativeInt of Nativeint.t    (* 1n *)
 | Bool of bool                (* false *)
 | Float of float              (* 1.0 *)
 | String of string            (* "foo" *)
@@ -105,7 +108,8 @@ let of_ocaml_value x typ =
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =
   match exp with
-  | (Bool _ | Float _ | Var _ | Int _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
+  | (Bool _ | Float _ | Var _ | Int _ | Int32 _ | Int64 _ | NativeInt _
+     | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
   | Op (op, a, b) -> Op (op, f a, f b)
   | And (a, b) -> And (f a, f b)
   | Or (a, b) -> Or (f a, f b)
@@ -178,6 +182,9 @@ let rec to_string = function
   Unit -> "Unit"
 | Assert e -> Printf.sprintf "Assert %s" (to_string e)
 | Int i -> Printf.sprintf "Int %i" i
+| Int32 i -> Printf.sprintf "Int32 %li" i
+| Int64 i -> Printf.sprintf "Int64 %Li" i
+| NativeInt i -> Printf.sprintf "NativeInt %ni" i
 | Bool b -> Printf.sprintf "Bool %b" b
 | Float f -> Printf.sprintf "Float %f" f
 | String s -> Printf.sprintf "String %s" s
@@ -765,11 +772,15 @@ let builtin_primitives = [
 
 let lookup_primitive n =
   try List.assoc n builtin_primitives with
-    Not_found -> failwith (Printf.sprintf "lookup_primitive %s" n)
+    Not_found ->
+      snd (mk n (function [e] -> Raise ("UnknownPrimitive: " ^ n, None) | _ -> failwith "unknown unknown primitive"))
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
+| Pexp_constant (Pconst_integer (s, Some 'l')) -> Int32 (Int32.of_string s)
+| Pexp_constant (Pconst_integer (s, Some 'L')) -> Int64 (Int64.of_string s)
+| Pexp_constant (Pconst_integer (s, Some 'n')) -> NativeInt (Nativeint.of_string s)
 | Pexp_constant (Pconst_string (s, None)) -> String s
 | Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
 | Pexp_construct ({txt = Lident "()"}, _) -> Unit

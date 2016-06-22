@@ -32,6 +32,9 @@ and env = (bool * binding list) list
 and t =
   Unit                         (** () *)
 | Int of int                   (** 1 *)
+| Int32 of Int32.t            (* 1l *)
+| Int64 of Int64.t            (* 1L *)
+| NativeInt of Nativeint.t    (* 1n *)
 | Bool of bool                 (** false *)
 | Float of float               (** 1.0 *)
 | String of string             (** "foo" *)

@@ -135,6 +135,9 @@ let rec print_tiny_inner f isleft parent node =
       Format.pp_close_tag f ()
   | Unit -> str "()"
   | Int i -> str (string_of_int i)
+  | Int32 i -> str (Int32.to_string i ^ "l")
+  | Int64 i -> str (Int64.to_string i ^ "L")
+  | NativeInt i -> str (Nativeint.to_string i ^ "n")
   | Bool b -> str (string_of_bool b)
   | Float f -> str (string_of_float f)
   | String s -> str ("\"" ^ String.escaped s ^ "\"")

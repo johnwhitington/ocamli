@@ -39,7 +39,6 @@ exception Exit
 external ( |> ) : 'a -> ('a -> 'b) -> 'b = "%revapply"
 external ( @@ ) : ('a -> 'b) -> 'a -> 'b = "%apply"
 
-(*
 (* Debugging *)
 
 external __LOC__ : string = "%loc_LOC"
@@ -104,7 +103,6 @@ let max_int = (-1) lsr 1
 let min_int = max_int + 1
 
 (* Floating-point operations *)
-
 external ( ~-. ) : float -> float = "%negfloat"
 external ( ~+. ) : float -> float = "%identity"
 external ( +. ) : float -> float -> float = "%addfloat"
@@ -161,6 +159,7 @@ external float_of_int : int -> float = "%floatofint"
 external truncate : float -> int = "%intoffloat"
 external int_of_float : float -> int = "%intoffloat"
 external float_of_bits : int64 -> float = "caml_int64_float_of_bits"
+
 let infinity =
   float_of_bits 0x7F_F0_00_00_00_00_00_00L
 let neg_infinity =
@@ -174,7 +173,7 @@ let min_float =
 let epsilon_float =
   float_of_bits 0x3C_B0_00_00_00_00_00_00L
 
-type fpclass =
+(*type fpclass =
     FP_normal
   | FP_subnormal
   | FP_zero
