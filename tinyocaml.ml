@@ -409,6 +409,38 @@ let any_var_in_bindings free ((_, bindings) as envitem) =
 let prune_environment (free : string list) (env : env) : env =
   Evalutils.option_map (any_var_in_bindings free) env
 
+let mk name f =
+  (name, Fun (PatVar "__PER__x", CallBuiltIn (name, [Var "__PER__x"], f), [])) (* FIXME Add environment *)
+
+let mk2 name f =
+  (name,
+   Fun (PatVar "__PER__x",
+     Fun (PatVar "__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f), []), [])) (* FIXME Add environement *)
+
+(* FIXME. Make these actually do something *)
+let caml_register_named_value =
+  mk2 "caml_register_named_value" (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
+
+let percent_raise =
+  mk "%raise" (function [e] -> Raise ("FixPercentRaise", None) | _ -> failwith "percent_raise")
+
+let percent_raise_notrace =
+  mk "%raise_notrace" (function [e] -> Raise ("FixPercentRaiseNotrace", None) | _ -> failwith "percent_raise_notrace")
+
+let percent_apply =
+  mk2 "%apply"
+    (function
+      [f; a] -> App (f, a)
+    | [f] -> Fun (PatVar "__PER__z", App (f, Var "__PER__z"), [])) (* Partial application *)
+
+let percent_revapply =
+  mk2 "%revapply"
+    (function
+      [a; f] -> App (f, a)
+    | [a] -> Fun (PatVar "__PER__z", App (Var "__PER__z", a), [])) (* Partial application *)
+
+(* FIXME We will have to make a list of the percent ones to ignore. For example, ( + ) and
+so forth, because we do these directly. *)
 let builtin_primitives = [
   (*"caml_abs_float";
   "caml_acos_float";
@@ -658,7 +690,11 @@ let builtin_primitives = [
   "caml_realloc_global";
   "caml_record_backtrace";
   "caml_register_code_fragment";*)
-  ("caml_register_named_value", Unit);
+  caml_register_named_value;
+  percent_raise;
+  percent_raise_notrace;
+  percent_apply;
+  percent_revapply;
   (*"caml_reify_bytecode";
   "caml_remove_debug_info";
   "caml_runtime_parameters";
