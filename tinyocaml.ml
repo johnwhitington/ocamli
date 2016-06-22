@@ -38,6 +38,7 @@ and t =
 | InChannel of in_channel     (* e.g stdin *)
 | Record of (string * t ref) list  (* Records. *)
 | Tuple of t list             (* (1, 2) *)
+| Constr of string * t option (* Constructor [data] *)
 | Cons of (t * t)             (* List *)
 | Nil                         (* [] *)
 | Fun of (pattern * t * env)  (* fun x -> e *)
@@ -131,6 +132,8 @@ let rec recurse f exp =
   | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
   | Struct (n, l) -> Struct (n, List.map f l)
   | Cons (e, e') -> Cons (f e, f e')
+  | Constr (n, None) -> Constr (n, None)
+  | Constr (n, Some t) -> Constr (n, Some (f t))
   | Append (e, e') -> Append (f e, f e')
   | Match (e, patmatch) ->
       Match (e, List.map (recurse_case f) patmatch)
@@ -228,6 +231,10 @@ let rec to_string = function
     Printf.sprintf "CallBuiltIn %s" name
 | Struct l ->
     to_string_struct l
+| Constr (n, None) ->
+    Printf.sprintf "%s" n
+| Constr (n, Some t) ->
+    Printf.sprintf "%s (%s)" n (to_string t)
 | Cons (e, e') ->
     Printf.sprintf "Cons (%s, %s)" (to_string e) (to_string e')
 | Nil -> "[]"
@@ -363,7 +370,7 @@ let rec free (bound : string list) (expr : t) =
   | If (e, e', e'') ->
       free bound e @ free bound e' @ free bound e''
   (* All others *)
-  | x -> []
+  | x -> [] (* FIXME add cons, constr, any others. *)
 
 (* A variable is free in a case if it is free in the guard or rhs *)
 and free_in_case bound (pat, guard, rhs) =
@@ -729,18 +736,20 @@ let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
 | Pexp_constant (Pconst_string (s, None)) -> String s
 | Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
-| Pexp_construct ({txt = Longident.Lident "()"}, _) -> Unit
-| Pexp_construct ({txt = Longident.Lident "true"}, _) -> Bool true
-| Pexp_construct ({txt = Longident.Lident "false"}, _) -> Bool false
-| Pexp_construct ({txt = Longident.Lident "[]"}, _) -> Nil
-| Pexp_construct ({txt = Longident.Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
+| Pexp_construct ({txt = Lident "()"}, _) -> Unit
+| Pexp_construct ({txt = Lident "true"}, _) -> Bool true
+| Pexp_construct ({txt = Lident "false"}, _) -> Bool false
+| Pexp_construct ({txt = Lident "[]"}, _) -> Nil
+| Pexp_construct ({txt = Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
     Cons (of_real_ocaml env e, of_real_ocaml env e')
-| Pexp_construct _ -> failwith "unknown Pexp_construct"
-| Pexp_ident {txt = Longident.Lident "stdout"} -> OutChannel stdout
-| Pexp_ident {txt = Longident.Lident "stderr"} -> OutChannel stderr
-| Pexp_ident {txt = Longident.Lident "stdin"} -> InChannel stdin
+| Pexp_construct ({txt = Lident x}, None) ->
+    Constr (x, None)
+| Pexp_construct ({txt = Lident x}, Some e) ->
+    Constr (x, Some (of_real_ocaml env e))
+| Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout
+| Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
+| Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
 | Pexp_ident {txt = v} -> Var (string_of_longident v)
-| Pexp_ident _ -> failwith "unknown Pexp_ident"
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml env e, of_real_ocaml env e1, of_real_ocaml env e2)
 | Pexp_fun (Nolabel, None, pat, exp) ->

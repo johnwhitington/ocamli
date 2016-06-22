@@ -16,6 +16,8 @@ let rec is_value = function
     List.for_all is_value items -> true
 | Tuple items when
     List.for_all is_value items -> true
+| Constr (_, None) -> true
+| Constr (_, Some t) -> is_value t
 | Cons (e, e') when
     is_value e && is_value e' -> true
 | LetDef (_, bindings) when
@@ -104,6 +106,10 @@ let rec underline_redex e =
         if List.for_all is_value ls
           then failwith "tuple already a value"
           else Tuple (underline_first_non_value ls)
+    | Constr (n, Some t) ->
+        if is_value t
+          then failwith "constr already a value"
+          else Constr (n, Some (underline_redex t))
     | Cons (x, y) ->
         if is_value x then Cons (x, underline_redex y) else Cons (underline x, y)
     | Match (x, patmatch) ->
