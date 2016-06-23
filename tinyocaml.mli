@@ -26,10 +26,9 @@ type pattern =
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
 | PatOr of pattern * pattern
+| PatConstr of string * pattern option
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
-
-and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
@@ -72,7 +71,7 @@ and t =
 | SetField of (t * string * t) (** e.y <- e' *)
 | Raise of (string * t option) (** raise e *)
 | Match of (t * case list)      (** match e with ... *)
-| TryWith of (t * expatmatch)  (** try e with ... *)
+| TryWith of (t * case list)  (** try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)

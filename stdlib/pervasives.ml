@@ -313,7 +313,6 @@ let flush_all () =
     | a :: l -> (try flush a with _ -> ()); iter l
   in iter (out_channels_list ())
 
-(*
 external unsafe_output : out_channel -> bytes -> int -> int -> unit
                        = "caml_ml_output"
 external unsafe_output_string : out_channel -> string -> int -> int -> unit
@@ -354,7 +353,6 @@ let close_out_noerr oc =
   (try close_out_channel oc with _ -> ())
 external set_binary_mode_out : out_channel -> bool -> unit
                              = "caml_ml_set_binary_mode"
-
 (* General input functions *)
 
 external set_in_channel_name: in_channel -> string -> unit =
@@ -469,7 +467,7 @@ let read_int () = int_of_string(read_line())
 let read_float () = float_of_string(read_line())
 
 (* Operations on large files *)
-
+(*
 module LargeFile =
   struct
     external seek_out : out_channel -> int64 -> unit = "caml_ml_seek_out_64"
@@ -480,7 +478,7 @@ module LargeFile =
     external pos_in : in_channel -> int64 = "caml_ml_pos_in_64"
     external in_channel_length : in_channel -> int64 = "caml_ml_channel_size_64"
   end
-
+*)
 (* Formats *)
 
 type ('a, 'b, 'c, 'd, 'e, 'f) format6
@@ -492,7 +490,7 @@ type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6
 
 type ('a, 'b, 'c) format = ('a, 'b, 'c, 'c) format4
 
-let string_of_format (Format (_fmt, str)) = str
+(*let string_of_format (Format (_fmt, str)) = str
 
 external format_of_string :
  ('a, 'b, 'c, 'd, 'e, 'f) format6 ->
@@ -500,7 +498,7 @@ external format_of_string :
 
 let ( ^^ ) (Format (fmt1, str1)) (Format (fmt2, str2)) =
   Format (CamlinternalFormatBasics.concat_fmt fmt1 fmt2,
-          str1 ^ "%," ^ str2)
+          str1 ^ "%," ^ str2)*)
 
 (* Miscellaneous *)
 
@@ -518,4 +516,4 @@ let exit retcode =
   do_at_exit ();
   sys_exit retcode
 
-let _ = register_named_value "Pervasives.do_at_exit" do_at_exit*)
+let _ = register_named_value "Pervasives.do_at_exit" do_at_exit

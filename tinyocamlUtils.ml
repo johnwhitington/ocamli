@@ -93,8 +93,8 @@ let rec underline_redex e =
         else
           SetField (underline a, n, b)
     | Raise _ -> underline e
-    | TryWith (a, (s, b)) ->
-        if is_value e then underline e else TryWith (underline a, (s, b))
+    | TryWith (a, cases) ->
+        if is_value a then underline e else TryWith (underline a, cases)
     | CallBuiltIn (name, args, fn) ->
         if List.for_all is_value args
           then underline e

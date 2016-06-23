@@ -25,10 +25,9 @@ type pattern =
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
 | PatOr of pattern * pattern
+| PatConstr of string * pattern option 
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
-
-and expatmatch = string * t (* for now *)
 
 and binding = pattern * t
 
@@ -72,7 +71,7 @@ and t =
 | SetField of (t * string * t)(* e.y <- e' *)
 | Raise of (string * t option)(* raise e *)
 | Match of (t * case list)     (* match e with ... *)
-| TryWith of (t * expatmatch) (* try e with ... *)
+| TryWith of (t * case list) (* try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
@@ -242,8 +241,9 @@ let rec to_string = function
     Printf.sprintf "Exception (%s, Some %s)" e (string_of_constructor_arg args)
 | TypeDef _ ->
     "TypeDef"
-| TryWith (t, pat) ->
-    Printf.sprintf "TryWith (%s, %s)" (to_string t) (to_string_expatmatch pat)
+| TryWith (e, patmatch) ->
+    Printf.sprintf
+      "TryWith (%s, %s)" (to_string e) (to_string_patmatch patmatch)
 | Control (c, t) ->
     Printf.sprintf "Control (%s, %s)" (to_string_control c) (to_string t)
 | CallBuiltIn (name, _, _) ->
@@ -301,9 +301,6 @@ and to_string_guard = function
 
 and to_string_case (pat, guard, rhs) =
   Printf.sprintf "(%s, %s, %s)" (to_string_pat pat) (to_string_guard guard) (to_string rhs)
-
-and to_string_expatmatch (s, t) =
-  Printf.sprintf "(%s, %s)" s (to_string t)
 
 and to_string_control = function
   Underline -> "Underline"
@@ -887,10 +884,8 @@ let rec of_real_ocaml_expression_desc env = function
     Field (of_real_ocaml env e, n)
 | Pexp_setfield (e, {txt = Longident.Lident n}, e') ->
     SetField (of_real_ocaml env e, n, of_real_ocaml env e')
-| Pexp_try
-    (e, [{pc_lhs = {ppat_desc = Ppat_construct ({txt = Longident.Lident n}, _)}; pc_rhs}])
-  ->
-    TryWith (of_real_ocaml env e, (n, of_real_ocaml env pc_rhs))
+| Pexp_try (e, cases) ->
+    TryWith (of_real_ocaml env e, List.map (of_real_ocaml_case env) cases)
 | Pexp_tuple xs ->
     Tuple (List.map (of_real_ocaml env) xs)
 | Pexp_match (e, cases) ->
@@ -929,9 +924,9 @@ and of_real_ocaml_pattern env = function
 | Ppat_tuple patterns ->
     PatTuple
       (List.map (of_real_ocaml_pattern env) (List.map (fun x -> x.ppat_desc) patterns))
-| Ppat_construct ({txt = Longident.Lident "[]"}, _) -> PatNil
-| Ppat_construct ({txt = Longident.Lident "()"}, _) -> PatUnit
-| Ppat_construct ({txt = Longident.Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
+| Ppat_construct ({txt = Lident "[]"}, _) -> PatNil
+| Ppat_construct ({txt = Lident "()"}, _) -> PatUnit
+| Ppat_construct ({txt = Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
     PatCons (of_real_ocaml_pattern env a.ppat_desc, of_real_ocaml_pattern env b.ppat_desc)
 | Ppat_alias (pattern, {txt}) ->
     PatAlias (txt, of_real_ocaml_pattern env pattern.ppat_desc)
@@ -939,6 +934,9 @@ and of_real_ocaml_pattern env = function
     PatOr
       (of_real_ocaml_pattern env p.ppat_desc,
        of_real_ocaml_pattern env p'.ppat_desc)
+| Ppat_construct ({txt = Lident x}, None) -> PatConstr (x, None)
+| Ppat_construct ({txt = Lident x}, Some p) ->
+    PatConstr (x, Some (of_real_ocaml_pattern env p.ppat_desc))
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc

@@ -59,7 +59,7 @@ let rec appears var = function
     List.exists (fun (_, {contents = e}) -> appears var e) items
 | Field (e, n) -> appears var e
 | SetField (e, n, e') -> appears var e || appears var e'
-| TryWith (e, (s, e')) -> appears var e || appears var e'
+| TryWith (e, cases) -> appears var e || List.exists (appears_in_case var) cases
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Struct (_, ls) -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
@@ -393,11 +393,12 @@ let rec eval peek env expr =
       (* FIXME: Need to include info about the last stage here, since it gets elided *)
       raise (ExceptionRaised (e, payload))
     end
-| TryWith (e, (s, e')) ->
+| TryWith (e, cases) ->
     if is_value e then e else
       begin try eval peek env e with
-        ExceptionRaised (x, payload) when x = s ->
-          e'
+        (* FIXME: Must pattern match on x and payload to make sure the exception
+         * is only caught if it matches! *)
+        ExceptionRaised (x, payload) -> (match List.hd cases with (_, _, x) -> x) (*FIXME FIXME FIXME *)
       end
 | CallBuiltIn (name, args, fn) ->
     if List.for_all is_value args

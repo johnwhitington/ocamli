@@ -294,14 +294,12 @@ let rec print_tiny_inner f isleft parent node =
           str ")"
       end;
       str rp
-  | TryWith (e, (s, e')) ->
+  | TryWith (e, patmatch) ->
       str lp;
       boldtxt "try ";
       print_tiny_inner f false (Some node) e;
       boldtxt " with ";
-      str s;
-      txt " -> ";
-      print_tiny_inner f false (Some node) e';
+      List.iter (print_case f false (Some node)) patmatch;
       str rp
   | ExceptionDef (e, t) ->
       str lp;
