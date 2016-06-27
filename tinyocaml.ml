@@ -351,6 +351,8 @@ let rec bound_in_pattern = function
 | PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
 | PatAlias (a, p) -> a::bound_in_pattern p
 | PatOr (a, b) -> bound_in_pattern a @ bound_in_pattern b
+| PatConstr (_, None) -> []
+| PatConstr (_, Some x) -> bound_in_pattern x
 
 let bound_in_environment_item (_, bindings) =
   List.flatten (List.map (fun (p, _) -> bound_in_pattern p) bindings)

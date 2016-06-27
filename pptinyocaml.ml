@@ -146,6 +146,13 @@ let rec print_tiny_inner f isleft parent node =
   | InChannel s -> str "<in_channel>"
   | CallBuiltIn (name, args, fn) -> str "<<"; str name; str ">>"
   | Var v -> str (Evalutils.unstar v)
+  | Constr (s, None) -> str s
+  | Constr (s, Some x) ->
+      str s;
+      str " ";
+      str lp;
+      print_tiny_inner f false (Some node) x;
+      str rp
   | Op (op, l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
@@ -403,6 +410,12 @@ and print_pattern f isleft parent pat =
         print_pattern f isleft parent a;
         txt " | ";
         print_pattern f isleft parent b
+    | PatConstr (name, None) ->
+        txt name
+    | PatConstr (name, Some p) ->
+        txt name;
+        txt " ";
+        print_pattern f isleft parent p
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

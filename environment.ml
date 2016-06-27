@@ -29,6 +29,8 @@ let rec appears var = function
   Var v when v = var -> true
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
 | Seq (a, b) | Cons (a, b) | Append (a, b) -> appears var a || appears var b
+| Constr (_, Some x) -> appears var x
+| Constr (_, None) -> false
 | While (a, b, c, d) ->
     appears var a || appears var b || appears var c || appears var d
 | For (v, a, flag, b, c, copy) ->
@@ -165,6 +167,9 @@ let rec matches expr pattern rhs =
           Some _ -> yes
         | _ -> matches e b rhs
         end
+    | Constr (y, None), PatConstr (x, None) when x = y -> yes
+    | Constr (y, Some yp), PatConstr (x, Some xp)
+        when x = y -> matches yp xp rhs
     | _ -> no
 
 and match_many_binders es ps rhs =
