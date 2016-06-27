@@ -25,7 +25,8 @@ type pattern =
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
 | PatOr of pattern * pattern
-| PatConstr of string * pattern option 
+| PatConstr of string * pattern option
+| PatConstraint of pattern * Parsetree.core_type
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -75,8 +76,9 @@ and t =
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
-| Struct of (string * t list)   (* Module implementation. *)
+| Struct of t list   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
+| ModuleBinding of (string * t) (* Module M = ... *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 
@@ -143,7 +145,9 @@ let rec recurse f exp =
   | ExceptionDef e -> ExceptionDef e
   | TypeDef e -> TypeDef e
   | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
-  | Struct (n, l) -> Struct (n, List.map f l)
+  | Struct l -> Struct (List.map f l)
+  | Sig l -> Struct (List.map f l)
+  | ModuleBinding (n, m) -> ModuleBinding (n, f m)
   | Cons (e, e') -> Cons (f e, f e')
   | Constr (n, None) -> Constr (n, None)
   | Constr (n, Some t) -> Constr (n, Some (f t))
@@ -291,6 +295,7 @@ and to_string_pat = function
 | PatCons _ -> "PatCons"
 | PatAlias _ -> "PatAlias"
 | PatOr _ -> "PatOr"
+| PatConstraint _ -> "PatConstraint"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
@@ -320,8 +325,8 @@ and to_string_record l =
     (List.map (fun (n, t) -> Printf.sprintf "(%s, %s); " n (to_string !t)) l) ^
   "]"
 
-and to_string_struct (name, l) =
-  Printf.sprintf "Struct %s = [" name ^
+and to_string_struct l =
+  Printf.sprintf "Struct [" ^
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
   "]"
 
@@ -353,6 +358,7 @@ let rec bound_in_pattern = function
 | PatOr (a, b) -> bound_in_pattern a @ bound_in_pattern b
 | PatConstr (_, None) -> []
 | PatConstr (_, Some x) -> bound_in_pattern x
+| PatConstraint (p, t) -> bound_in_pattern p
 
 let bound_in_environment_item (_, bindings) =
   List.flatten (List.map (fun (p, _) -> bound_in_pattern p) bindings)
@@ -381,7 +387,7 @@ let rec free (bound : string list) (expr : t) =
   | Record items ->
       List.fold_left ( @ ) []
         (List.map (free bound) (List.map (fun (_, {contents}) -> contents) items))
-  | Struct (_, es)
+  | Struct es
   | Tuple es
   | Sig es ->
       List.fold_left ( @ ) [] (List.map (free bound) es)
@@ -939,6 +945,8 @@ and of_real_ocaml_pattern env = function
 | Ppat_construct ({txt = Lident x}, None) -> PatConstr (x, None)
 | Ppat_construct ({txt = Lident x}, Some p) ->
     PatConstr (x, Some (of_real_ocaml_pattern env p.ppat_desc))
+| Ppat_constraint (pat, coretype) ->
+    PatConstraint (of_real_ocaml_pattern env pat.ppat_desc, coretype)
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
@@ -946,6 +954,29 @@ and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
 and of_real_ocaml_primitive p =
   let n = p.pval_name.txt in
     (n, lookup_primitive (List.hd p.pval_prim))
+
+and of_real_ocaml_structure env s =
+  (* FIXME env *)
+  let items =
+    List.map (of_real_ocaml_structure_item env) s
+  in
+    let final =
+      Evalutils.option_map (fun x -> x) (List.map fst items)
+    in
+      Struct final
+
+and of_real_ocaml_module_expr env module_expr =
+  match module_expr.pmod_desc with
+    Pmod_structure s -> of_real_ocaml_structure env s
+  | _ -> failwith "of_real_ocaml_module_expr"
+
+and of_real_ocaml_module_binding env mb =
+  let name =
+    match mb.pmb_name with
+      {txt = x} -> x
+    | _ -> failwith "of_ocaml_module_binding"
+  in
+    ModuleBinding (name, of_real_ocaml_module_expr env mb.pmb_expr)
 
 and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
@@ -969,6 +1000,9 @@ and of_real_ocaml_structure_item env = function
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
      (Some (TypeDef (recflag == Recursive, typedecls)), env)
+| (* module M = ... *)
+  {pstr_desc = Pstr_module module_binding} ->
+     (Some (of_real_ocaml_module_binding env module_binding), env)
 | _ -> failwith "unknown structure item"
 
 let rec of_real_ocaml env acc = function
@@ -979,7 +1013,7 @@ let rec of_real_ocaml env acc = function
       | (Some s, env') -> of_real_ocaml env' (s::acc) ss
 
 let of_real_ocaml x =
-  Struct ("Main", of_real_ocaml [] [] x)
+  Struct (of_real_ocaml [] [] x)
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
@@ -1005,7 +1039,7 @@ let rec to_real_ocaml_expression_desc = function
       Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
   | Seq (e, e') ->
       Pexp_sequence (to_real_ocaml e, to_real_ocaml e')
-  | Struct (_, [x]) -> to_real_ocaml_expression_desc x (* FIXME *)
+  | Struct [x] -> to_real_ocaml_expression_desc x (* FIXME *)
   | e ->
       Printf.printf "Unknown thing in to_real_ocaml_expression_desc: %s\n"
       (to_string e);

@@ -467,7 +467,7 @@ let read_int () = int_of_string(read_line())
 let read_float () = float_of_string(read_line())
 
 (* Operations on large files *)
-(*
+
 module LargeFile =
   struct
     external seek_out : out_channel -> int64 -> unit = "caml_ml_seek_out_64"
@@ -478,7 +478,7 @@ module LargeFile =
     external pos_in : in_channel -> int64 = "caml_ml_pos_in_64"
     external in_channel_length : in_channel -> int64 = "caml_ml_channel_size_64"
   end
-*)
+
 (* Formats *)
 
 type ('a, 'b, 'c, 'd, 'e, 'f) format6

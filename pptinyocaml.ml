@@ -92,22 +92,21 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt "function ";
       List.iter (print_case f false (Some node)) patmatch;
       str rp
-  | Struct (n, structure_items) ->
-      if n <> "Main" then
-        begin
-          boldtxt "module ";
-          str n;
-          txt " = ";
-          boldtxt "struct "
-        end;
+  | Struct structure_items ->
+      boldtxt "struct \n";
       let l = List.length structure_items in
         List.iteri
           (fun i x ->
              print_tiny_inner f false (Some node) x;
              if i < l - 1 then txt "\n\n")
           structure_items;
-      if n <> "Main" then
-        boldtxt "end"
+        txt "\n";
+      boldtxt "end"
+  | ModuleBinding (n, e) ->
+      boldtxt "module ";
+      txt n;
+      txt " = \n";
+      print_tiny_inner f false (Some node) e
   | Tuple xs ->
       let l = List.length xs in
       str "(";

@@ -63,7 +63,7 @@ let rec appears var = function
 | SetField (e, n, e') -> appears var e || appears var e'
 | TryWith (e, cases) -> appears var e || List.exists (appears_in_case var) cases
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
-| Struct (_, ls) -> List.exists (appears var) ls
+| Struct ls -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
@@ -378,8 +378,8 @@ let rec eval peek env expr =
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
-| Struct (n, ls) ->
-    Struct (n, eval_first_non_value_item peek env [] ls)
+| Struct ls ->
+    Struct (eval_first_non_value_item peek env [] ls)
 | Tuple ls ->
     Tuple (eval_first_non_value_item peek env [] ls)
 | Field (Record items, n) -> !(List.assoc n items)
@@ -435,7 +435,7 @@ let rec eval peek env expr =
       | FailedToMatch -> Match (x, ps)
       end
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
-| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ -> failwith "already a value"
+| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _ -> failwith "already a value"
 
 and eval_case peek env expr (pattern, guard, rhs) =
   match matches expr pattern rhs with
@@ -527,7 +527,7 @@ let pervasives =
   List.map (add_prefix "Pervasives") Core.pervasives
 
 let definitions_of_module = function
-  Struct (_, items) ->
+  Struct items ->
     Evalutils.option_map
       (fun x ->
         match x with
@@ -573,6 +573,11 @@ let stdlib_list =
 
 let stdlib_pervasives =
   load_module "Pervasives" (Filename.concat "stdlib" "pervasives.ml")
+
+let stdlib_camlinternalformatbasics =
+  load_module
+    "CamlinternalFormatBasics"
+    (Filename.concat "stdlib" "camlinternalFormatBasics.ml")
 
 (*let _ =
   Printf.printf "Got %i definitions from pervasives\n" (List.length
@@ -620,6 +625,6 @@ let peek x =
 let last x = !last
 
 let newlines = function
-  Struct (_, _::_::_) -> true
+  Struct (_::_::_) -> true
 | _ -> false
 
