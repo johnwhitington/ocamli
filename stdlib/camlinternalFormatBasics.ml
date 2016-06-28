@@ -516,7 +516,7 @@ and ('a, 'b, 'c, 'd, 'e, 'f) ignored =
 
 and ('a, 'b, 'c, 'd, 'e, 'f) format6 =
   Format of ('a, 'b, 'c, 'd, 'e, 'f) fmt * string
-(*
+
 let rec erase_rel : type a b c d e f g h i j k l .
   (a, b, c, d, e, f,
    g, h, i, j, k, l) fmtty_rel -> (a, b, c, d, e, f) fmtty
@@ -681,5 +681,3 @@ fun fmt1 fmt2 -> match fmt1 with
 
   | End_of_format ->
     fmt2
-
-    *)

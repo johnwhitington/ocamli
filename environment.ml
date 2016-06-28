@@ -523,8 +523,8 @@ and eval_first_non_value_record_item peek env items =
   with
     Exit -> ()
 
-let pervasives =
-  List.map (add_prefix "Pervasives") Core.pervasives
+(*let pervasives =
+  List.map (add_prefix "Pervasives") Core.pervasives*)
 
 let definitions_of_module = function
   Struct items ->
@@ -561,30 +561,37 @@ let stdlib_dir =
               raise (Failure "could not find standard library")
 
 (* Load a module from disk *)
-let load_module name file =
+let load_module name env file =
   (*Printf.printf "Loading module %s...%!" name;*)
   let themod = Tinyocaml.of_real_ocaml (ast (load_file file)) in
-    let themod' = eval false (*FIXME current env! *)pervasives themod in
+    let themod' = eval false env themod in
       (*Printf.printf "done\n%!";*)
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
-
-let stdlib_list =
-  load_module "List" (Filename.concat stdlib_dir "list.ml")
-
-let stdlib_pervasives =
-  load_module "Pervasives" (Filename.concat "stdlib" "pervasives.ml")
 
 let stdlib_camlinternalformatbasics =
   load_module
     "CamlinternalFormatBasics"
-    (Filename.concat "stdlib" "camlinternalFormatBasics.ml")
+    []
+    (Filename.concat stdlib_dir "camlinternalFormatBasics.ml")
+
+let stdlib_pervasives =
+    load_module
+      "Pervasives"
+      stdlib_camlinternalformatbasics
+      (Filename.concat stdlib_dir "pervasives.ml")
+
+let stdlib_list =
+  load_module
+    "List"
+    (stdlib_pervasives @ stdlib_camlinternalformatbasics)
+    (Filename.concat stdlib_dir "list.ml")
 
 (*let _ =
   Printf.printf "Got %i definitions from pervasives\n" (List.length
   stdlib_pervasives)*)
 
 let lib =
-  stdlib_list @ stdlib_pervasives @ pervasives
+  stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics
 
 (*let _ =
   List.iter

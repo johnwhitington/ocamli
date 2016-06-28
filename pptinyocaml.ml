@@ -415,6 +415,10 @@ and print_pattern f isleft parent pat =
         txt name;
         txt " ";
         print_pattern f isleft parent p
+    | PatConstraint (p, typ) ->
+        print_pattern f isleft parent p;
+        txt " : <<typ>>";
+
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in
