@@ -455,9 +455,35 @@ let mk2 name f =
    Fun (PatVar "__PER__x",
      Fun (PatVar "__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f), []), [])) (* FIXME Add environement *)
 
+let mk4 name f =
+   (name,
+     Fun (PatVar "__PER__x",
+       Fun (PatVar "__PER__y",
+         Fun (PatVar "__PER__z",
+           Fun (PatVar "__PER__q",
+             CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"; Var "__PER__z"; Var "__PER__q"], f), []), []), []), []))
+
 (* FIXME. Make these actually do something *)
 let caml_register_named_value =
   mk2 "caml_register_named_value" (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
+
+external unsafe_output_string : out_channel -> string -> int -> int -> unit
+                              = "caml_ml_output"
+
+let caml_ml_output =
+  mk4 "caml_ml_output"
+    (function [OutChannel o; String s; Int p; Int l] ->
+       unsafe_output_string o s p l;
+       Unit)
+
+external format_int : string -> int -> string = "caml_format_int"
+
+let caml_format_int =
+  mk2 "caml_format_int"
+    (function [String s; Int i] -> String (format_int s i))
+
+let percent_string_length =
+  mk "%string_length" (function [String e] -> Int (String.length e))
 
 let percent_raise =
   mk "%raise" (function [e] -> Raise ("FixPercentRaise", None) | _ -> failwith "percent_raise")
@@ -477,9 +503,41 @@ let percent_revapply =
       [a; f] -> App (f, a)
     | [a] -> Fun (PatVar "__PER__z", App (Var "__PER__z", a), [])) (* Partial application *)
 
+let percent_asrint =
+  mk2 "%asrint"
+    (function
+      [Int x; Int y] -> Int (x asr y)
+    | [Int a] -> Fun (PatVar "__PER__z", App (App (Var "asr", Int a), Var "__PAR__z"), [])) (* Partial application *)
+
+let percent_makemutable =
+  mk "%makemutable"
+    (function [e] -> Record [("contents", ref e)]) 
+
+let percent_field0 =
+  mk "%field0"
+    (function [Record [(_, {contents = e})]] -> e)
+
+let percent_setfield0 =
+  mk2 "%setfield0"
+    (function
+      [Record [(_, r)]; e] -> r := e; Unit)
+        (* FIXME: Partial application *)
+
 (* FIXME We will have to make a list of the percent ones to ignore. For example, ( + ) and
 so forth, because we do these directly. *)
 let builtin_primitives = [
+  caml_register_named_value;
+  caml_ml_output;
+  caml_format_int;
+  percent_string_length;
+  percent_raise;
+  percent_raise_notrace;
+  percent_apply;
+  percent_revapply;
+  percent_asrint;
+  percent_makemutable;
+  percent_field0;
+  percent_setfield0;
   (*"caml_abs_float";
   "caml_acos_float";
   "caml_add_debug_info";
@@ -728,11 +786,7 @@ let builtin_primitives = [
   "caml_realloc_global";
   "caml_record_backtrace";
   "caml_register_code_fragment";*)
-  caml_register_named_value;
-  percent_raise;
-  percent_raise_notrace;
-  percent_apply;
-  percent_revapply;
+
   (*"caml_reify_bytecode";
   "caml_remove_debug_info";
   "caml_runtime_parameters";
