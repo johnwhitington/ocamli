@@ -76,7 +76,7 @@ and t =
 | ExceptionDef of (string * Parsetree.constructor_arguments) (** exception e of ... *)
 | Control of (control * t)     (** Control code *)
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
-| Struct of t list  (** Module implementation *)
+| Struct of (bool * t list)  (** Module implementation. If bool is false, we don't print it (i.e it's the top level struct) *)
 | Sig of t list                (** Module signature *)
 | ModuleBinding of (string * t) (** Module M = ... *)
 | Append of (t * t)              (** @ *)

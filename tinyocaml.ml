@@ -76,7 +76,7 @@ and t =
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
 | CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
-| Struct of t list   (* Module implementation. *)
+| Struct of (bool * t list)   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
 | ModuleBinding of (string * t) (* Module M = ... *)
 | Append of (t * t)           (* @ *)
@@ -145,8 +145,8 @@ let rec recurse f exp =
   | ExceptionDef e -> ExceptionDef e
   | TypeDef e -> TypeDef e
   | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
-  | Struct l -> Struct (List.map f l)
-  | Sig l -> Struct (List.map f l)
+  | Struct (b, l) -> Struct (b, List.map f l)
+  | Sig l -> Sig (List.map f l)
   | ModuleBinding (n, m) -> ModuleBinding (n, f m)
   | Cons (e, e') -> Cons (f e, f e')
   | Constr (n, None) -> Constr (n, None)
@@ -325,7 +325,7 @@ and to_string_record l =
     (List.map (fun (n, t) -> Printf.sprintf "(%s, %s); " n (to_string !t)) l) ^
   "]"
 
-and to_string_struct l =
+and to_string_struct (b, l) =
   Printf.sprintf "Struct [" ^
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
   "]"
@@ -387,7 +387,7 @@ let rec free (bound : string list) (expr : t) =
   | Record items ->
       List.fold_left ( @ ) []
         (List.map (free bound) (List.map (fun (_, {contents}) -> contents) items))
-  | Struct es
+  | Struct (_, es)
   | Tuple es
   | Sig es ->
       List.fold_left ( @ ) [] (List.map (free bound) es)
@@ -785,9 +785,8 @@ let builtin_primitives = [
   "caml_power_float";
   "caml_realloc_global";
   "caml_record_backtrace";
-  "caml_register_code_fragment";*)
-
-  (*"caml_reify_bytecode";
+  "caml_register_code_fragment";
+  "caml_reify_bytecode";
   "caml_remove_debug_info";
   "caml_runtime_parameters";
   "caml_runtime_variant";
@@ -1019,7 +1018,7 @@ and of_real_ocaml_structure env s =
     let final =
       Evalutils.option_map (fun x -> x) (List.map fst items)
     in
-      Struct final
+      Struct (true, final)
 
 and of_real_ocaml_module_expr env module_expr =
   match module_expr.pmod_desc with
@@ -1069,7 +1068,7 @@ let rec of_real_ocaml env acc = function
       | (Some s, env') -> of_real_ocaml env' (s::acc) ss
 
 let of_real_ocaml x =
-  Struct (of_real_ocaml [] [] x)
+  Struct (false, of_real_ocaml [] [] x)
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
@@ -1095,7 +1094,7 @@ let rec to_real_ocaml_expression_desc = function
       Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
   | Seq (e, e') ->
       Pexp_sequence (to_real_ocaml e, to_real_ocaml e')
-  | Struct [x] -> to_real_ocaml_expression_desc x (* FIXME *)
+  | Struct (_, [x]) -> to_real_ocaml_expression_desc x (* FIXME *)
   | e ->
       Printf.printf "Unknown thing in to_real_ocaml_expression_desc: %s\n"
       (to_string e);

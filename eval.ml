@@ -128,7 +128,7 @@ let eval_ast structure =
       eval_inner state
 
 let extract_tiny = function
-  Tinyocaml.Struct [x] -> x
+  Tinyocaml.Struct (_, [x]) -> x
 
 (* String to Tinyocaml.t result *)
 let eval_string s =

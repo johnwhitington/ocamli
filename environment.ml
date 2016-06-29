@@ -63,7 +63,7 @@ let rec appears var = function
 | SetField (e, n, e') -> appears var e || appears var e'
 | TryWith (e, cases) -> appears var e || List.exists (appears_in_case var) cases
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
-| Struct ls -> List.exists (appears var) ls
+| Struct (_, ls) -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
@@ -378,8 +378,8 @@ let rec eval peek env expr =
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
-| Struct ls ->
-    Struct (eval_first_non_value_item peek env [] ls)
+| Struct (b, ls) ->
+    Struct (b, eval_first_non_value_item peek env [] ls)
 | Tuple ls ->
     Tuple (eval_first_non_value_item peek env [] ls)
 | Field (Record items, n) -> !(List.assoc n items)
@@ -527,7 +527,7 @@ and eval_first_non_value_record_item peek env items =
   List.map (add_prefix "Pervasives") Core.pervasives*)
 
 let definitions_of_module = function
-  Struct items ->
+  Struct (_, items) ->
     Evalutils.option_map
       (fun x ->
         match x with
@@ -632,6 +632,6 @@ let peek x =
 let last x = !last
 
 let newlines = function
-  Struct (_::_::_) -> true
+  Struct (_, _::_::_) -> true
 | _ -> false
 
