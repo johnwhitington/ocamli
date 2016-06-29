@@ -465,7 +465,8 @@ let mk4 name f =
 
 (* FIXME. Make these actually do something *)
 let caml_register_named_value =
-  mk2 "caml_register_named_value" (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
+  mk2 "caml_register_named_value"
+    (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
 external unsafe_output_string : out_channel -> string -> int -> int -> unit
                               = "caml_ml_output"
@@ -483,13 +484,16 @@ let caml_format_int =
     (function [String s; Int i] -> String (format_int s i))
 
 let percent_string_length =
-  mk "%string_length" (function [String e] -> Int (String.length e))
+  mk "%string_length"
+    (function [String e] -> Int (String.length e))
 
 let percent_raise =
-  mk "%raise" (function [e] -> Raise ("FixPercentRaise", None) | _ -> failwith "percent_raise")
+  mk "%raise"
+    (function [e] -> Raise ("FixPercentRaise", None) | _ -> failwith "percent_raise")
 
 let percent_raise_notrace =
-  mk "%raise_notrace" (function [e] -> Raise ("FixPercentRaiseNotrace", None) | _ -> failwith "percent_raise_notrace")
+  mk "%raise_notrace"
+    (function [e] -> Raise ("FixPercentRaiseNotrace", None) | _ -> failwith "percent_raise_notrace")
 
 let percent_apply =
   mk2 "%apply"
@@ -507,7 +511,7 @@ let percent_asrint =
   mk2 "%asrint"
     (function
       [Int x; Int y] -> Int (x asr y)
-    | [Int a] -> Fun (PatVar "__PER__z", App (App (Var "asr", Int a), Var "__PAR__z"), [])) (* Partial application *)
+    | [Int a] -> Fun (PatVar "__PER__z", App (App (Var "asr", Int a), Var "__PER__z"), [])) (* Partial application *)
 
 let percent_makemutable =
   mk "%makemutable"
@@ -523,8 +527,10 @@ let percent_setfield0 =
       [Record [(_, r)]; e] -> r := e; Unit)
         (* FIXME: Partial application *)
 
-(* FIXME We will have to make a list of the percent ones to ignore. For example, ( + ) and
-so forth, because we do these directly. *)
+let percent_compare =
+  mk2 "%compare"
+    (function [a; b] -> Int (compare a b)) (* Obviously not *) 
+
 let builtin_primitives = [
   caml_register_named_value;
   caml_ml_output;
@@ -538,7 +544,186 @@ let builtin_primitives = [
   percent_makemutable;
   percent_field0;
   percent_setfield0;
-  (*"caml_abs_float";
+  percent_compare;
+ (*"%identity"
+  "%ignore"
+  "%field0"
+  "%field1"
+  "%setfield0"
+  "%makeblock"
+  "%makemutable"
+  "%raise"
+  "%reraise"
+  "%raise_notrace"
+  "%sequand"
+  "%sequor"
+  "%boolnot"
+  "%big_endian"
+  "%backend_type"
+  "%word_size"
+  "%int_size"
+  "%max_wosize"
+  "%ostype_unix"
+  "%ostype_win32"
+  "%ostype_cygwin"
+  "%negint"
+  "%succint"
+  "%predint"
+  "%addint"
+  "%subint"
+  "%mulint"
+  "%divint"
+  "%modint"
+  "%andint"
+  "%orint"
+  "%xorint"
+  "%lslint"
+  "%lsrint"
+  "%asrint"
+  "%eq"
+  "%noteq"
+  "%ltint"
+  "%leint"
+  "%gtint"
+  "%geint"
+  "%incr"
+  "%decr"
+  "%intoffloat"
+  "%floatofint"
+  "%negfloat"
+  "%absfloat"
+  "%addfloat"
+  "%subfloat"
+  "%mulfloat"
+  "%divfloat"
+  "%eqfloat"
+  "%noteqfloat"
+  "%ltfloat"
+  "%lefloat"
+  "%gtfloat"
+  "%gefloat"
+  "%string_length"
+  "%string_safe_get"
+  "%string_safe_set"
+  "%string_unsafe_get"
+  "%string_unsafe_set"
+  "%array_length"
+  "%array_safe_get"
+  "%array_safe_set"
+  "%array_unsafe_get"
+  "%array_unsafe_set"
+  "%obj_size"
+  "%obj_field"
+  "%obj_set_field"
+  "%obj_is_int"
+  "%lazy_force"
+  "%nativeint_of_int"
+  "%nativeint_to_int"
+  "%nativeint_neg"
+  "%nativeint_add"
+  "%nativeint_sub"
+  "%nativeint_mul"
+  "%nativeint_div"
+  "%nativeint_mod"
+  "%nativeint_and"
+  "%nativeint_or"
+  "%nativeint_xor"
+  "%nativeint_lsl"
+  "%nativeint_lsr"
+  "%nativeint_asr"
+  "%int32_of_int"
+  "%int32_to_int"
+  "%int32_neg"
+  "%int32_add"
+  "%int32_sub"
+  "%int32_mul"
+  "%int32_div"
+  "%int32_mod"
+  "%int32_and"
+  "%int32_or"
+  "%int32_xor"
+  "%int32_lsl"
+  "%int32_lsr"
+  "%int32_asr"
+  "%int64_of_int"
+  "%int64_to_int"
+  "%int64_neg"
+  "%int64_add"
+  "%int64_sub"
+  "%int64_mul"
+  "%int64_div"
+  "%int64_mod"
+  "%int64_and"
+  "%int64_or"
+  "%int64_xor"
+  "%int64_lsl"
+  "%int64_lsr"
+  "%int64_asr"
+  "%nativeint_of_int32"
+  "%nativeint_to_int32"
+  "%int64_of_int32"
+  "%int64_to_int32"
+  "%int64_of_nativeint"
+  "%int64_to_nativeint"
+  "%caml_ba_ref_1"
+  "%caml_ba_ref_2"
+  "%caml_ba_ref_3"
+  "%caml_ba_set_1"
+  "%caml_ba_set_2"
+  "%caml_ba_set_3"
+  "%caml_ba_unsafe_ref_1"
+  "%caml_ba_unsafe_ref_2"
+  "%caml_ba_unsafe_ref_3"
+  "%caml_ba_unsafe_set_1"
+  "%caml_ba_unsafe_set_2"
+  "%caml_ba_unsafe_set_3"
+  "%caml_ba_dim_1"
+  "%caml_ba_dim_2"
+  "%caml_ba_dim_3"
+  "%caml_string_get16"
+  "%caml_string_get16u"
+  "%caml_string_get32"
+  "%caml_string_get32u"
+  "%caml_string_get64"
+  "%caml_string_get64u"
+  "%caml_string_set16"
+  "%caml_string_set16u"
+  "%caml_string_set32"
+  "%caml_string_set32u"
+  "%caml_string_set64"
+  "%caml_string_set64u"
+  "%caml_bigstring_get16"
+  "%caml_bigstring_get16u"
+  "%caml_bigstring_get32"
+  "%caml_bigstring_get32u"
+  "%caml_bigstring_get64"
+  "%caml_bigstring_get64u"
+  "%caml_bigstring_set16"
+  "%caml_bigstring_set16u"
+  "%caml_bigstring_set32"
+  "%caml_bigstring_set32u"
+  "%caml_bigstring_set64"
+  "%caml_bigstring_set64u"
+  "%bswap16"
+  "%bswap_int32"
+  "%bswap_int64"
+  "%bswap_native"
+  "%int_as_pointer"
+  "%opaque"
+  "%equal"
+  "%notequal"
+  "%lessthan"
+  "%greaterthan"
+  "%lessequal"
+  "%greaterequal"
+  "%revapply"
+  "%apply"
+  "%loc_LOC"
+  "%loc_FILE"
+  "%loc_LINE"
+  "%loc_POS"
+  "%loc_MODULE"
+  "caml_abs_float";
   "caml_acos_float";
   "caml_add_debug_info";
   "caml_add_float";
