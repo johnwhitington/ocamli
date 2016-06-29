@@ -448,20 +448,20 @@ let prune_environment (free : string list) (env : env) : env =
   Evalutils.option_map (any_var_in_bindings free) env
 
 let mk name f =
-  (name, Fun (PatVar "__PER__x", CallBuiltIn (name, [Var "__PER__x"], f), [])) (* FIXME Add environment *)
+  (name, Fun (PatVar "*x", CallBuiltIn (name, [Var "*x"], f), [])) (* FIXME Add environment *)
 
 let mk2 name f =
   (name,
-   Fun (PatVar "__PER__x",
-     Fun (PatVar "__PER__y", CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"], f), []), [])) (* FIXME Add environement *)
+   Fun (PatVar "*x",
+     Fun (PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), [])) (* FIXME Add environement *)
 
 let mk4 name f =
    (name,
-     Fun (PatVar "__PER__x",
-       Fun (PatVar "__PER__y",
-         Fun (PatVar "__PER__z",
-           Fun (PatVar "__PER__q",
-             CallBuiltIn (name, [Var "__PER__x"; Var "__PER__y"; Var "__PER__z"; Var "__PER__q"], f), []), []), []), []))
+     Fun (PatVar "*x",
+       Fun (PatVar "*y",
+         Fun (PatVar "*z",
+           Fun (PatVar "*q",
+             CallBuiltIn (name, [Var "*x"; Var "*y"; Var "*z"; Var "*q"], f), []), []), []), []))
 
 (* FIXME. Make these actually do something *)
 let caml_register_named_value =
@@ -497,21 +497,15 @@ let percent_raise_notrace =
 
 let percent_apply =
   mk2 "%apply"
-    (function
-      [f; a] -> App (f, a)
-    | [f] -> Fun (PatVar "__PER__z", App (f, Var "__PER__z"), [])) (* Partial application *)
+    (function [f; a] -> App (f, a))
 
 let percent_revapply =
   mk2 "%revapply"
-    (function
-      [a; f] -> App (f, a)
-    | [a] -> Fun (PatVar "__PER__z", App (Var "__PER__z", a), [])) (* Partial application *)
+    (function [a; f] -> App (f, a))
 
 let percent_asrint =
   mk2 "%asrint"
-    (function
-      [Int x; Int y] -> Int (x asr y)
-    | [Int a] -> Fun (PatVar "__PER__z", App (App (Var "asr", Int a), Var "__PER__z"), [])) (* Partial application *)
+    (function [Int x; Int y] -> Int (x asr y))
 
 let percent_makemutable =
   mk "%makemutable"
@@ -525,11 +519,14 @@ let percent_setfield0 =
   mk2 "%setfield0"
     (function
       [Record [(_, r)]; e] -> r := e; Unit)
-        (* FIXME: Partial application *)
 
 let percent_compare =
   mk2 "%compare"
     (function [a; b] -> Int (compare a b)) (* Obviously not *) 
+
+let percent_addint =
+  mk2 "%addint"
+    (function [Int a; Int b] -> Int (a + b))
 
 let builtin_primitives = [
   caml_register_named_value;
@@ -545,6 +542,7 @@ let builtin_primitives = [
   percent_field0;
   percent_setfield0;
   percent_compare;
+  percent_addint;
  (*"%identity"
   "%ignore"
   "%field0"

@@ -76,11 +76,11 @@ let getexpr = function
 | _ -> failwith "Not a single structure item"
 
 let namestarred s =
-  String.length s > 7 && String.sub s 0 7 = "__PER__"
+  String.length s > 1 && String.sub s 0 1 = "*"
 
 let unstar s =
-  if String.length s > 7 && String.sub s 0 7 = "__PER__"
-    then String.sub s 7 (String.length s - 7)
+  if String.length s > 1 && String.sub s 0 1 = "*"
+    then String.sub s 1 (String.length s - 1)
     else s
 
 let rec option_map f = function
