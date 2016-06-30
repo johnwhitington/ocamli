@@ -1,4 +1,4 @@
-(** Main data structure and utility functions *)
+(** The Tinyocaml data structure *)
 
 (** Arithmetic operators *)
 type op = Add | Sub | Mul | Div
@@ -86,6 +86,10 @@ val string_of_op : op -> string
 
 val string_of_cmp : cmp -> string
 
+val op_of_string : string -> op
+
+val cmp_of_string : string -> cmp
+
 val to_string : t -> string
 
 val to_ocaml_value : t -> 'a
@@ -101,16 +105,9 @@ type untyped_ocaml_value =
 
 val untyped_of_ocaml_value : 'a -> untyped_ocaml_value
 
-(** Raised by [of_real_ocaml] if the program cannot be represented in tiny ocaml.*)
-exception UnknownNode of string
-
-(** Convert real ocaml to tiny ocaml, raising [UnknownNode] if not possible for
-the given program *)
-val of_real_ocaml : Parsetree.structure -> t
-
-val to_real_ocaml : t -> Parsetree.structure
-
 val recurse : (t -> t) -> t -> t
 
 val bound_in_pattern : pattern -> string list
+
+val string_of_longident : Longident.t -> string
 

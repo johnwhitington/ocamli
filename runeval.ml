@@ -121,7 +121,7 @@ let eval_ast structure =
       | Next state ->
           eval_inner state
       | IsValue ->
-          extract_expression (Tinyocaml.to_real_ocaml (Eval.tiny state))
+          extract_expression (Tinyocamlrw.to_real_ocaml (Eval.tiny state))
       | Malformed _ | Unimplemented _ ->
           failwith "evaluation failed"
     in
@@ -151,7 +151,7 @@ let eval_string_to_ast s =
       | Next state ->
           eval_inner state
       | IsValue ->
-          extract_expression (Tinyocaml.to_real_ocaml (Eval.tiny state))
+          extract_expression (Tinyocamlrw.to_real_ocaml (Eval.tiny state))
       | Malformed _ | Unimplemented _ ->
           failwith "evaluation failed"
     in

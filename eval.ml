@@ -563,7 +563,7 @@ let stdlib_dir =
 (* Load a module from disk *)
 let load_module name env file =
   (*Printf.printf "Loading module %s...%!" name;*)
-  let themod = Tinyocaml.of_real_ocaml (ast (load_file file)) in
+  let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
     let themod' = eval false env themod in
       (*Printf.printf "done\n%!";*)
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
@@ -598,7 +598,7 @@ let lib =
     (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) lib*)
 
 let init x =
-  Tinyocaml.of_real_ocaml x
+  Tinyocamlrw.of_real_ocaml x
 
 let init_from_tinyocaml x = x
 
