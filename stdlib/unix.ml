@@ -168,6 +168,7 @@ external error_message : error -> string = "unix_error_message"
           Some (Printf.sprintf "Unix.Unix_error(Unix.%s, %S, %S)" msg s s')
       | _ -> None)*)
 
+(* FIXME: arrays *)
 (*let handle_unix_error f arg =
   try
     f arg
@@ -624,7 +625,6 @@ end = struct
               = "unix_setsockopt"
 end
 
-(*
 let getsockopt fd opt = SO.get SO.bool fd opt
 let setsockopt fd opt v = SO.set SO.bool fd opt v
 
@@ -770,7 +770,7 @@ external getnameinfo_system
   : sockaddr -> getnameinfo_option list -> name_info
   = "unix_getnameinfo"
 
-let getnameinfo_emulation addr opts =
+(*let getnameinfo_emulation addr opts =
   match addr with
   | ADDR_UNIX f ->
       { ni_hostname = ""; ni_service = f } (* why not? *)
@@ -796,6 +796,7 @@ let getnameinfo addr opts =
     getnameinfo_system addr opts
   with Invalid_argument _ ->
     getnameinfo_emulation addr opts
+*)
 
 type terminal_io = {
     mutable c_ignbrk: bool;
@@ -865,6 +866,7 @@ let rec waitpid_non_intr pid =
 
 external sys_exit : int -> 'a = "caml_sys_exit"
 
+(*
 let system cmd =
   match fork() with
      0 -> begin try
@@ -873,6 +875,7 @@ let system cmd =
             sys_exit 127
           end
   | id -> snd(waitpid_non_intr id)
+*)
 
 let rec safe_dup fd =
   let new_fd = dup fd in
@@ -926,9 +929,10 @@ type popen_process =
   | Process_out of out_channel
   | Process_full of in_channel * out_channel * in_channel
 
-let popen_processes = (Hashtbl.create 7 : (popen_process, int) Hashtbl.t)
+(* FIXME: Hashtbl *)
+(*let popen_processes = (Hashtbl.create 7 : (popen_process, int) Hashtbl.t)*)
 
-let open_proc cmd proc input output toclose =
+(*let open_proc cmd proc input output toclose =
   let cloexec = List.for_all try_set_close_on_exec toclose in
   match fork() with
      0 -> begin try
@@ -938,9 +942,9 @@ let open_proc cmd proc input output toclose =
             execv "/bin/sh" [| "/bin/sh"; "-c"; cmd |]
           with _ -> sys_exit 127
           end
-  | id -> Hashtbl.add popen_processes proc id
+  | id -> Hashtbl.add popen_processes proc id*)
 
-let open_process_in cmd =
+(*let open_process_in cmd =
   let (in_read, in_write) = pipe() in
   let inchan = in_channel_of_descr in_read in
   begin
@@ -966,9 +970,9 @@ let open_process_out cmd =
       raise e
   end;
   close out_read;
-  outchan
+  outchan*)
 
-let open_process cmd =
+(*let open_process cmd =
   let (in_read, in_write) = pipe() in
   let fds_to_close = ref [in_read;in_write] in
   try
@@ -1017,17 +1021,17 @@ let open_process_full cmd env =
     (inchan, outchan, errchan)
   with e ->
     List.iter close !fds_to_close;
-    raise e
+    raise e*)
 
-let find_proc_id fun_name proc =
+(*let find_proc_id fun_name proc =
   try
     let pid = Hashtbl.find popen_processes proc in
     Hashtbl.remove popen_processes proc;
     pid
   with Not_found ->
-    raise(Unix_error(EBADF, fun_name, ""))
+    raise(Unix_error(EBADF, fun_name, ""))*)
 
-let close_process_in inchan =
+(*let close_process_in inchan =
   let pid = find_proc_id "close_process_in" (Process_in inchan) in
   close_in inchan;
   snd(waitpid_non_intr pid)
@@ -1053,7 +1057,7 @@ let close_process_full (inchan, outchan, errchan) =
   snd(waitpid_non_intr pid)
 
 (* High-level network functions *)
-
+*)
 let open_connection sockaddr =
   let sock =
     socket (domain_of_sockaddr sockaddr) SOCK_STREAM 0 in
@@ -1071,7 +1075,9 @@ let rec accept_non_intr s =
   try accept s
   with Unix_error (EINTR, _, _) -> accept_non_intr s
 
-let establish_server server_fun sockaddr =
+(* FIXME: single arm IF *)
+
+(*let establish_server server_fun sockaddr =
   let sock =
     socket (domain_of_sockaddr sockaddr) SOCK_STREAM 0 in
   setsockopt sock SO_REUSEADDR true;
@@ -1095,5 +1101,4 @@ let establish_server server_fun sockaddr =
             exit 0
     | id -> close s; ignore(waitpid_non_intr id) (* Reclaim the son *)
   done
-
 *)

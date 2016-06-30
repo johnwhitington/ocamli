@@ -5,7 +5,7 @@ MODS = ocamliutil tinyocaml tinyocamlrw tinyocamlutil pptinyocaml eval runeval o
 
 SOURCES = ocamlival.h ocamlival.c $(foreach x,$(MODS),$(x).ml $(x).mli)
 
-PACKS = unix compiler-libs.common
+PACKS = unix bigarray compiler-libs.common
 
 RESULT = ocamli
 
