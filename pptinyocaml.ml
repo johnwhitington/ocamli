@@ -146,7 +146,7 @@ let rec print_tiny_inner f isleft parent node =
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
   | CallBuiltIn (name, args, fn) -> str "<<"; str name; str ">>"
-  | Var v -> str (Evalutils.unstar v)
+  | Var v -> str (Ocamliutil.unstar v)
   | Constr (s, None) -> str s
   | Constr (s, Some x) ->
       str s;
@@ -374,7 +374,7 @@ and print_pattern f isleft parent pat =
     | PatUnit ->
         str "()"
     | PatVar v ->
-        str (Evalutils.unstar v)
+        str (Ocamliutil.unstar v)
     | PatInt i ->
         str (string_of_int i)
     | PatInt32 i ->

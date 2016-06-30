@@ -1,4 +1,4 @@
-open Evalutils
+open Ocamliutil
 open Asttypes
 open Parsetree
 
@@ -33,11 +33,11 @@ module type Evaluator =
   sig
     type t
     val init : Parsetree.structure -> t
-    val next : t -> t Evalutils.result
+    val next : t -> t Ocamliutil.result
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
-    val last : unit -> Evalutils.last_op list
-    val peek : t -> Evalutils.last_op list
+    val last : unit -> Ocamliutil.last_op list
+    val peek : t -> Ocamliutil.last_op list
     val newlines : t -> bool
     val fastcurry : bool ref
   end
@@ -62,7 +62,7 @@ let load_code () =
   | None -> None
 
 let string_of_tiny ~preamble x =
-  let x = TinyocamlUtils.remove_named_recursive_functions !remove_rec_all !remove_recs x in
+  let x = Tinyocamlutil.remove_named_recursive_functions !remove_rec_all !remove_recs x in
     Pptinyocaml.to_string ~preamble x
 
 let fixup ops x = x
@@ -80,8 +80,8 @@ let string_of_op = function
 
 let show_this_stage last next prevstate currstate =
   (*Printf.printf "last = %s, next = %s\n" (string_of_op last) (string_of_op * next);*)
-     TinyocamlUtils.is_value prevstate
-  || TinyocamlUtils.is_value currstate
+     Tinyocamlutil.is_value prevstate
+  || Tinyocamlutil.is_value currstate
   || not (List.mem Arith last)
   || not (List.mem Arith next)
 

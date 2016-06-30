@@ -16,7 +16,7 @@ let compiletime_mapper argv =
              ({ txt = "compiletime"; loc},
               PStr [{pstr_desc =
                 Pstr_eval ({pexp_desc = Pexp_constant (Pconst_string (s, _))}, _)}])} ->
-          Eval.eval_string_to_ast s
+          Runeval.eval_string_to_ast s
       (* [%runtime] *)
       | {pexp_desc =
            Pexp_extension
@@ -24,7 +24,7 @@ let compiletime_mapper argv =
               PStr [{pstr_desc =
                 Pstr_eval ({pexp_desc = Pexp_constant (Pconst_string (s, _))}, _)}])} ->
                   extract_expression
-                    (Evalutils.ast ("Tinyocaml.to_ocaml_value (Eval.eval_string " ^ Printf.sprintf "%S" s ^ ")"))
+                    (Ocamliutil.ast ("Tinyocaml.to_ocaml_value (Eval.eval_string " ^ Printf.sprintf "%S" s ^ ")"))
       | x -> default_mapper.expr mapper x;
   }
 

@@ -1,14 +1,14 @@
 (* Uses the tiny-ocaml simple AST *)
 open Tinyocaml
-open Evalutils
+open Ocamliutil
 
 type t = Tinyocaml.t
 
-let calc = TinyocamlUtils.calc
+let calc = Tinyocamlutil.calc
 
-let comp = TinyocamlUtils.comp
+let comp = Tinyocamlutil.comp
 
-let is_value = TinyocamlUtils.is_value
+let is_value = Tinyocamlutil.is_value
 
 let debug = ref false
 
@@ -187,7 +187,7 @@ whole thing is wrong. e.g let x, y, z = ... should go to let x, y, _ if we
 must remove z. This will all go away when we deal properly with the lets
 problem? *)
 let filter_bindings (pat : pattern) (bs : binding list) : binding list =
-  Evalutils.option_map
+  Ocamliutil.option_map
     (function
      | (PatVar x, v) -> if List.mem x (bound_in_pattern pat) then None else Some (PatVar x, v)
      | _ -> None)
@@ -315,7 +315,7 @@ let rec eval peek env expr =
         let (pat, guard, rhs) = p in
           let patbound = bound_in_pattern pat in
             let fenv' =
-              Evalutils.option_map
+              Ocamliutil.option_map
                 (fun (recflag, bindings) ->
                    match filter_bindings pat bindings with
                      [] -> None
@@ -491,7 +491,7 @@ and eval_first_non_value_item peek env r = function
   [] -> List.rev r
 | h::t ->
     let env_entries_of_bindings =
-      Evalutils.option_map
+      Ocamliutil.option_map
         (function (PatVar x, y) -> Some (x, y) | _ -> None)
     in
       if is_value h
@@ -528,7 +528,7 @@ and eval_first_non_value_record_item peek env items =
 
 let definitions_of_module = function
   Struct (_, items) ->
-    Evalutils.option_map
+    Ocamliutil.option_map
       (fun x ->
         match x with
           LetDef (_, [(PatVar v, def)]) -> Some (v, def)
@@ -616,9 +616,9 @@ let next e =
       Malformed "environment"
 
 let to_string x =
-  Pptinyocaml.to_string (TinyocamlUtils.underline_redex x) 
+  Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
 
-let tiny x = TinyocamlUtils.underline_redex x
+let tiny x = Tinyocamlutil.underline_redex x
 
 let peek x =
   if is_value x || not !dopeek then [] else

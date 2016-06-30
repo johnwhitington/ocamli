@@ -21,11 +21,11 @@ module type Evaluator =
   sig
     type t
     val init : Parsetree.structure -> t
-    val next : t -> t Evalutils.result
+    val next : t -> t Ocamliutil.result
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
-    val last : unit -> Evalutils.last_op list
-    val peek : t -> Evalutils.last_op list
+    val last : unit -> Ocamliutil.last_op list
+    val peek : t -> Ocamliutil.last_op list
     val newlines : t -> bool
     val fastcurry : bool ref
   end
@@ -36,11 +36,11 @@ val remove_rec_all : bool ref
 val load_code : unit -> string option
 val string_of_tiny : preamble:string -> Tinyocaml.t -> string
 val fixup : 'a -> 'b -> 'b
-val string_of_op : Evalutils.last_op -> string
+val string_of_op : Ocamliutil.last_op -> string
 val show_this_stage :
-  Evalutils.last_op list ->
-  Evalutils.last_op list -> Tinyocaml.t -> Tinyocaml.t -> bool
-val show_this_pervasive_stage : Evalutils.last_op list -> bool
+  Ocamliutil.last_op list ->
+  Ocamliutil.last_op list -> Tinyocaml.t -> Tinyocaml.t -> bool
+val show_this_pervasive_stage : Ocamliutil.last_op list -> bool
 val skipped : bool ref
 val wait_for_enter : unit -> unit
 val print_string : string -> unit

@@ -445,7 +445,7 @@ let any_var_in_bindings free ((_, bindings) as envitem) =
     None
 
 let prune_environment (free : string list) (env : env) : env =
-  Evalutils.option_map (any_var_in_bindings free) env
+  Ocamliutil.option_map (any_var_in_bindings free) env
 
 let mk name f =
   (name, Fun (PatVar "*x", CallBuiltIn (name, [Var "*x"], f), [])) (* FIXME Add environment *)
@@ -1199,7 +1199,7 @@ and of_real_ocaml_structure env s =
     List.map (of_real_ocaml_structure_item env) s
   in
     let final =
-      Evalutils.option_map (fun x -> x) (List.map fst items)
+      Ocamliutil.option_map (fun x -> x) (List.map fst items)
     in
       Struct (true, final)
 
@@ -1304,14 +1304,14 @@ and to_real_ocaml_apply l r n =
   let exprs =
     [(Nolabel, to_real_ocaml l); (Nolabel, to_real_ocaml r)] in
   let expr =
-    Evalutils.with_desc
+    Ocamliutil.with_desc
       (Pexp_ident
          {txt = Longident.Lident n; loc = Location.none})
   in
     Pexp_apply (expr, exprs)
 
 and to_real_ocaml x =
-  Evalutils.with_desc (to_real_ocaml_expression_desc x)
+  Ocamliutil.with_desc (to_real_ocaml_expression_desc x)
 
 (* Just a single structure item for now *)
 let to_real_ocaml x =

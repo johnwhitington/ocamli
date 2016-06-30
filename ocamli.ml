@@ -24,7 +24,7 @@ let argspec =
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
-   ("-no-typecheck", Arg.Clear Evalutils.typecheck, " Don't typecheck");
+   ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets")]
 
 let go () =
@@ -39,7 +39,7 @@ let go () =
        ) : Evaluator)
   in
     I.fastcurry := !fastcurry;
-    TinyocamlUtils.fastcurry := !fastcurry;
+    Tinyocamlutil.fastcurry := !fastcurry;
     Pptinyocaml.fastcurry := !fastcurry;
   let rec really_run first state =
     if !prompt then wait_for_enter ();
@@ -99,7 +99,7 @@ let go () =
         printer := "tiny"
       end;
     Pptinyocaml.width := !width;
-    let state = I.init (Evalutils.ast code) in
+    let state = I.init (Ocamliutil.ast code) in
        if !debugtiny then
          begin
            print_string (Tinyocaml.to_string (I.tiny state));
