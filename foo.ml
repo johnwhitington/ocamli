@@ -1,4 +1,6 @@
-module M =
-  struct
-    let x = 1
-  end
+module SO: sig
+  type t
+end = struct
+  type t
+end
+

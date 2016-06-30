@@ -172,6 +172,14 @@ let percent_addint =
   mk2 "%addint"
     (function [Int a; Int b] -> Int (a + b))
 
+external inet_addr_of_string : string -> Unix.inet_addr
+                                    = "unix_inet_addr_of_string"
+
+(* FIXME This Obj.magic stuff - can we avoid it? *)
+let unix_inet_addr_of_string =
+  mk "unix_inet_addr_of_string"
+    (function [String s] -> String (Obj.magic (inet_addr_of_string s)))
+
 let builtin_primitives = [
   caml_register_named_value;
   caml_ml_output;
@@ -187,6 +195,7 @@ let builtin_primitives = [
   percent_setfield0;
   percent_compare;
   percent_addint;
+  unix_inet_addr_of_string;
  (*"%identity"
   "%ignore"
   "%field0"
@@ -684,7 +693,11 @@ let builtin_primitives = [
 let lookup_primitive n =
   try List.assoc n builtin_primitives with
     Not_found ->
-      snd (mk n (function [e] -> Raise ("UnknownPrimitive: " ^ n, None) | _ -> failwith "unknown unknown primitive"))
+      snd
+        (mk n
+          (function
+             [e] -> Raise ("UnknownPrimitive: " ^ n, None)
+             | _ -> failwith "unknown unknown primitive"))
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
@@ -847,9 +860,21 @@ and of_real_ocaml_structure env s =
     in
       Struct (true, final)
 
+and of_real_ocaml_signature env s =
+  Sig []
+
+and of_real_ocaml_module_type env module_type =
+  match module_type.pmty_desc with
+    Pmty_signature s ->
+      ModTypeSignature (of_real_ocaml_signature env s)
+
 and of_real_ocaml_module_expr env module_expr =
   match module_expr.pmod_desc with
     Pmod_structure s -> of_real_ocaml_structure env s
+  | Pmod_constraint (module_expr, module_type) ->
+      ModuleConstraint
+        (of_real_ocaml_module_type env module_type,
+         of_real_ocaml_module_expr env module_expr)
   | _ -> failwith "of_real_ocaml_module_expr"
 
 and of_real_ocaml_module_binding env mb =

@@ -35,6 +35,9 @@ and binding = pattern * t
 
 and env = (bool * binding list) list
 
+and modtype = (* not final *)
+  ModTypeSignature of t
+
 (** The type of tiny-ocaml programs *)
 and t =
   Unit                         (** () *)
@@ -78,8 +81,9 @@ and t =
 | CallBuiltIn of (string * t list * (t list -> t)) (** A built-in. Recieves args, returns result *)
 | Struct of (bool * t list)  (** Module implementation. If bool is false, we don't print it (i.e it's the top level struct) *)
 | Sig of t list                (** Module signature *)
-| ModuleBinding of (string * t) (** Module M = ... *)
-| Append of (t * t)              (** @ *)
+| ModuleBinding of (string * t)(** Module M = ... *)
+| ModuleConstraint of (modtype * t)  (* ME : MT *)
+| Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
 
 val string_of_op : op -> string

@@ -34,6 +34,9 @@ and binding = pattern * t
 
 and env = (bool * binding list) list
 
+and modtype = (* not final *)
+  ModTypeSignature of t
+
 and t =
 (* values *)
   Unit                        (* () *)
@@ -79,6 +82,7 @@ and t =
 | Struct of (bool * t list)   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
 | ModuleBinding of (string * t) (* Module M = ... *)
+| ModuleConstraint of (modtype * t)  (* ME : MT *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 
@@ -148,6 +152,7 @@ let rec recurse f exp =
   | Struct (b, l) -> Struct (b, List.map f l)
   | Sig l -> Sig (List.map f l)
   | ModuleBinding (n, m) -> ModuleBinding (n, f m)
+  | ModuleConstraint (t, e) -> ModuleConstraint (t, f e)
   | Cons (e, e') -> Cons (f e, f e')
   | Constr (n, None) -> Constr (n, None)
   | Constr (n, Some t) -> Constr (n, Some (f t))
