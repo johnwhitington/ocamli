@@ -48,25 +48,10 @@ let to_string ast =
     Format.pp_print_flush formatter ();
     Buffer.contents b
 
-let makestructure e =
-  [{pstr_desc = Pstr_eval (e, []); pstr_loc = Location.none}]
-
 let with_desc x =
   {pexp_desc = x;
    pexp_loc = Location.none;
    pexp_attributes = []}
-
-let bool_of_bool_value e =
-  match e.pexp_desc with
-  | Pexp_construct
-      ({txt = Longident.Lident (("true" | "false") as b)}, None) ->
-        bool_of_string b
-  | _ -> malformed __LOC__
-
-let mkbool b =
-  with_desc
-    (Pexp_construct
-      ({txt = Longident.Lident (string_of_bool b); loc = Location.none}, None))
 
 let getexpr = function
   [{pstr_desc = Pstr_eval (e, _)}]

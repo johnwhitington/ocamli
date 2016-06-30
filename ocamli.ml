@@ -1,8 +1,8 @@
-open Eval
+open Runeval
 
 let setdebug () =
-  Eval.debug := true;
-  Environment.debug := true
+  Runeval.debug := true;
+  Eval.debug := true
 
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
@@ -12,7 +12,7 @@ let argspec =
    ("-step", Arg.Set_float step, " Wait a number of seconds after each step but last");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-width", Arg.Set_int width, " Set the output width");
-   ("-e", Arg.String settext, " Evaluate the program text given");
+   ("-e", Arg.String settext, " Runevaluate the program text given");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
@@ -22,10 +22,10 @@ let argspec =
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Unit setdebug, " Debug (for OCAMLRUNPARAM=b)");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
-   ("-no-peek", Arg.Clear Environment.dopeek, " Avoid peeking for debug");
+   ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
    ("-no-typecheck", Arg.Clear Evalutils.typecheck, " Don't typecheck");
-   ("-no-collect", Arg.Clear Environment.docollectunusedlets, " Don't collect unused lets")]
+   ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets")]
 
 let go () =
   Arg.parse argspec setfile
@@ -125,7 +125,7 @@ let go () =
            None -> failwith "No source code provided"
          | Some x -> run x
      with
-       Environment.ExceptionRaised(n, payload) ->
+       Eval.ExceptionRaised(n, payload) ->
          let expstr =
            match payload with None -> "" | Some p -> Pptinyocaml.to_string p
          in

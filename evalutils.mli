@@ -24,15 +24,7 @@ val malformed : string -> 'a
 
 val to_string : Parsetree.expression -> string
 
-val getexpr : Parsetree.structure -> Parsetree.expression
-
-val makestructure : Parsetree.expression -> Parsetree.structure
-
 val with_desc : Parsetree.expression_desc -> Parsetree.expression
-
-val bool_of_bool_value : Parsetree.expression -> bool
-
-val mkbool : bool -> Parsetree.expression
 
 val namestarred : string -> bool
 
