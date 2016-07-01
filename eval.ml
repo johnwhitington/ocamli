@@ -597,13 +597,29 @@ let stdlib_array =
     (stdlib_pervasives @ stdlib_camlinternalformatbasics)
     (Filename.concat stdlib_dir "array.ml")
 
+let stdlib_callback =
+  load_module
+    "Callback"
+    (stdlib_array @ stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics)
+    (Filename.concat stdlib_dir "callback.ml")
+
+let stdlib_unix =
+  load_module
+    "Unix"
+    (stdlib_callback @ stdlib_array @ stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics)
+    (Filename.concat "./stdlib" "callback.ml")
 
 (*let _ =
   Printf.printf "Got %i definitions from pervasives\n" (List.length
   stdlib_pervasives)*)
 
 let lib =
-  stdlib_array @ stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics
+  stdlib_unix @ 
+  stdlib_callback @
+  stdlib_array @
+  stdlib_list @
+  stdlib_pervasives @
+  stdlib_camlinternalformatbasics
 
 (*let _ =
   List.iter

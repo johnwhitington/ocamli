@@ -86,11 +86,13 @@ type error =
 
 exception Unix_error of error * string * string
 
+(* FIXME Callback module *)
 (*let _ = Callback.register_exception "Unix.Unix_error"
                                     (Unix_error(E2BIG, "", ""))*)
 
 external error_message : error -> string = "unix_error_message"
 
+(* FIXME Printexc module *)
 (*let () =
   Printexc.register_printer
     (function
@@ -1071,8 +1073,6 @@ let shutdown_connection inchan =
 let rec accept_non_intr s =
   try accept s
   with Unix_error (EINTR, _, _) -> accept_non_intr s
-
-(* FIXME: single arm IF *)
 
 let establish_server server_fun sockaddr =
   let sock =
