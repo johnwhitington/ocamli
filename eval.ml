@@ -567,65 +567,39 @@ let stdlib_dir =
 
 (* Load a module from disk *)
 let load_module name env file =
-  (*Printf.printf "Loading module %s...%!" name;*)
+  if !debug then Printf.printf "Loading module %s...%!" name;
   let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
     let themod' = eval false env themod in
-      (*Printf.printf "done\n%!";*)
+      if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
-
-let stdlib_camlinternalformatbasics =
-  load_module
-    "CamlinternalFormatBasics"
-    []
-    (Filename.concat stdlib_dir "camlinternalFormatBasics.ml")
-
-let stdlib_pervasives =
-    load_module
-      "Pervasives"
-      stdlib_camlinternalformatbasics
-      (Filename.concat stdlib_dir "pervasives.ml")
-
-let stdlib_list =
-  load_module
-    "List"
-    (stdlib_pervasives @ stdlib_camlinternalformatbasics)
-    (Filename.concat stdlib_dir "list.ml")
-
-let stdlib_array =
-  load_module
-    "Array"
-    (stdlib_pervasives @ stdlib_camlinternalformatbasics)
-    (Filename.concat stdlib_dir "array.ml")
-
-let stdlib_callback =
-  load_module
-    "Callback"
-    (stdlib_array @ stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics)
-    (Filename.concat stdlib_dir "callback.ml")
-
-let stdlib_unix =
-  load_module
-    "Unix"
-    (stdlib_callback @ stdlib_array @ stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics)
-    (Filename.concat "./stdlib" "callback.ml")
 
 (*let _ =
   Printf.printf "Got %i definitions from pervasives\n" (List.length
   stdlib_pervasives)*)
 
-let lib =
-  stdlib_unix @ 
-  stdlib_callback @
-  stdlib_array @
-  stdlib_list @
-  stdlib_pervasives @
-  stdlib_camlinternalformatbasics
+let stdlib_modules =
+  [("Unix", "./stdlib", "unix.ml");
+   ("Callback", stdlib_dir, "callback.ml");
+   ("Array", stdlib_dir, "array.ml");
+   ("List", stdlib_dir, "list.ml");
+   ("Pervasives", stdlib_dir, "pervasives.ml");
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+
+let loadlib () =
+  List.fold_right
+    (fun (n, lib, filename) libs ->
+      load_module n libs (Filename.concat lib filename) @ libs)
+    stdlib_modules
+    []
+
+let lib = ref []
 
 (*let _ =
   List.iter
     (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) lib*)
 
 let init x =
+  lib := loadlib ();
   Tinyocamlrw.of_real_ocaml x
 
 let init_from_tinyocaml x = x
@@ -635,7 +609,7 @@ let next e =
   try
     if is_value e
       then IsValue
-      else Next ((if !docollectunusedlets then collect_unused_lets else (fun x ->x)) (eval false lib e))
+      else Next ((if !docollectunusedlets then collect_unused_lets else (fun x ->x)) (eval false !lib e))
   with
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->
@@ -652,7 +626,7 @@ let peek x =
   if is_value x || not !dopeek then [] else
     let t = !last in
       last := [];
-      ignore (eval true lib x);
+      ignore (eval true !lib x);
       let r = !last in
         last := t;
         r

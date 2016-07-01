@@ -174,7 +174,7 @@ external error_message : error -> string = "unix_error_message"
 let handle_unix_error f arg =
   try
     f arg
-  with Unix_error(err, fun_name, arg) -> exit 2
+  with Unix_error(err, fun_name, arg) ->
     prerr_string Sys.argv.(0);
     prerr_string ": \"";
     prerr_string fun_name;

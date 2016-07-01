@@ -1,12 +1,12 @@
 open Tinyocaml
 
 let mk name f =
-  (name, Fun (PatVar "*x", CallBuiltIn (name, [Var "*x"], f), [])) (* FIXME Add environment *)
+  (name, Fun (PatVar "*x", CallBuiltIn (name, [Var "*x"], f), []))
 
 let mk2 name f =
   (name,
    Fun (PatVar "*x",
-     Fun (PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), [])) (* FIXME Add environement *)
+     Fun (PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), []))
 
 let mk4 name f =
    (name,
@@ -16,7 +16,6 @@ let mk4 name f =
            Fun (PatVar "*q",
              CallBuiltIn (name, [Var "*x"; Var "*y"; Var "*z"; Var "*q"], f), []), []), []), []))
 
-(* FIXME. Make these actually do something *)
 let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
