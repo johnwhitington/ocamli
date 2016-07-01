@@ -169,7 +169,7 @@ external error_message : error -> string = "unix_error_message"
       | _ -> None)*)
 
 (* FIXME: arrays *)
-(*let handle_unix_error f arg =
+let handle_unix_error f arg =
   try
     f arg
   with Unix_error(err, fun_name, arg) -> exit 2
@@ -184,7 +184,7 @@ external error_message : error -> string = "unix_error_message"
     end;
     prerr_string ": ";
     prerr_endline (error_message err);
-    exit 2*)
+    exit 2
 
 external environment : unit -> string array = "unix_environment"
 external getenv: string -> string = "caml_sys_getenv"
@@ -770,7 +770,7 @@ external getnameinfo_system
   : sockaddr -> getnameinfo_option list -> name_info
   = "unix_getnameinfo"
 
-(*let getnameinfo_emulation addr opts =
+let getnameinfo_emulation addr opts =
   match addr with
   | ADDR_UNIX f ->
       { ni_hostname = ""; ni_service = f } (* why not? *)
@@ -796,7 +796,6 @@ let getnameinfo addr opts =
     getnameinfo_system addr opts
   with Invalid_argument _ ->
     getnameinfo_emulation addr opts
-*)
 
 type terminal_io = {
     mutable c_ignbrk: bool;
@@ -866,7 +865,6 @@ let rec waitpid_non_intr pid =
 
 external sys_exit : int -> 'a = "caml_sys_exit"
 
-(*
 let system cmd =
   match fork() with
      0 -> begin try
@@ -875,7 +873,6 @@ let system cmd =
             sys_exit 127
           end
   | id -> snd(waitpid_non_intr id)
-*)
 
 let rec safe_dup fd =
   let new_fd = dup fd in
@@ -1077,7 +1074,7 @@ let rec accept_non_intr s =
 
 (* FIXME: single arm IF *)
 
-(*let establish_server server_fun sockaddr =
+let establish_server server_fun sockaddr =
   let sock =
     socket (domain_of_sockaddr sockaddr) SOCK_STREAM 0 in
   setsockopt sock SO_REUSEADDR true;
@@ -1101,4 +1098,3 @@ let rec accept_non_intr s =
             exit 0
     | id -> close s; ignore(waitpid_non_intr id) (* Reclaim the son *)
   done
-*)
