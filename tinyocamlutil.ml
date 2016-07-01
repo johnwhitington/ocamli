@@ -17,6 +17,8 @@ let rec is_value = function
     List.for_all is_value items -> true
 | Tuple items when
     List.for_all is_value items -> true
+| Array items when
+    Array.for_all is_value items -> true
 | Constr (_, None) -> true
 | Constr (_, Some t) -> is_value t
 | Cons (e, e') when
@@ -107,6 +109,10 @@ let rec underline_redex e =
         if List.for_all is_value ls
           then failwith "tuple already a value"
           else Tuple (underline_first_non_value ls)
+    | Array items ->
+        if Array.for_all is_value items
+          then failwith "tuple already a value"
+          else Array (underline_first_non_value_array items)
     | Constr (n, Some t) ->
         if is_value t
           then failwith "constr already a value"
@@ -146,6 +152,9 @@ and underline_first_non_value = function
     if is_value h
       then h::underline_first_non_value t
       else underline_redex h::t
+
+and underline_first_non_value_array x =
+  Array.of_list (underline_first_non_value (Array.to_list x))
 
 and underline_first_non_value_binding = function
   [] -> []

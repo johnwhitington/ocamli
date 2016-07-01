@@ -22,6 +22,7 @@ type pattern =
 | PatString of string
 | PatUnit
 | PatTuple of pattern list
+| PatArray of pattern array
 | PatNil
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
@@ -51,6 +52,7 @@ and t =
 | Char of char                 (** 'a' *)
 | OutChannel of out_channel    (** e.g stdout *)
 | InChannel of in_channel      (** e.g stdin *)
+| Array of t array             (** [|1; 2; 3|] *)
 | Record of (string * t ref) list (** {a = e; b = e' ...} *)
 | Tuple of t list              (** (a, b) *)
 | Constr of string * t option  (** Constuctor [data] *)
@@ -63,7 +65,7 @@ and t =
 | And of (t * t)               (** && *)
 | Or of (t * t)                (** || *)
 | Cmp of (cmp * t * t)         (** < > <> = <= >= *)
-| If of (t * t * t)            (** if e then e1 else e2 *)
+| If of (t * t * t option)            (** if e then e1 [else e2] *)
 | Let of (bool * binding list * t) (** let x = e in e' *)
 | LetDef of (bool * binding list)  (** let x = e *)
 | TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int *)

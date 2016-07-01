@@ -35,6 +35,8 @@ let rec free (bound : string list) (expr : t) =
   | Tuple es
   | Sig es ->
       List.fold_left ( @ ) [] (List.map (free bound) es)
+  | Array es ->
+      Array.fold_left ( @ ) [] (Array.map (free bound) es)
   | Raise (_, Some e)
   | Assert e
   | Field (e, _)
@@ -50,7 +52,8 @@ let rec free (bound : string list) (expr : t) =
   | Seq (e, e') ->
       free bound e @ free bound e'
   | If (e, e', e'') ->
-      free bound e @ free bound e' @ free bound e''
+      free bound e @ free bound e' @
+      (match e'' with None -> [] | Some e'' -> free bound e'')
   (* All others *)
   | x -> [] (* FIXME add cons, constr, any others. *)
 
@@ -172,6 +175,10 @@ let percent_addint =
   mk2 "%addint"
     (function [Int a; Int b] -> Int (a + b))
 
+let percent_array_safe_get =
+  mk2 "%array_safe_get"
+    (function [Array x; Int i] -> x.(i))
+
 external inet_addr_of_string : string -> Unix.inet_addr
                                     = "unix_inet_addr_of_string"
 
@@ -195,6 +202,7 @@ let builtin_primitives = [
   percent_setfield0;
   percent_compare;
   percent_addint;
+  percent_array_safe_get;
   unix_inet_addr_of_string;
  (*"%identity"
   "%ignore"
@@ -723,7 +731,9 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
 | Pexp_ident {txt = v} -> Var (Tinyocaml.string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
-    If (of_real_ocaml env e, of_real_ocaml env e1, of_real_ocaml env e2)
+    If (of_real_ocaml env e, of_real_ocaml env e1, Some (of_real_ocaml env e2))
+| Pexp_ifthenelse (e, e1, None) ->
+    If (of_real_ocaml env e, of_real_ocaml env e1, None)
 | Pexp_fun (Nolabel, None, pat, exp) ->
     let ocaml_exp = of_real_ocaml env exp in
     let bound = bound_in_environment env in
@@ -789,6 +799,8 @@ let rec of_real_ocaml_expression_desc env = function
     TryWith (of_real_ocaml env e, List.map (of_real_ocaml_case env) cases)
 | Pexp_tuple xs ->
     Tuple (List.map (of_real_ocaml env) xs)
+| Pexp_array xs ->
+    Array (Array.of_list (List.map (of_real_ocaml env) xs))
 | Pexp_match (e, cases) ->
     Match (of_real_ocaml env e, List.map (of_real_ocaml_case env) cases)
 | Pexp_assert e ->
@@ -827,6 +839,9 @@ and of_real_ocaml_pattern env = function
 | Ppat_tuple patterns ->
     PatTuple
       (List.map (of_real_ocaml_pattern env) (List.map (fun x -> x.ppat_desc) patterns))
+| Ppat_array patterns ->
+    PatArray
+      (Array.of_list (List.map (of_real_ocaml_pattern env) (List.map (fun x -> x.ppat_desc) patterns)))
 | Ppat_construct ({txt = Lident "[]"}, _) -> PatNil
 | Ppat_construct ({txt = Lident "()"}, _) -> PatUnit
 | Ppat_construct ({txt = Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->
@@ -937,7 +952,9 @@ let rec to_real_ocaml_expression_desc = function
   | And (l, r) -> to_real_ocaml_apply l r "&&"
   | Or (l, r) -> to_real_ocaml_apply l r "||"
   | Cmp (cmp, l, r) -> to_real_ocaml_apply l r (string_of_cmp cmp)
-  | If (e, e1, e2) ->
+  | If (e, e1, None) ->
+      Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, None)
+  | If (e, e1, Some e2) ->
       Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
   | Let (flag, bindings, e) -> to_real_ocaml_let flag bindings e
   | Fun (pat, e, _) ->

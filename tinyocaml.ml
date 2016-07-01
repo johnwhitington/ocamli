@@ -21,6 +21,7 @@ type pattern =
 | PatString of string
 | PatUnit
 | PatTuple of pattern list
+| PatArray of pattern array
 | PatNil
 | PatCons of pattern * pattern
 | PatAlias of string * pattern
@@ -50,6 +51,7 @@ and t =
 | Char of char                (* 'a' *)
 | OutChannel of out_channel   (* e.g stdout, stderr *)
 | InChannel of in_channel     (* e.g stdin *)
+| Array of t array            (* [|1; 2; 3|] *)
 | Record of (string * t ref) list  (* Records. *)
 | Tuple of t list             (* (1, 2) *)
 | Constr of string * t option (* Constructor [data] *)
@@ -63,7 +65,7 @@ and t =
 | And of (t * t)              (* && *)
 | Or of (t * t)               (* || *)
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
-| If of (t * t * t)           (* if e then e1 else e2 *)
+| If of (t * t * t option)    (* if e then e1 [else e2] *)
 | Let of (bool * binding list * t) (* let x = e [and ...] in e' *)
 | LetDef of (bool * binding list) (* let x = e [and ...] *)
 | TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int *)
@@ -128,7 +130,7 @@ let rec recurse f exp =
   | And (a, b) -> And (f a, f b)
   | Or (a, b) -> Or (f a, f b)
   | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
-  | If (e, e1, e2) -> If (f e, f e1, f e2)
+  | If (e, e1, e2) -> If (f e, f e1, recurse_option f e2)
   | Let (recflag, bindings, e) ->
       Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, recurse f e)
   | LetDef (recflag, bindings) ->
@@ -139,6 +141,7 @@ let rec recurse f exp =
   | While (a, b, c, d) -> While (f a, f b, f c, f d)
   | For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
   | Control (c, x) -> Control (c, f x)
+  | Array xs -> Array (Array.map f xs)
   | Record items ->
       List.iter (fun (k, v) -> v := f !v) items;
       Record items
@@ -163,6 +166,10 @@ let rec recurse f exp =
       Function (List.map (recurse_case f) patmatch, env)
   | Tuple l -> Tuple (List.map f l)
   | Assert e -> Assert (f e)
+
+and recurse_option f = function
+  None -> None
+| Some x -> Some (f x)
 
 and recurse_case f (pat, guard, rhs) =
   (pat,
@@ -206,6 +213,7 @@ let rec to_string = function
 | Bool b -> Printf.sprintf "Bool %b" b
 | Float f -> Printf.sprintf "Float %f" f
 | String s -> Printf.sprintf "String %s" s
+| Char c -> Printf.sprintf "Char %C" c
 | OutChannel o -> Printf.sprintf "OutChannel"
 | InChannel i -> Printf.sprintf "InChannel"
 | Var s -> Printf.sprintf "Var %s" s
@@ -218,7 +226,9 @@ let rec to_string = function
     Printf.sprintf "Or (%s, %s)" (to_string a) (to_string b)
 | Cmp (cmp, l, r) -> 
     Printf.sprintf "Cmp (%s, %s, %s)" (to_string_cmp cmp) (to_string l) (to_string r)
-| If (a, b, c) ->
+| If (a, b, None) ->
+    Printf.sprintf "If (%s, %s)" (to_string a) (to_string b)
+| If (a, b, Some c) ->
     Printf.sprintf "If (%s, %s, %s)" (to_string a) (to_string b) (to_string c)
 | Let (recflag, bindings, e') ->
     Printf.sprintf "%s (%s, %s)"
@@ -272,6 +282,10 @@ let rec to_string = function
     Printf.sprintf
       "Tuple (%s)"
       (List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ ", ") xs))
+| Array xs ->
+    Printf.sprintf
+      "Array (%s)"
+      (Array.fold_left ( ^ ) "" (Array.map (fun x -> to_string x ^ ", ") xs))
 | Function (patmatch, env) ->
     Printf.sprintf "Function %s" (to_string_patmatch patmatch)
 | Match (e, patmatch) ->
@@ -301,6 +315,8 @@ and to_string_pat = function
 | PatAlias _ -> "PatAlias"
 | PatOr _ -> "PatOr"
 | PatConstraint _ -> "PatConstraint"
+| PatArray _ -> "PatArray"
+| PatConstr _ -> "PatConstr"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
@@ -355,6 +371,7 @@ let rec bound_in_pattern = function
 | PatNativeInt _ -> []
 | PatUnit -> []
 | PatTuple ls -> List.flatten (List.map bound_in_pattern ls)
+| PatArray items -> List.flatten (List.map bound_in_pattern (Array.to_list items))
 | PatNil -> []
 | PatCons (h, t) -> bound_in_pattern h @ bound_in_pattern t
 | PatAlias (a, p) -> a::bound_in_pattern p

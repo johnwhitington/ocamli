@@ -121,6 +121,15 @@ let rec print_tiny_inner f isleft parent node =
            if i < l - 1 then txt ", ")
         xs;
       str ")"
+  | Array xs -> 
+      let l = Array.length xs in
+      str "[|";
+      Array.iteri
+        (fun i x ->
+           print_tiny_inner f false (Some node) x;
+           if i < l - 1 then txt "; ")
+        xs;
+      str "|]"
   | Cons (x, y) ->
       if not (try_printing_literal_list f isleft parent node) then begin
         print_tiny_inner f isleft parent x;
@@ -191,8 +200,12 @@ let rec print_tiny_inner f isleft parent node =
       print_tiny_inner f false (Some node) e;
       boldtxt " then ";
       print_tiny_inner f false (Some node) e1;
-      boldtxt " else ";
-      print_tiny_inner f false (Some node) e2;
+      begin match e2 with
+        None -> ()
+      | Some e2 ->
+          boldtxt " else ";
+          print_tiny_inner f false (Some node) e2;
+      end;
       str rp
   | Let (recflag, bindings, e') ->
       str lp;
@@ -401,6 +414,15 @@ and print_pattern f isleft parent pat =
                if i < l - 1 then txt ", ")
             items;
         str ")"
+    | PatArray items ->
+        str "[|";
+        let l = Array.length items in
+          Array.iteri
+            (fun i x ->
+               print_pattern f isleft parent x;
+               if i < l - 1 then txt "; ")
+            items;
+        str "|]"
     | PatNil -> str "[]"
     | PatCons (h, t) ->
         print_pattern f isleft parent h;

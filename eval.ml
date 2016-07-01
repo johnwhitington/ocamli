@@ -35,7 +35,8 @@ let rec appears var = function
     appears var a || appears var b || appears var c || appears var d
 | For (v, a, flag, b, c, copy) ->
     appears var a || appears var b || appears var c || appears var copy
-| If (a, b, c) -> appears var a || appears var b || appears var c
+| If (a, b, None) -> appears var a || appears var b
+| If (a, b, Some c) -> appears var a || appears var b || appears var c
 | Control (_, x) -> appears var x
 | Let (recflag, bindings, e') ->
     if recflag then
@@ -65,6 +66,7 @@ let rec appears var = function
 | CallBuiltIn (_, args, _) -> List.exists (appears var) args
 | Struct (_, ls) -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
+| Array items -> Array.exists (appears var) items
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
 | Assert x -> appears var x
@@ -160,6 +162,8 @@ let rec matches expr pattern rhs =
         end
     | Tuple es, PatTuple ps ->
         match_many_binders es ps rhs
+    | Array es, PatArray ps ->
+        match_many_binders (Array.to_list es) (Array.to_list ps) rhs
     | e, PatAlias (a, p) ->
         matches e p (Let (false, [(PatVar a, e)], rhs))
     | e, PatOr (a, b) ->
@@ -252,7 +256,8 @@ let rec eval peek env expr =
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
 | Cmp (op, a, b) -> Cmp (op, eval peek env a, b)
 | If (Bool true, a, _) -> a
-| If (Bool false, _, b) -> b
+| If (Bool false, _, None) -> Unit
+| If (Bool false, _, Some b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
 | Let (recflag, bindings, e) ->
     if List.exists (function (PatVar v, e) -> namestarred v | _ -> false) bindings then
@@ -586,12 +591,19 @@ let stdlib_list =
     (stdlib_pervasives @ stdlib_camlinternalformatbasics)
     (Filename.concat stdlib_dir "list.ml")
 
+let stdlib_array =
+  load_module
+    "Array"
+    (stdlib_pervasives @ stdlib_camlinternalformatbasics)
+    (Filename.concat stdlib_dir "array.ml")
+
+
 (*let _ =
   Printf.printf "Got %i definitions from pervasives\n" (List.length
   stdlib_pervasives)*)
 
 let lib =
-  stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics
+  stdlib_array @ stdlib_list @ stdlib_pervasives @ stdlib_camlinternalformatbasics
 
 (*let _ =
   List.iter
