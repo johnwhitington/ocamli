@@ -287,6 +287,11 @@ and of_real_ocaml_module_binding env mb =
   in
     ModuleBinding (name, of_real_ocaml_module_expr env mb.pmb_expr)
 
+and of_real_ocaml_open_description o =
+  match o.popen_lid.txt with
+    Longident.Lident x -> x
+  | _ -> failwith "of_real_ocaml_open_description"
+
 and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
   {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
@@ -309,9 +314,12 @@ and of_real_ocaml_structure_item env = function
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
      (Some (TypeDef (recflag == Recursive, typedecls)), env)
-| (* module M = ... *)
-  {pstr_desc = Pstr_module module_binding} ->
+  (* module M = ... *)
+| {pstr_desc = Pstr_module module_binding} ->
      (Some (of_real_ocaml_module_binding env module_binding), env)
+  (* open M *)
+| {pstr_desc = Pstr_open open_description} ->
+     (Some (Open (of_real_ocaml_open_description open_description)), env)
 | _ -> failwith "unknown structure item"
 
 let rec of_real_ocaml env acc = function

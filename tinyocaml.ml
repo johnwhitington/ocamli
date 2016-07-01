@@ -87,6 +87,7 @@ and t =
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
+| Open of string              (* open Unix *)
 
 (* The type of OCaml values in memory *)
 type untyped_ocaml_value =
