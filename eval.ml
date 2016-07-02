@@ -260,7 +260,7 @@ let rec eval peek env expr =
 | If (Bool false, _, Some b) -> b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
 | Let (recflag, bindings, e) ->
-    if List.exists (function (PatVar v, e) -> namestarred v | _ -> false) bindings then
+    if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
       let env' = read_bindings bindings @ env in

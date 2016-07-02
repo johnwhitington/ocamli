@@ -26,7 +26,9 @@ val to_string : Parsetree.expression -> string
 
 val with_desc : Parsetree.expression_desc -> Parsetree.expression
 
-val namestarred : string -> bool
+val isstarred : string -> bool
+
+val star : string -> string
 
 val unstar : string -> string
 

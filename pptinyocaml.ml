@@ -247,13 +247,8 @@ let rec print_tiny_inner f isleft parent node =
            print_tiny_inner f false (Some node) e)
         bindings;
       str rp
-  | Fun (fname, fexp, _) ->
-      str lp;
-      boldtxt "fun ";
-      print_pattern f false (Some node) fname;
-      txt " -> ";
-      print_tiny_inner f false (Some node) fexp;
-      str rp
+  | Fun fn ->
+      print_series_of_funs lp rp f true (Some node) (Fun fn)
   | App (e, e') ->
       str lp;
       print_tiny_inner f true (Some node) e;
@@ -361,6 +356,28 @@ and try_printing_literal_list f isleft parent e =
         true
   | exception Exit -> false
 
+(* Print fun x -> fun y -> fun z -> ... as fun x y z -> ... *)
+and print_series_of_funs lp rp f isleft parent e =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  (* Return a list of fnames and an fexp. There will be at least one. *)
+  let rec gather_funs fnames = function
+     Fun (fname, fexp, _) -> gather_funs (fname::fnames) fexp
+  |  x -> (List.rev fnames, x)
+  in
+    str lp;
+    boldtxt "fun ";
+    let names, exp = gather_funs [] e in
+    List.iter
+      (fun x -> print_pattern f false (Some e) x; txt " ")
+      names;
+    txt "-> ";
+    print_tiny_inner f false (Some e) exp;
+    str rp
+    
 and print_case f isleft parent (pattern, guard, rhs) =
   let txt = Format.pp_print_text f in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
