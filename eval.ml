@@ -125,7 +125,9 @@ let lookup_value v env =
 let lookup_int_var env v =
   match lookup_value v env with
     Int i -> i
-  | _ -> failwith "comparison not an integer"
+  | e ->
+      Printf.printf "It is %s\n" (Tinyocaml.to_string e);
+      failwith "comparison not an integer"
 
 (* The last operation to have been done *)
 let last = ref []

@@ -24,6 +24,29 @@ let caml_register_named_value =
 external unsafe_output_string : out_channel -> string -> int -> int -> unit
                               = "caml_ml_output"
 
+external input_scan_line : in_channel -> int = "caml_ml_input_scan_line"
+
+let caml_ml_input_scan_line =
+  mk "caml_ml_input_scan_line"
+    (function [InChannel i] -> Int (input_scan_line i)
+     | _ -> failwith "caml_ml_input_scan_line")
+
+
+external string_create : int -> string = "caml_create_string"
+
+let caml_create_string =
+  mk "caml_create_string"
+    (function [Int i] -> String (string_create i)
+     | _ -> failwith "caml_create_string")
+
+external unsafe_input : in_channel -> string -> int -> int -> int
+                      = "caml_ml_input"
+
+let caml_ml_input =
+  mk4 "caml_ml_input"
+    (function [InChannel i; String s; Int o; Int l] -> Int (unsafe_input i s o l)
+     | _ -> failwith "caml_ml_input")
+
 let caml_ml_output =
   mk4 ~x1:"o" ~x2:"s" ~x3:"p" ~x4:"l" "caml_ml_output"
     (function
@@ -98,6 +121,25 @@ let percent_array_safe_get =
     (function [Array x; Int i] -> x.(i)
      | _ -> failwith "percent_array_safe_get")
 
+external ignore : 'a -> unit = "%ignore"
+
+let percent_ignore =
+  mk "%ignore"
+    (function [_] -> Unit
+     | _ -> failwith "percent_ignore")
+
+let percent_identity =
+  mk "%identity"
+    (function [x] -> x
+     | _ -> failwith "percent_identity")
+
+external input_char : in_channel -> char = "caml_ml_input_char"
+
+let caml_ml_input_char =
+  mk "caml_ml_input_char"
+    (function [InChannel i] -> Char (input_char i)
+     | _ -> failwith "caml_ml_input_char")
+
 external inet_addr_of_string : string -> Unix.inet_addr
                                     = "unix_inet_addr_of_string"
 
@@ -107,10 +149,22 @@ let unix_inet_addr_of_string =
     (function [String s] -> String (Obj.magic (inet_addr_of_string s))
      | _ -> failwith "unix_inet_addr_of_string")
 
+let caml_int_of_string =
+  mk "caml_int_of_string"
+    (function [String s] -> Int (int_of_string s)
+     | _ -> failwith "caml_int_of_string")
+
 let builtin_primitives = [
   caml_register_named_value;
   caml_ml_output;
+  caml_ml_input;
   caml_format_int;
+  caml_ml_input_scan_line;
+  caml_ml_input_char;
+  caml_int_of_string;
+  caml_create_string;
+  percent_identity;
+  percent_ignore;
   percent_string_length;
   percent_raise;
   percent_raise_notrace;
