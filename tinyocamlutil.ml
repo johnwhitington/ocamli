@@ -81,8 +81,19 @@ let rec underline_redex e =
     | App (f, x) -> App (underline_redex f, x)
     | Seq (a, b) ->
         if is_value a then underline e else Seq (underline_redex a, b)
-    | While _ -> underline e
-    | For _ -> underline e
+    | While (we, we', copy_we, copy_we') ->
+        if not (is_value we) then While (underline_redex we, we', copy_we, copy_we') else
+        if not (is_value we') then While (we, underline_redex we', copy_we, copy_we') else
+          underline e
+    | For (n, fe, updown, fe', fe'', copy_fe'') ->
+        if not (is_value fe) then
+          For (n, underline_redex fe, updown, fe', fe'', copy_fe'')
+        else if not (is_value fe') then
+          For (n, fe, updown, underline_redex fe', fe'', copy_fe'')
+        else if not (is_value fe'') then
+          For (n, fe, updown, fe', underline_redex fe'', copy_fe'')
+        else
+          underline e
     | Var _ -> underline e
     | Record items ->
         underline_first_non_value_ref items;
