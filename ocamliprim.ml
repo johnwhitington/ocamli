@@ -26,19 +26,23 @@ external unsafe_output_string : out_channel -> string -> int -> int -> unit
 
 let caml_ml_output =
   mk4 ~x1:"o" ~x2:"s" ~x3:"p" ~x4:"l" "caml_ml_output"
-    (function [OutChannel o; String s; Int p; Int l] ->
-       unsafe_output_string o s p l;
-       Unit)
+    (function
+      [OutChannel o; String s; Int p; Int l] -> unsafe_output_string o s p l; Unit
+    | _ -> failwith "caml_ml_output")
 
 external format_int : string -> int -> string = "caml_format_int"
 
 let caml_format_int =
   mk2 "caml_format_int"
-    (function [String s; Int i] -> String (format_int s i))
+    (function
+     | [String s; Int i] -> String (format_int s i)
+     | _ -> failwith "caml_format_int")
 
 let percent_string_length =
   mk "%string_length"
-    (function [String e] -> Int (String.length e))
+    (function
+     | [String e] -> Int (String.length e)
+     | _ -> failwith "percent_string_length")
 
 let percent_raise =
   mk "%raise"
@@ -50,40 +54,49 @@ let percent_raise_notrace =
 
 let percent_apply =
   mk2 "%apply"
-    (function [f; a] -> App (f, a))
+    (function [f; a] -> App (f, a)
+     | _ -> failwith "percent_apply")
 
 let percent_revapply =
   mk2 "%revapply"
-    (function [a; f] -> App (f, a))
+    (function [a; f] -> App (f, a)
+     | _ -> failwith "percent_revapply")
 
 let percent_asrint =
   mk2 "%asrint"
-    (function [Int x; Int y] -> Int (x asr y))
+    (function [Int x; Int y] -> Int (x asr y)
+     | _ -> failwith "percent_asrint")
 
 let percent_makemutable =
   mk "%makemutable"
-    (function [e] -> Record [("contents", ref e)]) 
+    (function [e] -> Record [("contents", ref e)]
+     | _ -> failwith "percent_makemutable") 
 
 let percent_field0 =
   mk "%field0"
-    (function [Record [(_, {contents = e})]] -> e)
+    (function [Record [(_, {contents = e})]] -> e
+     | _ -> failwith "percent_field0")
 
 let percent_setfield0 =
   mk2 "%setfield0"
     (function
-      [Record [(_, r)]; e] -> r := e; Unit)
+      [Record [(_, r)]; e] -> r := e; Unit
+     | _ -> failwith "percent_setfield0")
 
 let percent_compare =
   mk2 "%compare"
-    (function [a; b] -> Int (compare a b)) (* Obviously not *) 
+    (function [a; b] -> Int (compare a b)
+     | _ -> failwith "percent_compare") (* Obviously not *) 
 
 let percent_addint =
   mk2 "%addint"
-    (function [Int a; Int b] -> Int (a + b))
+    (function [Int a; Int b] -> Int (a + b)
+     | _ -> failwith "percent_addint")
 
 let percent_array_safe_get =
   mk2 "%array_safe_get"
-    (function [Array x; Int i] -> x.(i))
+    (function [Array x; Int i] -> x.(i)
+     | _ -> failwith "percent_array_safe_get")
 
 external inet_addr_of_string : string -> Unix.inet_addr
                                     = "unix_inet_addr_of_string"
@@ -91,7 +104,8 @@ external inet_addr_of_string : string -> Unix.inet_addr
 (* FIXME This Obj.magic stuff - can we avoid it? *)
 let unix_inet_addr_of_string =
   mk "unix_inet_addr_of_string"
-    (function [String s] -> String (Obj.magic (inet_addr_of_string s)))
+    (function [String s] -> String (Obj.magic (inet_addr_of_string s))
+     | _ -> failwith "unix_inet_addr_of_string")
 
 let builtin_primitives = [
   caml_register_named_value;

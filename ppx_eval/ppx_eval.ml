@@ -4,7 +4,9 @@ open Asttypes
 open Parsetree
 open Longident
 
-let extract_expression [{pstr_desc = Pstr_eval (e, _)}] = e
+let extract_expression = function
+  [{pstr_desc = Pstr_eval (e, _)}] -> e
+| _ -> failwith "ppx_eval: extract_expression"
 
 let compiletime_mapper argv =
   {default_mapper with

@@ -123,7 +123,7 @@ let rec of_real_ocaml_expression_desc env = function
     If (of_real_ocaml env e, of_real_ocaml env e1, None)
 | Pexp_fun (Nolabel, None, pat, exp) ->
     let ocaml_exp = of_real_ocaml env exp in
-    let bound = bound_in_environment env in
+    (*let bound = bound_in_environment env in*)
       (*Printf.printf "%i variables bound in environment\n" (List.length env);*)
       let free_in_exp = free ocaml_exp in
         (*Printf.printf "%i variable free in function\n" (List.length * free_in_exp);*)
@@ -133,7 +133,7 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_fun _ -> failwith "unknown node fun"
 | Pexp_function cases ->
     let cases = List.map (of_real_ocaml_case env) cases in
-      let bound = bound_in_environment env in
+      (*let bound = bound_in_environment env in*)
       let environment = prune_environment (free (Function (cases, []))) env in 
         Function (cases, environment)
 | Pexp_let (r, bindings, e') ->
@@ -269,6 +269,7 @@ and of_real_ocaml_module_type env module_type =
   match module_type.pmty_desc with
     Pmty_signature s ->
       ModTypeSignature (of_real_ocaml_signature env s)
+  | _ -> failwith "of_real_ocaml_module_type"
 
 and of_real_ocaml_module_expr env module_expr =
   match module_expr.pmod_desc with
@@ -280,11 +281,7 @@ and of_real_ocaml_module_expr env module_expr =
   | _ -> failwith "of_real_ocaml_module_expr"
 
 and of_real_ocaml_module_binding env mb =
-  let name =
-    match mb.pmb_name with
-      {txt = x} -> x
-    | _ -> failwith "of_ocaml_module_binding"
-  in
+  let name = mb.pmb_name.txt in
     ModuleBinding (name, of_real_ocaml_module_expr env mb.pmb_expr)
 
 and of_real_ocaml_open_description o =
@@ -369,6 +366,7 @@ and to_real_ocaml_pattern = function
     {ppat_desc = Ppat_constant (Pconst_integer (string_of_int i, None));
      ppat_loc = Location.none;
      ppat_attributes = []}
+| _ -> failwith "to_real_ocaml_pattern"
 
 and to_real_ocaml_binding (pat, t) =
   {pvb_pat = to_real_ocaml_pattern pat;

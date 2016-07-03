@@ -27,6 +27,7 @@ let bound_in_bindings bindings =
 (* True if a variable appears not shadowed. *)
 let rec appears var = function
   Var v when v = var -> true
+| Var _ -> false
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
 | Seq (a, b) | Cons (a, b) | Append (a, b) -> appears var a || appears var b
 | Constr (_, Some x) -> appears var x
@@ -70,7 +71,9 @@ let rec appears var = function
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
 | Assert x -> appears var x
-| Int _ | Bool _ | Var _ | Float _ | Unit
+| Int _ | Bool _ | Float _ | Unit
+| Int32 _ | Int64 _ | NativeInt _ | Char _ | TypeDef _ | Sig _
+| ModuleBinding _ | ModuleConstraint _ | Open _
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 (* True if a) appears unoccluded in the 'when' expression b) appears unoccluded
@@ -215,6 +218,8 @@ let build_lets_from_fenv (fenv : env) e =
 
 let rec eval peek env expr =
   match expr with
+| Open _ -> failwith "open not implemented"
+| Constr (n, Some x) -> Constr (n, Some (eval peek env x))
 | Assert (Bool false) ->
     Raise ("Assert_failure", Some (Tuple [String "//unknown//"; Int 0; Int 0]))
 | Assert (Bool true) -> Unit
@@ -318,18 +323,17 @@ let rec eval peek env expr =
       let p =
         (* add the closure bindings to guard and rhs if not occluded by particular pattern *)
         let (pat, guard, rhs) = p in
-          let patbound = bound_in_pattern pat in
-            let fenv' =
-              Ocamliutil.option_map
-                (fun (recflag, bindings) ->
-                   match filter_bindings pat bindings with
-                     [] -> None
-                   | bs -> Some (recflag, bindings))
-                fenv
-            in
-              (pat,
-               begin match guard with None -> None | Some g -> Some (build_lets_from_fenv fenv' g) end,
-               build_lets_from_fenv fenv' rhs) 
+          let fenv' =
+            Ocamliutil.option_map
+              (fun (recflag, bindings) ->
+                 match filter_bindings pat bindings with
+                   [] -> None
+                 | bs -> Some (recflag, bindings))
+              fenv
+          in
+            (pat,
+             begin match guard with None -> None | Some g -> Some (build_lets_from_fenv fenv' g) end,
+             build_lets_from_fenv fenv' rhs) 
       in
         begin match eval_case peek env x p with (* 1 *)
         | Matched e -> e
@@ -387,6 +391,8 @@ let rec eval peek env expr =
     Struct (b, eval_first_non_value_item peek env [] ls)
 | Tuple ls ->
     Tuple (eval_first_non_value_item peek env [] ls)
+| Array items ->
+    Array (Array.of_list (eval_first_non_value_item peek env [] (Array.to_list items)))
 | Field (Record items, n) -> !(List.assoc n items)
 | Field (e, n) -> Field (eval peek env e, n)
 | SetField (Record items, n, e) ->
@@ -440,7 +446,10 @@ let rec eval peek env expr =
       | FailedToMatch -> Match (x, ps)
       end
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
-| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _ -> failwith "already a value"
+| Int32 _ | Int64 _ | NativeInt _ | Char _
+| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _
+| Constr (_, None)
+| Function _ | Sig _ | ModuleConstraint _ -> failwith "already a value"
 
 and eval_case peek env expr (pattern, guard, rhs) =
   match matches expr pattern rhs with
@@ -539,6 +548,7 @@ let definitions_of_module = function
           LetDef (_, [(PatVar v, def)]) -> Some (v, def)
         | _ -> None) 
       items
+| _ -> failwith "definitions_of_module"
 
 let stdlib_dir =
   let tname = Filename.temp_file "ocaml" "ocamli" in

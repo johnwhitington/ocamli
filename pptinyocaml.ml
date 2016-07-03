@@ -75,6 +75,11 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
+  | Open x ->
+      str lp;
+      boldtxt "open ";
+      txt x;
+      str rp
   | Assert e ->
       str lp;
       boldtxt "assert ";
@@ -104,6 +109,16 @@ let rec print_tiny_inner f isleft parent node =
         txt "\n";
         boldtxt "end"
       end
+  | Sig (sig_items) ->
+      boldtxt "sig \n";
+      let l = List.length sig_items in
+        List.iteri
+          (fun i x ->
+             print_tiny_inner f false (Some node) x;
+             if i < l - 1 then txt "\n\n")
+          sig_items;
+      txt "\n";
+      boldtxt "end"
   | ModuleBinding (n, e) ->
       boldtxt "module ";
       txt n;

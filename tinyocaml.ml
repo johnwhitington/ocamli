@@ -115,6 +115,7 @@ let rec read_untyped v typ =
       Tuple (List.map2 read_untyped (Array.to_list vs) ts)
   | UBlock (0, [|h; t|]), Ptyp_constr ({txt = Longident.Lident "list"}, [elt_typ]) ->
       Cons (read_untyped h elt_typ, read_untyped t typ)
+  | _ -> failwith "read_untyped: unimplemented"
 
 let parse_type typ =
   typ |> Lexing.from_string |> Parse.core_type
@@ -167,6 +168,7 @@ let rec recurse f exp =
       Function (List.map (recurse_case f) patmatch, env)
   | Tuple l -> Tuple (List.map f l)
   | Assert e -> Assert (f e)
+  | Open x -> Open x
 
 and recurse_option f = function
   None -> None
@@ -270,6 +272,8 @@ let rec to_string = function
     Printf.sprintf "CallBuiltIn %s" name
 | Struct l ->
     to_string_struct l
+| Sig l ->
+    to_string_sig l
 | Constr (n, None) ->
     Printf.sprintf "%s" n
 | Constr (n, Some t) ->
@@ -292,6 +296,17 @@ let rec to_string = function
 | Match (e, patmatch) ->
     Printf.sprintf
       "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
+| Open x ->
+    Printf.sprintf "Open (%s)" x
+| ModuleBinding (m, t) ->
+    Printf.sprintf "ModuleBinding (%s, %s)" m (to_string t)
+| ModuleConstraint (modtype, t) ->
+    Printf.sprintf "ModuleConstraint (%s, %s)"
+      (to_string_modtype modtype) (to_string t)
+
+and to_string_modtype = function
+  ModTypeSignature t ->
+    Printf.sprintf "ModTypeSignature (%s)" (to_string t)
 
 and to_string_bindings bs =
   List.fold_left ( ^ ) "" (List.map to_string_binding bs)
@@ -349,6 +364,11 @@ and to_string_record l =
 
 and to_string_struct (b, l) =
   Printf.sprintf "Struct [" ^
+  List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
+  "]"
+
+and to_string_sig l =
+  Printf.sprintf "Sig [" ^
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
   "]"
 

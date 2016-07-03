@@ -111,7 +111,9 @@ let eval s =
     in
       eval_inner state
 
-let extract_expression [{pstr_desc = Pstr_eval (e, _)}] = e
+let extract_expression = function
+  [{pstr_desc = Pstr_eval (e, _)}] -> e
+| _ -> failwith "extract_expression"
 
 (* Structure to structure/expression *)
 let eval_ast structure =
@@ -129,6 +131,7 @@ let eval_ast structure =
 
 let extract_tiny = function
   Tinyocaml.Struct (_, [x]) -> x
+| _ -> failwith "extract_tiny"
 
 (* String to Tinyocaml.t result *)
 let eval_string s =
