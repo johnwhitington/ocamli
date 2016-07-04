@@ -154,7 +154,71 @@ let caml_int_of_string =
     (function [String s] -> Int (int_of_string s)
      | _ -> failwith "caml_int_of_string")
 
+let caml_sys_get_argv =
+  mk "caml_sys_get_argv"
+    (function [Unit] ->
+       Array (Array.map (fun x -> String x) Sys.argv)
+     | _ -> failwith "caml_sys_get_argv")
+
+external get_config: unit -> string * int * bool = "caml_sys_get_config"
+
+let caml_sys_get_config =
+  mk "caml_sys_get_config"
+    (function [Unit] ->
+       let s, i, b = get_config () in
+         Tuple [String s; Int i; Bool b]
+     | _ -> failwith "caml_sys_get_config")
+ 
+external big_endian : unit -> bool = "%big_endian"
+
+let percent_big_endian =
+  mk "%big_endian"
+    (function [Unit] -> Bool (big_endian ())
+     | _ -> failwith "percent_big_endian")
+
+external word_size : unit -> int = "%word_size"
+
+let percent_word_size =
+  mk "%word_size"
+    (function [Unit] -> Int (word_size ())
+     | _ -> failwith "percent_word_size")
+
+external int_size : unit -> int = "%int_size"
+
+let percent_int_size =
+  mk "%int_size"
+    (function [Unit] -> Int (int_size ())
+     | _ -> failwith "percent_int_size")
+
+external unix : unit -> bool = "%ostype_unix"
+external win32 : unit -> bool = "%ostype_win32"
+external cygwin : unit -> bool = "%ostype_cygwin"
+
+let percent_ostype_unix =
+  mk "%ostype_unix"
+    (function [Unit] -> Bool (unix ())
+     | _ -> failwith "percent_ostype_unix")
+
+let percent_ostype_win32 =
+  mk "%ostype_win32"
+    (function [Unit] -> Bool (win32 ())
+     | _ -> failwith "percent_ostype_win32")
+
+let percent_ostype_cygwin =
+  mk "%ostype_cygwin"
+    (function [Unit] -> Bool (cygwin ())
+     | _ -> failwith "percent_ostype_cygwin")
+
+external max_wosize : unit -> int = "%max_wosize"
+
+let percent_max_wosize =
+  mk "%max_wosize"
+    (function [Unit] -> Int (max_wosize ())
+     | _ -> failwith "percent_max_wosize")
+
 let builtin_primitives = [
+  caml_sys_get_argv;
+  caml_sys_get_config;
   caml_register_named_value;
   caml_ml_output;
   caml_ml_input;
@@ -163,6 +227,10 @@ let builtin_primitives = [
   caml_ml_input_char;
   caml_int_of_string;
   caml_create_string;
+  percent_max_wosize;
+  percent_word_size;
+  percent_int_size;
+  percent_big_endian;
   percent_identity;
   percent_ignore;
   percent_string_length;
@@ -177,6 +245,9 @@ let builtin_primitives = [
   percent_compare;
   percent_addint;
   percent_array_safe_get;
+  percent_ostype_unix;
+  percent_ostype_win32;
+  percent_ostype_cygwin;
   unix_inet_addr_of_string;
  (*"%identity"
   "%ignore"

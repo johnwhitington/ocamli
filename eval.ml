@@ -544,12 +544,13 @@ and eval_first_non_value_record_item peek env items =
 
 let definitions_of_module = function
   Struct (_, items) ->
-    Ocamliutil.option_map
-      (fun x ->
-        match x with
-          LetDef (_, [(PatVar v, def)]) -> Some (v, def)
-        | _ -> None) 
-      items
+    List.flatten
+      (List.map
+        (fun x ->
+          match x with
+            LetDef (_, bindings) -> read_bindings bindings
+          | _ -> []) 
+        items)
 | _ -> failwith "definitions_of_module"
 
 let stdlib_dir =
@@ -585,17 +586,17 @@ let load_module name env file =
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
 
-(*let _ =
-  Printf.printf "Got %i definitions from pervasives\n" (List.length
-  stdlib_pervasives)*)
+
 
 let stdlib_modules =
-  [("Unix", "./stdlib", "unix.ml");
-   ("Callback", stdlib_dir, "callback.ml");
+  [(*("Unix", "./stdlib", "unix.ml");*)
+   ("Sys", stdlib_dir, "sys.ml"); 
+   (*("Callback", stdlib_dir, "callback.ml");
    ("Array", stdlib_dir, "array.ml");
    ("List", stdlib_dir, "list.ml");
    ("Pervasives", stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
+
 
 let loadlib () =
   List.fold_right
@@ -606,12 +607,12 @@ let loadlib () =
 
 let lib = ref []
 
-(*let _ =
-  List.iter
-    (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) lib*)
-
 let init x =
   lib := loadlib ();
+  let _ =
+    List.iter
+      (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) !lib
+  in
   Tinyocamlrw.of_real_ocaml x
 
 let init_from_tinyocaml x = x
