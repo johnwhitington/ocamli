@@ -362,7 +362,7 @@ let rec eval peek env expr =
         v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
         failwith "malformed app"
     end
-| App (App _, _) when !fastcurry ->
+| App (App _, _) when !fastcurry && suitable_for_curry expr ->
     (* 3. FIXME: closure-env-fastcurry *)
     eval_curry peek env expr
 | App (f, x) -> App (eval peek env f, x)
@@ -502,6 +502,18 @@ and eval_curry_makelets f args =
   | Fun (a, fexp, fenv), x::xs ->
       Let (false, [a, x], eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
+
+(* For now, we only allow fun -> fun -> fun chains to be fast-curried. Any
+function (i.e pattern match) in the process spoils things. *)
+and suitable_for_curry e =
+  let rec count_apps = function
+    App (e, _) -> let (a, b) = count_apps e in (a + 1, b)
+  | e -> (0, e)
+  in
+    let rec all_funs (n, e) =
+      n = 0 || match e with Fun (_, e', _) -> all_funs (n - 1, e') | _ -> false
+    in
+      all_funs (count_apps e)
 
 and eval_first_non_value_item peek env r = function
   [] -> List.rev r
