@@ -139,17 +139,17 @@ let rec underline_redex e =
   | UnderlineValueUnderLets2 -> underline e
 
 (* 1) Underline the first function which is not a value, if there is one, or else *)
-(* 2) Underline the first argument which is not a value, if there is one, or else *)
+(* 2) Underline the last argument which is not a value, if there is one, or else *)
 (* 3) We are ready to apply, return None. *)
 and underline_curry_inner e =
   match e with
+  | App (f, x) when not (is_value x) -> Some (App (f, underline_redex x))
   | App (App _ as f', x') ->
       begin match underline_curry_inner f' with
         None -> None
       | Some f'' -> Some (App (f'', x'))
       end
   | App (f, x) when not (is_value f) -> Some (App (underline_redex f, x))
-  | App (f, x) when not (is_value x) -> Some (App (f, underline_redex x))
   | _ -> None
 
 and underline_curry e =
