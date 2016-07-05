@@ -68,7 +68,7 @@ and t =
 | If of (t * t * t option)    (* if e then e1 [else e2] *)
 | Let of (bool * binding list * t) (* let x = e [and ...] in e' *)
 | LetDef of (bool * binding list) (* let x = e [and ...] *)
-| TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int *)
+| TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int [and t' = A' | B' of int] *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
 | While of (t * t * t * t)    (* while e do e' done (e, e', copy_of_e copy_of_e') *)

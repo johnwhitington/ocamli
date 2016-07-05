@@ -589,13 +589,13 @@ let load_module name env file =
 
 
 let stdlib_modules =
-  [(*("Unix", "./stdlib", "unix.ml");*)
+  [("Unix", "./stdlib", "unix.ml");
    ("Sys", stdlib_dir, "sys.ml"); 
-   (*("Callback", stdlib_dir, "callback.ml");
+   ("Callback", stdlib_dir, "callback.ml");
    ("Array", stdlib_dir, "array.ml");
    ("List", stdlib_dir, "list.ml");
    ("Pervasives", stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 
 
 let loadlib () =
@@ -609,10 +609,10 @@ let lib = ref []
 
 let init x =
   lib := loadlib ();
-  let _ =
+  (*let _ =
     List.iter
       (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) !lib
-  in
+  in*)
   Tinyocamlrw.of_real_ocaml x
 
 let init_from_tinyocaml x = x

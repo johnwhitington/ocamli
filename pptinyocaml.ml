@@ -346,8 +346,70 @@ let rec print_tiny_inner f isleft parent node =
       | _ -> ()
       end;
       str rp
-  | TypeDef t ->
-      str "TypeDef"
+  | TypeDef (recflag, type_declaration) ->
+      str lp;
+      print_type_declaration f isleft parent type_declaration;
+      str rp
+
+(* Print the list of type declarations type t = ... [and t' = ...] *) 
+and print_type_declaration f isleft parent tds =
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  let first = ref true in
+    List.iter
+      (function td ->
+         if !first then boldtxt "type " else boldtxt "and ";
+         first := false;
+         txt td.ptype_name.txt;
+         txt " =";
+         begin match td.ptype_kind with
+           Ptype_abstract -> ()
+         | Ptype_variant cons_decls ->
+             let first = ref true in
+               List.iter
+                (fun cd ->
+                   if not !first then txt " | " else txt " ";
+                   first := false;
+                   print_constuctor_declaration f isleft parent cd)
+                cons_decls
+         | _ -> failwith "print_type_declaration"
+         end)
+      tds
+
+and print_constuctor_declaration f isleft parent cd =
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  txt cd.pcd_name.txt;
+  begin match cd.pcd_args with
+    Pcstr_tuple ts ->
+      if ts <> [] then boldtxt " of ";
+      let first = ref true in
+      List.iter
+        (fun t ->
+          if not !first then txt " * ";
+          first := false;
+          print_core_type f isleft parent t)
+        ts
+  | _ -> failwith "print_constuctor_declaration"
+  end
+
+and print_core_type f isleft parent t =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+    match t.ptyp_desc with
+      Ptyp_any -> str "_"
+    | Ptyp_var s -> str "'"; str s
+    | Ptyp_arrow (_, c, c') ->
+        print_core_type f isleft parent c;
+        txt " -> ";
+        print_core_type f isleft parent c'
+    | Ptyp_constr (name, ts) ->
+        txt (match name.txt with Longident.Lident x -> x | _ -> failwith "print_core_type")
+    | _ -> failwith "print_core_type2"
 
 (* We can print a list as a literal iff it has a Nil at the end of a series of
 one or more conses. *)
