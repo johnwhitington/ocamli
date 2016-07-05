@@ -598,17 +598,15 @@ let load_module name env file =
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
 
-
-
 let stdlib_modules =
-  [("Unix", "./stdlib", "unix.ml");
+  [(*("Unix", "./stdlib", "unix.ml");*)
    ("Sys", stdlib_dir, "sys.ml"); 
    ("Callback", stdlib_dir, "callback.ml");
+   ("Obj", stdlib_dir, "obj.ml");
    ("Array", stdlib_dir, "array.ml");
    ("List", stdlib_dir, "list.ml");
    ("Pervasives", stdlib_dir, "pervasives.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
-
 
 let loadlib () =
   List.fold_right

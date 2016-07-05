@@ -28,6 +28,7 @@ let rec is_value = function
 | Let (_, bindings, e) when
     List.for_all (fun (_, e) -> is_value e) bindings && is_value e -> true
 | ExceptionDef _ | TypeDef _ | ModuleBinding _ -> true
+| Open _ -> true (* Remove when open fixed *)
 | _ -> false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")

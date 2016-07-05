@@ -87,8 +87,8 @@ type error =
 exception Unix_error of error * string * string
 
 (* FIXME Callback module *)
-(*let _ = Callback.register_exception "Unix.Unix_error"
-                                    (Unix_error(E2BIG, "", ""))*)
+let _ = Callback.register_exception "Unix.Unix_error"
+                                    (Unix_error(E2BIG, "", ""))
 
 external error_message : error -> string = "unix_error_message"
 
