@@ -107,16 +107,14 @@ let print_env env =
     (fun (s, _) -> Printf.printf "%s\n" s)
     env
 
+let really_lookup_value v env =
+  List.assoc v env
+
+(* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
 let lookup_value v env =
-  (*Printf.printf "looking up %s\n" v;
-  print_env env;*)
-  try List.assoc v env with
-    Not_found ->
-      try List.assoc ("Pervasives." ^ v) env with
-        Not_found ->
-          (* Huge bodge. We will introduce proper environments for separate
-           * modules soon *)
-          List.assoc ("List." ^ v) env
+  (*Printf.printf "looking up %s\n" v; print_env env;*)
+  try really_lookup_value v env with
+    Not_found -> really_lookup_value ("Pervasives." ^ v) env
 
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
@@ -206,7 +204,7 @@ let build_let_from_fenv_item e (recflag, bindings) =
 let build_lets_from_fenv (fenv : env) e =
   List.fold_left build_let_from_fenv_item e fenv
 
-let rec eval peek env expr =
+let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
 | Open _ -> failwith "open not implemented"
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))

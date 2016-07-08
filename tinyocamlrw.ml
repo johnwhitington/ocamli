@@ -289,7 +289,7 @@ and of_real_ocaml_open_description o =
     Longident.Lident x -> x
   | _ -> failwith "of_real_ocaml_open_description"
 
-and of_real_ocaml_structure_item env = function
+and of_real_ocaml_structure_item_inner env = function
   (* "1" or "let x = 1 in 2" *)
   {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
   (* let x = 1 *)
@@ -318,6 +318,13 @@ and of_real_ocaml_structure_item env = function
 | {pstr_desc = Pstr_open open_description} ->
      (Some (Open (of_real_ocaml_open_description open_description)), env)
 | _ -> failwith "unknown structure item"
+
+(* Get the structure item and then evaluate its right hand side, effectively
+doing module initilization at parse time *)
+and of_real_ocaml_structure_item env e =
+  match of_real_ocaml_structure_item_inner env e with
+    (None, env) -> (None, env)
+  | (Some e, env) -> (Some e, env) (* (Some (Eval.eval false env e), env) *)
 
 let rec of_real_ocaml env acc = function
   | [] -> List.rev acc

@@ -53,6 +53,8 @@ let load_module name env file =
 
 (* FIXME This needs to reflect the link order of the OCaml standard library, so
 that any module initialisations happen in the correct order. *)
+(* FIXME Once we have the 'open' keyword working, we can use an 'open Pervasives'
+to do pervasives automatically *)
 let stdlib_modules =
   [(*("Unix", "./stdlib", "unix.ml");*)
    ("Sys", stdlib_dir, "sys.ml"); 
