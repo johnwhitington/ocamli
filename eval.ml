@@ -18,9 +18,6 @@ let dopeek = ref true
 
 let docollectunusedlets = ref true
 
-let add_prefix x (y, v) =
-  (x ^ "." ^ y, v)
-
 let bound_in_bindings bindings =
   List.flatten (List.map bound_in_pattern (List.map fst bindings))
 
@@ -202,15 +199,6 @@ let filter_bindings (pat : pattern) (bs : binding list) : binding list =
      | _ -> None)
     bs
 
-let rec read_bindings (bs : binding list) =
-  List.flatten
-    (List.map
-      (function
-        | (PatVar v, e) -> [(v, e)]
-        | (PatTuple ps, Tuple ts) -> read_bindings (List.combine ps ts)
-        | _ -> [])
-      bs)
-
 (* Put all the items in fenv as lets around the expression [e] *)
 let build_let_from_fenv_item e (recflag, bindings) =
   Let (recflag, bindings, e)
@@ -270,7 +258,7 @@ let rec eval peek env expr =
     if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
-      let env' = read_bindings bindings @ env in
+      let env' = Tinyocamlutil.read_bindings bindings @ env in
         (* If e is a function closure, move this Let inside the function (unless
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)
@@ -551,79 +539,9 @@ and eval_first_non_value_record_item peek env items =
   with
     Exit -> ()
 
-(*let pervasives =
-  List.map (add_prefix "Pervasives") Core.pervasives*)
-
-let definitions_of_module = function
-  Struct (_, items) ->
-    List.flatten
-      (List.map
-        (fun x ->
-          match x with
-            LetDef (_, bindings) -> read_bindings bindings
-          | _ -> []) 
-        items)
-| _ -> failwith "definitions_of_module"
-
-let stdlib_dir =
-  let tname = Filename.temp_file "ocaml" "ocamli" in
-    ignore (Sys.command ("ocamlc -config >" ^ tname));
-    let tmp = open_in tname in
-      let line = ref "" in
-        try
-          while true do
-            let s = input_line tmp in
-              if
-                String.length s >= 18 &&
-                String.sub s 0 18 = "standard_library: "
-              then
-                line := s
-          done;
-          assert false
-        with
-          End_of_file ->
-            close_in tmp;
-            Sys.remove tname;
-            if !line <> "" then
-              (Filename.dir_sep ^
-              (String.sub !line 19 (String.length !line - 19)))
-            else
-              raise (Failure "could not find standard library")
-
-(* Load a module from disk *)
-let load_module name env file =
-  if !debug then Printf.printf "Loading module %s...%!" name;
-  let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
-    let themod' = eval false env themod in
-      if !debug then Printf.printf "done\n%!";
-      List.rev (List.map (add_prefix name) (definitions_of_module themod'))
-
-let stdlib_modules =
-  [(*("Unix", "./stdlib", "unix.ml");*)
-   ("Sys", stdlib_dir, "sys.ml"); 
-   ("Callback", stdlib_dir, "callback.ml");
-   ("Obj", stdlib_dir, "obj.ml");
-   ("Array", stdlib_dir, "array.ml");
-   ("List", stdlib_dir, "list.ml");
-   ("Pervasives", stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
-
-let loadlib () =
-  List.fold_right
-    (fun (n, lib, filename) libs ->
-      load_module n libs (Filename.concat lib filename) @ libs)
-    stdlib_modules
-    []
-
 let lib = ref []
 
-let init x =
-  lib := loadlib ();
-  (*let _ =
-    List.iter
-      (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) !lib
-  in*)
-  x
+let init x = x
 
 let init_from_tinyocaml x = x
 

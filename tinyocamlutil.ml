@@ -194,3 +194,11 @@ let rec remove_named_recursive_functions all fns = function
       if all || List.mem n fns then r else Let (true, [(PatVar n, v)], r)
 | x -> Tinyocaml.recurse (remove_named_recursive_functions all fns) x
 
+let rec read_bindings (bs : binding list) =
+  List.flatten
+    (List.map
+      (function
+        | (PatVar v, e) -> [(v, e)]
+        | (PatTuple ps, Tuple ts) -> read_bindings (List.combine ps ts)
+        | _ -> [])
+      bs)

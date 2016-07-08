@@ -2,7 +2,8 @@ open Runeval
 
 let setdebug () =
   Runeval.debug := true;
-  Eval.debug := true
+  Eval.debug := true;
+  Ocamlilib.debug := true
 
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
