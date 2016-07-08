@@ -623,7 +623,7 @@ let init x =
     List.iter
       (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) !lib
   in*)
-  Tinyocamlrw.of_real_ocaml x
+  x
 
 let init_from_tinyocaml x = x
 

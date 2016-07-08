@@ -3,8 +3,8 @@ type t
 
 exception ExceptionRaised of string * Tinyocaml.t option
 
-(* Initialise the evaluator with an OCaml ast *)
-val init : Parsetree.structure -> t
+(* Initialise the evaluator with an ast *)
+val init : Tinyocaml.t -> t
 
 val init_from_tinyocaml : Tinyocaml.t -> t
 

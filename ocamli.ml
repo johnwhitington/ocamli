@@ -99,7 +99,7 @@ let go () =
         printer := "tiny"
       end;
     Pptinyocaml.width := !width;
-    let state = I.init (Ocamliutil.ast code) in
+    let state = I.init (Tinyocamlrw.of_real_ocaml (Ocamliutil.ast code)) in
        if !debugtiny then
          begin
            print_string (Tinyocaml.to_string (I.tiny state));

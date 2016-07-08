@@ -20,7 +20,7 @@ val settext : string -> unit
 module type Evaluator =
   sig
     type t
-    val init : Parsetree.structure -> t
+    val init : Tinyocaml.t -> t
     val next : t -> t Ocamliutil.result
     val tiny : t -> Tinyocaml.t
     val to_string : t -> string
@@ -45,7 +45,7 @@ val skipped : bool ref
 val wait_for_enter : unit -> unit
 val print_string : string -> unit
 val eval : string -> string
-val eval_ast : Parsetree.structure -> Parsetree.expression
+val eval_ast : Tinyocaml.t -> Parsetree.expression
 val eval_string : string -> Tinyocaml.t
 val eval_string_to_ast : string -> Parsetree.expression
 
