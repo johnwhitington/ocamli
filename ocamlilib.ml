@@ -51,6 +51,8 @@ let load_module name env file =
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix name) (definitions_of_module themod'))
 
+(* FIXME This needs to reflect the link order of the OCaml standard library, so
+that any module initialisations happen in the correct order. *)
 let stdlib_modules =
   [(*("Unix", "./stdlib", "unix.ml");*)
    ("Sys", stdlib_dir, "sys.ml"); 
