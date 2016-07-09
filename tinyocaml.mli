@@ -99,6 +99,8 @@ val cmp_of_string : string -> cmp
 
 val to_string : t -> string
 
+val to_string_pat : pattern -> string
+
 val to_ocaml_value : t -> 'a
 
 val of_ocaml_value : 'a -> string -> t

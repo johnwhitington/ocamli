@@ -80,10 +80,14 @@ let loadlib () =
     stdlib_modules
     []
 
-  (*let _ =
-    List.iter
-      (fun (n, v) -> Printf.printf "%s = %s\n" n (Pptinyocaml.to_string v)) !lib
-  in*)
-
 let _ = Eval.lib := loadlib ()
 
+let print_binding (pat, e) =
+  Printf.printf "%s = %s\n" (to_string_pat pat) (Pptinyocaml.to_string e)
+
+let _ =
+  List.iter
+    (fun (recflag, bindings) ->
+      print_string (if recflag then "let:\n" else "let rec:\n");
+      List.iter print_binding bindings)
+    !Eval.lib
