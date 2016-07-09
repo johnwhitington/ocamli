@@ -12,6 +12,3 @@ val remove_named_recursive_functions : bool -> string list -> Tinyocaml.t -> Tin
 
 val fastcurry : bool ref
 
-val read_bindings : Tinyocaml.binding list -> (string * Tinyocaml.t) list
-
-

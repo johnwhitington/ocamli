@@ -1,7 +1,7 @@
 (* The type of the internal state of the evaluator *)
 type t
 
-val lib : (string * Tinyocaml.t) list ref
+val lib : Tinyocaml.env ref
 
 exception ExceptionRaised of string * Tinyocaml.t option
 
@@ -36,5 +36,5 @@ val dopeek : bool ref
 val docollectunusedlets : bool ref
 
 (* for internal use only *)
-val eval : bool -> (string * Tinyocaml.t) list -> Tinyocaml.t -> Tinyocaml.t
+val eval : bool -> Tinyocaml.env -> Tinyocaml.t -> Tinyocaml.t
 

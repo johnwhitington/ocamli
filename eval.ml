@@ -102,13 +102,42 @@ let rec collect_unused_lets = function
          collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
-let print_env env =
+(*let print_env env =
   List.iter
     (fun (s, _) -> Printf.printf "%s\n" s)
-    env
+    env*)
 
-let really_lookup_value v env =
-  List.assoc v env
+(* The environment has type (bool * binding list) list. We return the first
+ * binding found for the name, or raise Not_found *)
+let rec lookup_value_in_binding v b =
+  match b with
+    PatVar v', x when v = v' -> x
+  | PatTuple ps, Tuple vs ->
+      lookup_value_in_bindings v
+        (List.map2 (fun p v -> (p, v)) ps vs)
+  | PatArray ps, Array vs ->
+      lookup_value_in_bindings v
+        (List.map2 (fun p v -> (p, v)) (Array.to_list ps) (Array.to_list vs))
+  (* FIXME: Fill these in. *)
+  (*| PatCons (p, p), Cons (vv, vv') ->
+  | PatAlias (n, p), v ->
+  | PatOr (p, p'), v ->
+  | PatConstr (n, None) ->
+  | PatConstr (n, Some p) ->
+  | PatConstraint (p, _), v' -> lookup_value_in_binding v (p, v') *)
+  | _ -> raise Not_found
+
+and lookup_value_in_bindings v = function
+   [] -> raise Not_found
+ | b::bs ->
+     try lookup_value_in_binding v b with
+       Not_found -> lookup_value_in_bindings v bs
+
+let rec really_lookup_value v = function
+  [] -> raise Not_found
+| (_, bs)::t ->
+    try lookup_value_in_bindings v bs with
+      Not_found -> really_lookup_value v t
 
 (* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
 let lookup_value v env =
@@ -256,7 +285,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
-      let env' = Tinyocamlutil.read_bindings bindings @ env in
+      let env' = (recflag, bindings)::env in
         (* If e is a function closure, move this Let inside the function (unless
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)
@@ -371,7 +400,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | For (v, Int x, ud, e', e'', copy) when is_value e'' ->
     For (v, Int (x + 1), ud, e', copy, copy)
 | For (v, x, ud, e', e'', copy) ->
-    For (v, x, ud, e', eval peek ((v, x)::env) e'', copy)
+    For (v, x, ud, e', eval peek ((false, [(PatVar v, x)])::env) e'', copy)
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
@@ -504,32 +533,25 @@ and suitable_for_curry e =
 and eval_first_non_value_item peek env r = function
   [] -> List.rev r
 | h::t ->
-    let env_entries_of_bindings =
-      Ocamliutil.option_map
-        (function (PatVar x, y) -> Some (x, y) | _ -> None)
-    in
-      if is_value h
-        then
-          let env' =
-            match h with
-              LetDef (_, bs) ->  env_entries_of_bindings bs @ env
-            | _ -> env
-          in
-            eval_first_non_value_item peek env' (h::r) t
-        else List.rev r @ [eval peek env h] @ t
+    if is_value h then
+      let env' = match h with LetDef ld -> ld::env | _ -> env in
+        eval_first_non_value_item peek env' (h::r) t
+    else
+      List.rev r @ [eval peek env h] @ t
 
-and eval_first_non_value_binding peek recflag env r = function
-  [] -> List.rev r
-| (v, e)::t ->
-    let env' =
-      if recflag then
-        match v with PatVar v -> (v, e)::env | _ -> env
-      else env
-    in
-      if is_value e then
+and eval_first_non_value_binding
+  peek recflag (env : (bool * binding list) list) r (bs : binding list)
+=
+  match bs with
+    [] -> List.rev r
+  | (v, e)::t ->
+      let env' =
+        if recflag then (false, [(v, e)])::env else env
+      in
+        if is_value e then
           eval_first_non_value_binding peek recflag env' ((v, e)::r) t
-      else
-        List.rev r @ [(v, eval peek env' e)] @ t
+        else
+          List.rev r @ [(v, eval peek env' e)] @ t
 
 and eval_first_non_value_record_item peek env items =
   try

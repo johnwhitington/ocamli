@@ -5,9 +5,6 @@ open Tinyocaml
 
 let debug = ref false
 
-let add_prefix x (y, v) =
-  (x ^ "." ^ y, v)
-
 let stdlib_dir =
   let tname = Filename.temp_file "ocaml" "ocamli" in
     ignore (Sys.command ("ocamlc -config >" ^ tname));
@@ -35,21 +32,32 @@ let stdlib_dir =
 
 let definitions_of_module = function
   Struct (_, items) ->
-    List.flatten
-      (List.map
-        (fun x ->
-          match x with
-            LetDef (_, bindings) -> Tinyocamlutil.read_bindings bindings
-          | _ -> []) 
-        items)
+    Ocamliutil.option_map
+      (fun x ->
+        match x with
+          LetDef (recflag, bindings) -> Some (recflag, bindings)
+        | _ -> None) 
+      items
 | _ -> failwith "definitions_of_module"
+
+let rec add_prefix_to_pattern f = function
+  PatVar v -> PatVar (f v)
+| PatTuple ps -> PatTuple (List.map (add_prefix_to_pattern f) ps)
+| PatArray ps -> PatArray (Array.map (add_prefix_to_pattern f) ps)
+| x -> x (* FIXME: Fill in the rest *)
+
+let add_prefix_to_binding name (pattern, e) =
+  (add_prefix_to_pattern (fun x -> name ^ "." ^ x) pattern, e)
+
+let add_prefix_to_bindings name (recflag, bindings) =
+  (recflag, List.map (add_prefix_to_binding name) bindings)
 
 let load_module name env file =
   if !debug then Printf.printf "Loading module %s...%!" name;
   let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
     let themod' = Eval.eval false env themod in
       if !debug then Printf.printf "done\n%!";
-      List.rev (List.map (add_prefix name) (definitions_of_module themod'))
+      List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod'))
 
 (* FIXME This needs to reflect the link order of the OCaml standard library, so
 that any module initialisations happen in the correct order. *)
