@@ -65,13 +65,14 @@ that any module initialisations happen in the correct order. *)
 to do pervasives automatically *)
 let stdlib_modules =
   [(*("Unix", "./stdlib", "unix.ml");*)
-   ("Sys", stdlib_dir, "sys.ml"); 
+   (*("Sys", stdlib_dir, "sys.ml"); 
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");
-   ("Array", stdlib_dir, "array.ml");
-   ("List", stdlib_dir, "list.ml");
-   ("Pervasives", stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+   ("Array", stdlib_dir, "array.ml");*)
+   ("List", "./stdlib", "testlist.ml");
+   (*("List", stdlib_dir, "list.ml");
+   ("Pervasives", stdlib_dir, "pervasives.ml");*)
+   (*("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
 
 let loadlib () =
   List.fold_right
@@ -86,8 +87,9 @@ let print_binding (pat, e) =
   Printf.printf "%s = %s\n" (to_string_pat pat) (Pptinyocaml.to_string e)
 
 let _ =
-  List.iter
-    (fun (recflag, bindings) ->
-      print_string (if recflag then "let:\n" else "let rec:\n");
-      List.iter print_binding bindings)
-    !Eval.lib
+  if !debug then
+    List.iter
+      (fun (recflag, bindings) ->
+        print_string (if recflag then "let:\n" else "let rec:\n");
+        List.iter print_binding bindings)
+      !Eval.lib
