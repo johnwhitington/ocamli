@@ -125,16 +125,16 @@ let rec lookup_value_in_binding v b =
   | PatConstr (n, None) ->
   | PatConstr (n, Some p) ->
   | PatConstraint (p, _), v' -> lookup_value_in_binding v (p, v') *)
-  | _ -> Printf.printf "*A%s" v; raise Not_found
+  | _ -> if !debug then Printf.printf "*A%s" v; raise Not_found
 
 and lookup_value_in_bindings v = function
-   [] -> Printf.printf "*B%s" v; raise Not_found
+   [] -> if !debug then Printf.printf "*B%s" v; raise Not_found
  | b::bs ->
      try lookup_value_in_binding v b with
        Not_found -> lookup_value_in_bindings v bs
 
 let rec really_lookup_value v = function
-  [] -> Printf.printf "*C%s" v; raise Not_found
+  [] -> if !debug then Printf.printf "*C%s" v; raise Not_found
 | (_, bs)::t ->
     try lookup_value_in_bindings v bs with
       Not_found -> really_lookup_value v t

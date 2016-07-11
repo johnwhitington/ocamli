@@ -69,10 +69,10 @@ let stdlib_modules =
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");
    ("Array", stdlib_dir, "array.ml");*)
-   ("List", "./stdlib", "testlist.ml");
-   (*("List", stdlib_dir, "list.ml");
-   ("Pervasives", stdlib_dir, "pervasives.ml");*)
-   (*("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
+   (*("List", "./stdlib", "testlist.ml");*)
+   ("List", stdlib_dir, "list.ml");
+   ("Pervasives", stdlib_dir, "pervasives.ml");
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 
 let loadlib () =
   List.fold_right
