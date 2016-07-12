@@ -131,7 +131,7 @@ and lookup_value_in_bindings v = function
 let rec really_lookup_value v = function
   [] -> (*if !debug then Printf.printf "*C%s" v;*) raise Not_found
 | (_, bs)::t ->
-    try lookup_value_in_bindings v bs with
+    try lookup_value_in_bindings v !bs with
       Not_found -> really_lookup_value v t
 
 (* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
@@ -222,11 +222,8 @@ let filter_bindings (pat : pattern) (bs : binding list) : binding list =
     bs
 
 (* Put all the items in fenv as lets around the expression [e] *)
-let build_let_from_fenv_item e (recflag, bindings) =
-  Let (recflag, bindings, e)
-
-let build_lets_from_fenv (fenv : env) e =
-  List.fold_left build_let_from_fenv_item e fenv
+let build_lets_from_fenv fenv e =
+  List.fold_left (fun e (rf, bs) -> Let (rf, !bs, e)) e fenv
 
 let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
@@ -280,7 +277,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
-      let env' = (recflag, bindings)::env in
+      let env' = (recflag, ref bindings)::env in
         (* If e is a function closure, move this Let inside the function (unless
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)
@@ -338,7 +335,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
           let fenv' =
             Ocamliutil.option_map
               (fun (recflag, bindings) ->
-                 match filter_bindings pat bindings with
+                 match filter_bindings pat !bindings with
                    [] -> None
                  | bs -> Some (recflag, bindings))
               fenv
@@ -395,7 +392,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | For (v, Int x, ud, e', e'', copy) when is_value e'' ->
     For (v, Int (x + 1), ud, e', copy, copy)
 | For (v, x, ud, e', e'', copy) ->
-    For (v, x, ud, e', eval peek ((false, [(PatVar v, x)])::env) e'', copy)
+    For (v, x, ud, e', eval peek ((false, ref [(PatVar v, x)])::env) e'', copy)
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
@@ -525,23 +522,23 @@ and suitable_for_curry e =
     in
       all_funs (count_apps e)
 
-and eval_first_non_value_item peek env r = function
+and eval_first_non_value_item peek (env : env) r = function
   [] -> List.rev r
 | h::t ->
     if is_value h then
-      let env' = match h with LetDef ld -> ld::env | _ -> env in
+      let env' = match h with LetDef (rf, bs) -> (rf, ref bs)::env | _ -> env in
         eval_first_non_value_item peek env' (h::r) t
     else
       List.rev r @ [eval peek env h] @ t
 
 and eval_first_non_value_binding
-  peek recflag (env : (bool * binding list) list) r (bs : binding list)
+  peek recflag (env : env) r (bs : binding list)
 =
   match bs with
     [] -> List.rev r
   | (v, e)::t ->
       let env' =
-        if recflag then (false, [(v, e)])::env else env
+        if recflag then (false, ref [(v, e)])::env else env
       in
         if is_value e then
           eval_first_non_value_binding peek recflag env' ((v, e)::r) t

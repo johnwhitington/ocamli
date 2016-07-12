@@ -34,7 +34,7 @@ and case = pattern * t option * t (* pattern, guard, rhs *)
 
 and binding = pattern * t
 
-and env = (bool * binding list) list
+and env = (bool * binding list ref) list
 
 and modtype = (* not final *)
   ModTypeSignature of t

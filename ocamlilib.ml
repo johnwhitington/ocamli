@@ -35,7 +35,7 @@ let definitions_of_module = function
     Ocamliutil.option_map
       (fun x ->
         match x with
-          LetDef (recflag, bindings) -> Some (recflag, bindings)
+          LetDef (recflag, bindings) -> Some (recflag, ref bindings)
         | _ -> None) 
       items
 | _ -> failwith "definitions_of_module"
@@ -50,9 +50,9 @@ let add_prefix_to_binding name (pattern, e) =
   (add_prefix_to_pattern (fun x -> name ^ "." ^ x) pattern, e)
 
 let add_prefix_to_bindings name (recflag, bindings) =
-  (recflag, List.map (add_prefix_to_binding name) bindings)
+  (recflag, ref (List.map (add_prefix_to_binding name) !bindings))
 
-let load_module name env file =
+let load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
   let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
     let themod' = Eval.eval false env themod in
@@ -91,5 +91,5 @@ let showlib () =
     List.iter
       (fun (recflag, bindings) ->
         print_string (if recflag then "let rec:\n" else "let:\n");
-        List.iter print_binding bindings)
+        List.iter print_binding !bindings)
       !Eval.lib

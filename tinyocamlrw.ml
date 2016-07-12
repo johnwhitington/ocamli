@@ -39,9 +39,11 @@ let rec of_real_ocaml_expression_desc env = function
     let cases = List.map (of_real_ocaml_case env) cases in
       Function (cases, env)
 | Pexp_let (r, bindings, e') ->
-    let recflag = r = Recursive
-    and bindings' = List.map (of_real_ocaml_binding env) bindings in
-      let env' = (recflag, bindings')::env in
+    let theref = ref [] in 
+    let recflag = r = Recursive in
+    let bindings' = List.map (of_real_ocaml_binding ((recflag, theref)::env)) bindings in
+      theref := bindings';
+      let env' = (recflag, ref bindings')::env in (* FIXME [ref bindings'] or [theref] here? *)
         Let (recflag, bindings', of_real_ocaml env' e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
@@ -196,9 +198,11 @@ and of_real_ocaml_structure_item_inner env = function
   {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
-     let recflag' = recflag = Recursive
-     and bindings' = List.map (of_real_ocaml_binding env) bindings in
-       let env' = (recflag', bindings')::env in
+     let theref = ref [] in
+     let recflag' = recflag = Recursive in
+     let bindings' = List.map (of_real_ocaml_binding ((recflag', theref)::env)) bindings in
+       theref := bindings';
+       let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
          (Some (LetDef (recflag', bindings')), env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
@@ -208,7 +212,7 @@ and of_real_ocaml_structure_item_inner env = function
 | {pstr_desc = Pstr_primitive value_description} ->
     let n, primitive = of_real_ocaml_primitive value_description in
     let bindings = [(PatVar n, primitive)] in
-    let env' = (false, bindings)::env in
+    let env' = (false, ref bindings)::env in
       (Some (LetDef (false, bindings)), env')
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->

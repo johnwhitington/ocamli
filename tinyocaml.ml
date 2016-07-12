@@ -33,7 +33,7 @@ and case = pattern * t option * t (* pattern, guard, rhs *)
 
 and binding = pattern * t
 
-and env = (bool * binding list) list
+and env = (bool * binding list ref) list
 
 and modtype = (* not final *)
   ModTypeSignature of t
@@ -375,7 +375,7 @@ and to_string_sig l =
   
 and to_string_env env =
   let strings = 
-    List.map (fun (recflag, bs) -> Printf.sprintf "(%b, %s)\n" recflag (to_string_bindings bs)) env
+    List.map (fun (recflag, bs) -> Printf.sprintf "(%b, %s)\n" recflag (to_string_bindings !bs)) env
   in
     Printf.sprintf "Env [" ^ List.fold_left ( ^ ) "" strings ^ "]"
 
