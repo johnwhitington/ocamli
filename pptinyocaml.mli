@@ -10,3 +10,5 @@ val width : int ref
 
 val fastcurry : bool ref
 
+val debug : bool ref
+

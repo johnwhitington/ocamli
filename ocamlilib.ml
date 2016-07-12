@@ -69,10 +69,10 @@ let stdlib_modules =
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");
    ("Array", stdlib_dir, "array.ml");*)
-   (*("List", "./stdlib", "testlist.ml");*)
-   ("List", stdlib_dir, "list.ml");
-   ("Pervasives", stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+   ("List", "./stdlib", "testlist.ml");
+   (*("List", stdlib_dir, "list.ml");*)
+   (*("Pervasives", stdlib_dir, "pervasives.ml");
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
 
 let loadlib () =
   List.fold_right
@@ -86,10 +86,10 @@ let _ = Eval.lib := loadlib ()
 let print_binding (pat, e) =
   Printf.printf "%s = %s\n" (to_string_pat pat) (Pptinyocaml.to_string e)
 
-let _ =
+let showlib () =
   if !debug then
     List.iter
       (fun (recflag, bindings) ->
-        print_string (if recflag then "let:\n" else "let rec:\n");
+        print_string (if recflag then "let rec:\n" else "let:\n");
         List.iter print_binding bindings)
       !Eval.lib

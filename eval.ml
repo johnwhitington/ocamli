@@ -102,11 +102,6 @@ let rec collect_unused_lets = function
          collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
 
-(*let print_env env =
-  List.iter
-    (fun (s, _) -> Printf.printf "%s\n" s)
-    env*)
-
 (* The environment has type (bool * binding list) list. We return the first
  * binding found for the name, or raise Not_found *)
 let rec lookup_value_in_binding v b =
@@ -125,23 +120,23 @@ let rec lookup_value_in_binding v b =
   | PatConstr (n, None) ->
   | PatConstr (n, Some p) ->
   | PatConstraint (p, _), v' -> lookup_value_in_binding v (p, v') *)
-  | _ -> if !debug then Printf.printf "*A%s" v; raise Not_found
+  | _ -> (*if !debug then Printf.printf "*A%s" v;*) raise Not_found
 
 and lookup_value_in_bindings v = function
-   [] -> if !debug then Printf.printf "*B%s" v; raise Not_found
+   [] -> (*if !debug then Printf.printf "*B%s" v;*) raise Not_found
  | b::bs ->
      try lookup_value_in_binding v b with
        Not_found -> lookup_value_in_bindings v bs
 
 let rec really_lookup_value v = function
-  [] -> if !debug then Printf.printf "*C%s" v; raise Not_found
+  [] -> (*if !debug then Printf.printf "*C%s" v;*) raise Not_found
 | (_, bs)::t ->
     try lookup_value_in_bindings v bs with
       Not_found -> really_lookup_value v t
 
 (* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
 let lookup_value v env =
-  (*Printf.printf "looking up %s\n" v; print_env env;*)
+  (*Printf.printf "looking up %s\n" v; print_string (to_string_env env);*)
   try really_lookup_value v env with
     Not_found -> really_lookup_value ("Pervasives." ^ v) env
 

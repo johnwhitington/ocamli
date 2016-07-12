@@ -2,6 +2,8 @@ open Tinyocaml
 open Asttypes
 open Parsetree
 
+let debug = ref true
+
 (* Use bold and underlining *)
 let syntax = ref true
 
@@ -262,7 +264,13 @@ let rec print_tiny_inner f isleft parent node =
            print_tiny_inner f false (Some node) e)
         bindings;
       str rp
-  | Fun fn ->
+  | Fun ((fpat, fexp, fenv) as fn) ->
+      if !debug then
+        begin
+          txt "|E|";
+          txt (to_string_env fenv);
+          txt "|E|"
+        end;
       print_series_of_funs lp rp f true (Some node) (Fun fn)
   | App (e, e') ->
       str lp;

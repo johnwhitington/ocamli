@@ -120,3 +120,7 @@ val bound_in_pattern : pattern -> string list
 
 val string_of_longident : Longident.t -> string
 
+val to_string_bindings : binding list -> string
+
+val to_string_env : env -> string
+

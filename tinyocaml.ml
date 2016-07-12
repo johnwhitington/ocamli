@@ -240,7 +240,8 @@ let rec to_string = function
     Printf.sprintf "%s (%s)"
       (if recflag then "LetDefRec" else "LetDef") (to_string_bindings bindings)
 | Fun (fname, fexp, fenv) ->
-    Printf.sprintf "Fun (%s, %s)" (to_string_pat fname) (to_string fexp)
+    Printf.sprintf "Fun (%s, %s, %s)"
+      (to_string_pat fname) (to_string fexp) (to_string_env fenv)
 | App (e, e') ->
     Printf.sprintf "App (%s, %s)" (to_string e) (to_string e')
 | Seq (e, e') ->
@@ -371,6 +372,12 @@ and to_string_sig l =
   Printf.sprintf "Sig [" ^
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
   "]"
+  
+and to_string_env env =
+  let strings = 
+    List.map (fun (recflag, bs) -> Printf.sprintf "(%b, %s)\n" recflag (to_string_bindings bs)) env
+  in
+    Printf.sprintf "Env [" ^ List.fold_left ( ^ ) "" strings ^ "]"
 
 let rec dots_between = function
   [] -> ""

@@ -3,7 +3,8 @@ open Runeval
 let setdebug () =
   Runeval.debug := true;
   Eval.debug := true;
-  Ocamlilib.debug := true
+  Ocamlilib.debug := true;
+  Pptinyocaml.debug := true
 
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
@@ -42,6 +43,7 @@ let go () =
     I.fastcurry := !fastcurry;
     Tinyocamlutil.fastcurry := !fastcurry;
     Pptinyocaml.fastcurry := !fastcurry;
+  Ocamlilib.showlib ();
   let rec really_run first state =
     if !prompt then wait_for_enter ();
     Unix.sleepf !step;
