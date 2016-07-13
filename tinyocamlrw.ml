@@ -14,7 +14,7 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_constant (Pconst_string (s, None)) -> String s
 | Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
 | Pexp_construct ({txt = Lident "()"}, _) -> Unit
-| Pexp_construct ({txt = Lident "true"}, _) -> Bool true
+| Pexp_construct ({txt = Lident "true"}, _) -> Bool true (*FIXME what if it's redefined? Also false, Nil, :: etc. *)
 | Pexp_construct ({txt = Lident "false"}, _) -> Bool false
 | Pexp_construct ({txt = Lident "[]"}, _) -> Nil
 | Pexp_construct ({txt = Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
@@ -23,7 +23,7 @@ let rec of_real_ocaml_expression_desc env = function
     Constr (x, None)
 | Pexp_construct ({txt = Lident x}, Some e) ->
     Constr (x, Some (of_real_ocaml env e))
-| Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout
+| Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
 | Pexp_ident {txt = v} -> Var (Tinyocaml.string_of_longident v)
@@ -193,7 +193,7 @@ and of_real_ocaml_open_description o =
     Longident.Lident x -> x
   | _ -> failwith "of_real_ocaml_open_description"
 
-and of_real_ocaml_structure_item_inner env = function
+and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
   {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
   (* let x = 1 *)
@@ -224,13 +224,6 @@ and of_real_ocaml_structure_item_inner env = function
 | {pstr_desc = Pstr_open open_description} ->
      (Some (Open (of_real_ocaml_open_description open_description)), env)
 | _ -> failwith "unknown structure item"
-
-(* Get the structure item and then evaluate its right hand side, effectively
-doing module initilization at parse time *)
-and of_real_ocaml_structure_item env e =
-  match of_real_ocaml_structure_item_inner env e with
-    (None, env) -> (None, env)
-  | (Some e, env) -> (Some e, env) (* (Some (Eval.eval false env e), env) *)
 
 let rec of_real_ocaml env acc = function
   | [] -> List.rev acc

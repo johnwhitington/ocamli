@@ -382,7 +382,7 @@ and print_type_declaration f isleft parent tds =
                    first := false;
                    print_constuctor_declaration f isleft parent cd)
                 cons_decls
-         | _ -> failwith "print_type_declaration"
+         | _ -> txt "print_type_declaration not known\n"
          end)
       tds
 
@@ -402,7 +402,7 @@ and print_constuctor_declaration f isleft parent cd =
           first := false;
           print_core_type f isleft parent t)
         ts
-  | _ -> failwith "print_constuctor_declaration"
+  | _ -> txt "print_constuctor_declaration unknown"
   end
 
 and print_core_type f isleft parent t =
@@ -416,8 +416,8 @@ and print_core_type f isleft parent t =
         txt " -> ";
         print_core_type f isleft parent c'
     | Ptyp_constr (name, ts) ->
-        txt (match name.txt with Longident.Lident x -> x | _ -> failwith "print_core_type")
-    | _ -> failwith "print_core_type2"
+        txt (match name.txt with Longident.Lident x -> x | _ -> "print_core_type unknwn")
+    | _ -> txt "print_core_type2 unknwn"
 
 (* We can print a list as a literal iff it has a Nil at the end of a series of
 one or more conses. *)

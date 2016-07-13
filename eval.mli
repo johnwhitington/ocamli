@@ -36,5 +36,5 @@ val dopeek : bool ref
 val docollectunusedlets : bool ref
 
 (* for internal use only *)
-val eval : bool -> Tinyocaml.env -> Tinyocaml.t -> Tinyocaml.t
+val eval_until_value : bool -> Tinyocaml.env -> Tinyocaml.t -> Tinyocaml.t
 

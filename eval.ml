@@ -458,7 +458,8 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Int32 _ | Int64 _ | NativeInt _ | Char _
 | InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _
 | Constr (_, None)
-| Function _ | Sig _ | ModuleConstraint _ -> failwith "already a value"
+| Function _ | Sig _ | ModuleConstraint _ ->
+    failwith ("already a value: " ^ (Pptinyocaml.to_string expr))
 
 and eval_case peek env expr (pattern, guard, rhs) =
   match matches expr pattern rhs with
@@ -569,6 +570,12 @@ let next e =
       Printf.printf "Error in Eval.next %s\n" (Printexc.to_string x);
       if !debug then raise Exit;
       Malformed "environment"
+
+let rec eval_until_value peek env e =
+  if is_value e then e else
+    let e = collect_unused_lets e in
+      try eval_until_value peek env (eval peek env e) with
+        x -> Printf.printf "Failed: %s\n" (Pptinyocaml.to_string e); raise x
 
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 

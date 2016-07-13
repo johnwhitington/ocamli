@@ -216,7 +216,35 @@ let percent_max_wosize =
     (function [Unit] -> Int (max_wosize ())
      | _ -> failwith "percent_max_wosize")
 
+let percent_lsrint =
+  mk2 "%lsrint"
+    (function [Int a; Int b] -> Int (a lsr b)
+     | l -> failwith "percent_lsrint")
+
+external float_of_bits : int64 -> float = "caml_int64_float_of_bits"
+
+let caml_int64_float_of_bits =
+  mk "caml_int64_float_of_bits"
+    (function [Int64 i] -> Float (float_of_bits i)
+     | _ -> failwith "caml_int64_float_of_bits")
+
+external open_descriptor_out : int -> out_channel
+                             = "caml_ml_open_descriptor_out"
+external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"
+
+let caml_ml_open_descriptor_out =
+  mk "caml_ml_open_descriptor_out"
+    (function [Int i] -> OutChannel (open_descriptor_out i)
+     | _ -> failwith "caml_ml_open_descriptor_out")
+
+let caml_ml_open_descriptor_in =
+  mk "caml_ml_open_descriptor_in"
+    (function [Int i] -> InChannel (open_descriptor_in i)
+     | _ -> failwith "caml_ml_open_descriptor_in")
+
 let builtin_primitives = [
+  caml_ml_open_descriptor_in;
+  caml_ml_open_descriptor_out;
   caml_sys_get_argv;
   caml_sys_get_config;
   caml_register_named_value;
@@ -227,6 +255,7 @@ let builtin_primitives = [
   caml_ml_input_char;
   caml_int_of_string;
   caml_create_string;
+  caml_int64_float_of_bits;
   percent_max_wosize;
   percent_word_size;
   percent_int_size;
@@ -248,6 +277,7 @@ let builtin_primitives = [
   percent_ostype_unix;
   percent_ostype_win32;
   percent_ostype_cygwin;
+  percent_lsrint;
   unix_inet_addr_of_string;
  (*"%identity"
   "%ignore"
