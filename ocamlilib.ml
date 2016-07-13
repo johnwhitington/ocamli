@@ -66,6 +66,7 @@ to do pervasives automatically *)
 let stdlib_modules =
   [(*("Foo", "./stdlib", "foo.ml");*)
    (*("Unix", "./stdlib", "unix.ml");*)
+   ("CamlinternalFormat", "./stdlib", "camlinternalFormat.ml");
    ("Sys", stdlib_dir, "sys.ml");
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");

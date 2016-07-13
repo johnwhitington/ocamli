@@ -302,7 +302,7 @@ let char_of_counter counter = match counter with
 (***)
 
 (* Print a char_set in a buffer with the OCaml format lexical convention. *)
-let bprint_char_set buf char_set =
+(*let bprint_char_set buf char_set =
   let rec print_start set =
     let is_alone c =
       let before, after = Char.(chr (code c - 1), chr (code c + 1)) in
@@ -2955,4 +2955,4 @@ let format_of_string_format str (Format (fmt', str')) =
   try Format (type_format fmt (fmtty_of_fmt fmt'), str)
   with Type_mismatch ->
     failwith_message
-      "bad input: format type mismatch between %S and %S" str str'
+      "bad input: format type mismatch between %S and %S" str str'*)
