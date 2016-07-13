@@ -1,14 +1,9 @@
 (* Uses the tiny-ocaml simple AST *)
 open Tinyocaml
 open Ocamliutil
+open Tinyocamlutil
 
 type t = Tinyocaml.t
-
-let calc = Tinyocamlutil.calc
-
-let comp = Tinyocamlutil.comp
-
-let is_value = Tinyocamlutil.is_value
 
 let debug = ref false
 
@@ -25,6 +20,7 @@ let bound_in_bindings bindings =
 let rec appears var = function
   Var v when v = var -> true
 | Var _ -> false
+| Open (_, t) -> appears var t
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
 | Seq (a, b) | Cons (a, b) | Append (a, b) -> appears var a || appears var b
 | Constr (_, Some x) -> appears var x
@@ -70,7 +66,7 @@ let rec appears var = function
 | Assert x -> appears var x
 | Int _ | Bool _ | Float _ | Unit
 | Int32 _ | Int64 _ | NativeInt _ | Char _ | TypeDef _ | Sig _
-| ModuleBinding _ | ModuleConstraint _ | Open _
+| ModuleBinding _ | ModuleConstraint _
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 (* True if a) appears unoccluded in the 'when' expression b) appears unoccluded
@@ -225,9 +221,47 @@ let filter_bindings (pat : pattern) (bs : binding list) : binding list =
 let build_lets_from_fenv fenv e =
   List.fold_left (fun e (rf, bs) -> Let (rf, !bs, e)) e fenv
 
+(* Find any items in the environment beginning with 'n', strip the name, and
+duplicate them at the top of the environment. *)
+let begins_with n s =
+  String.length n <= String.length s &&
+  n = String.sub s 0 (String.length n)
+
+let rec pattern_begins_with n = function
+  PatVar s when begins_with n s -> true
+| PatTuple ts when List.for_all (pattern_begins_with n) ts -> true
+| _ -> false
+
+let binding_begins_with n (p, e) =
+  pattern_begins_with n p
+
+let bindings_beginning_with n env =
+  Ocamliutil.option_map
+    (fun (recflag, bindings) ->
+      if List.for_all (binding_begins_with n) !bindings
+        then Some (recflag, bindings)
+        else None)
+    env
+
+let cut n s =
+  String.sub s (String.length n + 1) (String.length s - String.length n - 1)
+
+let rec strip_pattern n = function
+  PatVar s -> PatVar (cut n s)
+| PatTuple ts -> PatTuple (List.map (strip_pattern n) ts)
+| _ -> failwith "implement strip_pattern"
+
+let strip_binding n (p, e) = (strip_pattern n p, e)
+
+let strip_bindings n (recflag, bs) =
+  (recflag, ref (List.map (strip_binding n) !bs))
+
+let open_module n env =
+  List.map (strip_bindings n) (bindings_beginning_with n env) @ env
+
 let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
-| Open _ -> failwith "open not implemented"
+| Open (n, e) -> Open (n, eval peek (open_module n env) e)
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))
 | Assert (Bool false) ->
     Raise ("Assert_failure", Some (Tuple [String "//unknown//"; Int 0; Int 0]))

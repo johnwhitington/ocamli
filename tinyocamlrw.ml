@@ -4,6 +4,11 @@ open Tinyocaml
 
 exception UnknownNode of string
 
+type structitem =
+  ItemNone
+| Item of t
+| ItemOpen of string
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -156,7 +161,7 @@ and of_real_ocaml_primitive p =
   let n = p.pval_name.txt in
     (n, Ocamliprim.lookup_primitive (List.hd p.pval_prim))
 
-and of_real_ocaml_structure env s =
+(*and of_real_ocaml_structure env s =
   (* FIXME env *)
   let items =
     List.map (of_real_ocaml_structure_item env) s
@@ -164,7 +169,7 @@ and of_real_ocaml_structure env s =
     let final =
       Ocamliutil.option_map (fun x -> x) (List.map fst items)
     in
-      Struct (true, final)
+      Struct (true, final)*)
 
 and of_real_ocaml_signature env s =
   Sig []
@@ -177,7 +182,7 @@ and of_real_ocaml_module_type env module_type =
 
 and of_real_ocaml_module_expr env module_expr =
   match module_expr.pmod_desc with
-    Pmod_structure s -> of_real_ocaml_structure env s
+    Pmod_structure s -> Struct (true, of_real_ocaml_structure env [] s)
   | Pmod_constraint (module_expr, module_type) ->
       ModuleConstraint
         (of_real_ocaml_module_type env module_type,
@@ -195,7 +200,7 @@ and of_real_ocaml_open_description o =
 
 and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
-  {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
+  {pstr_desc = Pstr_eval (e, _)} -> (Item (of_real_ocaml env e), env)
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
      let theref = ref [] in
@@ -203,37 +208,40 @@ and of_real_ocaml_structure_item env = function
      let bindings' = List.map (of_real_ocaml_binding ((recflag', theref)::env)) bindings in
        theref := bindings';
        let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
-         (Some (LetDef (recflag', bindings')), env')
+         (Item (LetDef (recflag', bindings')), env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
-     (Some (ExceptionDef (txt, t)), env)
-| {pstr_desc = Pstr_attribute _} -> (None, env)
+     (Item (ExceptionDef (txt, t)), env)
+  (* top level attribute *)
+| {pstr_desc = Pstr_attribute _} -> (ItemNone, env)
   (* external n : t = "fn" *)
 | {pstr_desc = Pstr_primitive value_description} ->
     let n, primitive = of_real_ocaml_primitive value_description in
     let bindings = [(PatVar n, primitive)] in
     let env' = (false, ref bindings)::env in
-      (Some (LetDef (false, bindings)), env')
+      (Item (LetDef (false, bindings)), env')
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
-     (Some (TypeDef (recflag == Recursive, typedecls)), env)
+     (Item (TypeDef (recflag == Recursive, typedecls)), env)
   (* module M = ... *)
 | {pstr_desc = Pstr_module module_binding} ->
-     (Some (of_real_ocaml_module_binding env module_binding), env)
+     (Item (of_real_ocaml_module_binding env module_binding), env)
   (* open M *)
 | {pstr_desc = Pstr_open open_description} ->
-     (Some (Open (of_real_ocaml_open_description open_description)), env)
+     (ItemOpen (of_real_ocaml_open_description open_description), env)
 | _ -> failwith "unknown structure item"
 
-let rec of_real_ocaml env acc = function
+and of_real_ocaml_structure env acc = function
   | [] -> List.rev acc
   | s::ss ->
       match of_real_ocaml_structure_item env s with
-        (None, _) -> of_real_ocaml env acc ss
-      | (Some s, env') -> of_real_ocaml env' (s::acc) ss
+        (ItemNone, _) -> of_real_ocaml_structure env acc ss
+      | (Item s, env') -> of_real_ocaml_structure env' (s::acc) ss
+      | (ItemOpen s, env') ->
+          List.rev (Open (s, Struct (false, of_real_ocaml_structure env' acc ss))::acc)
 
 let of_real_ocaml x =
-  Struct (false, of_real_ocaml [] [] x)
+  Struct (false, of_real_ocaml_structure [] [] x)
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function

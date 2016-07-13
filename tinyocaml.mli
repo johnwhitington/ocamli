@@ -87,7 +87,7 @@ and t =
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
 | Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
-| Open of string
+| Open of (string * t)
 
 val string_of_op : op -> string
 

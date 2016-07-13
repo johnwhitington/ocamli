@@ -87,7 +87,7 @@ and t =
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
-| Open of string              (* open Unix *)
+| Open of (string * t)   (* open Unix followed by other things. *)
 
 (* The type of OCaml values in memory *)
 type untyped_ocaml_value =
@@ -297,8 +297,8 @@ let rec to_string = function
 | Match (e, patmatch) ->
     Printf.sprintf
       "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
-| Open x ->
-    Printf.sprintf "Open (%s)" x
+| Open (x, e) ->
+    Printf.sprintf "Open (%s, %s)" x (to_string e)
 | ModuleBinding (m, t) ->
     Printf.sprintf "ModuleBinding (%s, %s)" m (to_string t)
 | ModuleConstraint (modtype, t) ->

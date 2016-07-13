@@ -1,4 +1,5 @@
-open List
+open Sys
 
-let x = sort compare [1; 3; 2]
+let x = argv
+
 
