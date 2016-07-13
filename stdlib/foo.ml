@@ -1,4 +1,4 @@
-let f a b = (a + 1, b + 2)
+external get_argv: unit -> string * string array = "caml_sys_get_argv"
 
-let x, y = f 2 3
+let (executable_name, argv) = get_argv()
 

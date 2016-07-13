@@ -154,10 +154,13 @@ let caml_int_of_string =
     (function [String s] -> Int (int_of_string s)
      | _ -> failwith "caml_int_of_string")
 
+external get_argv: unit -> string * string array = "caml_sys_get_argv"
+
 let caml_sys_get_argv =
   mk "caml_sys_get_argv"
     (function [Unit] ->
-       Array (Array.map (fun x -> String x) Sys.argv)
+       let exe, args = get_argv () in
+         Tuple [String exe; Array (Array.map (fun x -> String x) args)]
      | _ -> failwith "caml_sys_get_argv")
 
 external get_config: unit -> string * int * bool = "caml_sys_get_config"

@@ -333,7 +333,8 @@ and to_string_pat = function
 | PatCharRange (c, c') -> Printf.sprintf "%C .. %C" c c'
 | PatString s -> "\"" ^ String.escaped s ^ "\""
 | PatUnit -> "()"
-| PatTuple _ -> "PatTuple"
+| PatTuple items ->
+    "PatTuple (" ^ List.fold_left ( ^ ) "" (List.map to_string_pat items) ^ ")"
 | PatNil -> "[]"
 | PatCons _ -> "PatCons"
 | PatAlias _ -> "PatAlias"

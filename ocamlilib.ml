@@ -54,7 +54,7 @@ let add_prefix_to_bindings name (recflag, bindings) =
 
 let load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
-  let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
+  let themod = Tinyocamlrw.of_real_ocaml (Ocamliutil.ast (load_file file)) in
     let themod' = Eval.eval_until_value false env themod in (* <-- module initialisation *)
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod'))
@@ -64,12 +64,12 @@ that any module initialisations happen in the correct order. *)
 (* FIXME Once we have the 'open' keyword working, we can use an 'open Pervasives'
 to do pervasives automatically *)
 let stdlib_modules =
-  [(*("Unix", "./stdlib", "unix.ml");*)
+  [(*("Foo", "./stdlib", "foo.ml");*)
+   (*("Unix", "./stdlib", "unix.ml");*)
    ("Sys", stdlib_dir, "sys.ml");
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");
    ("Array", stdlib_dir, "array.ml");
-   (*("Foo", "./stdlib", "foo.ml");*)
    ("List", stdlib_dir, "list.ml");
    ("Pervasives", stdlib_dir, "pervasives.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
