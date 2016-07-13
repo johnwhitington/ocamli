@@ -2,7 +2,7 @@ open Tinyocaml
 open Asttypes
 open Parsetree
 
-let debug = ref true
+let debug = ref false
 
 (* Use bold and underlining *)
 let syntax = ref true

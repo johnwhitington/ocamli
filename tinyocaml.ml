@@ -315,6 +315,13 @@ and to_string_bindings bs =
 and to_string_binding (pat, e) =
   Printf.sprintf "%s = %s\n" (to_string_pat pat) (to_string e)
 
+(* Just the names, because otherwise recursive bindings could never print... *)
+and to_string_binding_names (pat, e) =
+  Printf.sprintf "%s = ...\n" (to_string_pat pat)
+
+and to_string_bindings_names bs =
+  List.fold_left ( ^ ) "" (List.map to_string_binding_names bs)
+
 and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
@@ -375,7 +382,7 @@ and to_string_sig l =
   
 and to_string_env env =
   let strings = 
-    List.map (fun (recflag, bs) -> Printf.sprintf "(%b, %s)\n" recflag (to_string_bindings !bs)) env
+    List.map (fun (recflag, bs) -> Printf.sprintf "(%b, %s)\n" recflag (to_string_bindings_names !bs)) env
   in
     Printf.sprintf "Env [" ^ List.fold_left ( ^ ) "" strings ^ "]"
 
