@@ -30,6 +30,8 @@ let stdlib_dir =
             else
               raise (Failure "could not find standard library")
 
+(* Read the definitions from a loaded module, so they can be put into the
+environment. *)
 let definitions_of_module = function
   Struct (_, items) ->
     Ocamliutil.option_map
@@ -66,7 +68,9 @@ to do pervasives automatically *)
 let stdlib_modules =
   [(*("Foo", "./stdlib", "foo.ml");*)
    (*("Unix", "./stdlib", "unix.ml");*)
-   ("CamlinternalFormat", "./stdlib", "camlinternalFormat.ml");
+   ("Printexc", "./stdlib", "printexc.ml");
+   ("Printf", stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work *)
+   ("CamlinternalFormat", "./stdlib", "camlinternalFormat.ml"); (* FIXME Char.(......) local opens *)
    ("Sys", stdlib_dir, "sys.ml");
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");

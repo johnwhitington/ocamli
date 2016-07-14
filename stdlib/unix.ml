@@ -93,7 +93,7 @@ let _ = Callback.register_exception "Unix.Unix_error"
 external error_message : error -> string = "unix_error_message"
 
 (* FIXME Printexc module *)
-(*let () =
+let () =
   Printexc.register_printer
     (function
       | Unix_error (e, s, s') ->
@@ -168,7 +168,7 @@ external error_message : error -> string = "unix_error_message"
           | EOVERFLOW -> "EOVERFLOW"
           | EUNKNOWNERR x -> Printf.sprintf "EUNKNOWNERR %d" x in
           Some (Printf.sprintf "Unix.Unix_error(Unix.%s, %S, %S)" msg s s')
-      | _ -> None)*)
+      | _ -> None)
 
 (* FIXME: arrays *)
 let handle_unix_error f arg =

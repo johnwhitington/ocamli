@@ -1,3 +1,3 @@
-open List
+let (exn : exn) = Not_found in exn
 
-let x = map
+

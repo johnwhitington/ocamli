@@ -109,13 +109,12 @@ let rec lookup_value_in_binding v b =
   | PatArray ps, Array vs ->
       lookup_value_in_bindings v
         (List.map2 (fun p v -> (p, v)) (Array.to_list ps) (Array.to_list vs))
-  (* FIXME: Fill these in. *)
+  | PatConstraint (p, _), data -> lookup_value_in_binding v (p, data)
   (*| PatCons (p, p), Cons (vv, vv') ->
   | PatAlias (n, p), v ->
   | PatOr (p, p'), v ->
   | PatConstr (n, None) ->
-  | PatConstr (n, Some p) ->
-  | PatConstraint (p, _), v' -> lookup_value_in_binding v (p, v') *)
+  | PatConstr (n, Some p) -> *)
   | _ -> (*if !debug then Printf.printf "*A%s" v;*) raise Not_found
 
 and lookup_value_in_bindings v = function
@@ -165,6 +164,7 @@ let rec matches expr pattern rhs =
   let no = None in
     match expr, pattern with
       _, PatAny -> yes
+    | x, PatConstraint (p, _) -> matches x p rhs
     | Unit, PatUnit -> yes
     | Int i, PatInt i' when i = i' -> yes
     | Int32 i, PatInt32 i' when i = i' -> yes
@@ -458,7 +458,9 @@ let rec eval peek (env : Tinyocaml.env) expr =
       else CallBuiltIn (name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
     begin try lookup_value v env with
-      Not_found -> failwith (Printf.sprintf "Var %s not found" v)
+      Not_found ->
+        print_string (to_string_env env);
+        failwith (Printf.sprintf "Var %s not found" v)
     end
 | Cons (x, y) ->
     if is_value x then

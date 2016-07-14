@@ -247,7 +247,24 @@ let caml_ml_open_descriptor_in =
     (function [Int i] -> InChannel (open_descriptor_in i)
      | _ -> failwith "caml_ml_open_descriptor_in")
 
+let caml_obj_tag =
+  mk "caml_obj_tag"
+    (function _ -> Int 0)
+
+let percent_obj_field =
+  mk2 "%obj_field"
+    (function [e; Int i] -> e
+     | _ -> failwith "percent_obj_field") 
+
+let caml_obj_block =
+  mk2 "caml_obj_block"
+    (function [Int a; Int b] -> Int 0
+     | _ -> failwith "caml_obj_block")
+
 let builtin_primitives = [
+  caml_obj_block;
+  caml_obj_tag;
+  percent_obj_field;
   caml_ml_open_descriptor_in;
   caml_ml_open_descriptor_out;
   caml_sys_get_argv;
