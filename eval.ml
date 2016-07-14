@@ -452,13 +452,6 @@ let rec eval peek (env : Tinyocaml.env) expr =
       (* FIXME: Need to include info about the last stage here, since it gets elided *)
       raise (ExceptionRaised (e, payload))
     end
-| TryWith (e, cases) ->
-    if is_value e then e else
-      begin try eval peek env e with
-        (* FIXME: Must pattern match on x and payload to make sure the exception
-         * is only caught if it matches! *)
-        ExceptionRaised (x, payload) -> (match List.hd cases with (_, _, x) -> x) (*FIXME FIXME FIXME *)
-      end
 | CallBuiltIn (name, args, fn) ->
     if List.for_all is_value args
       then if not peek then fn args else Unit
@@ -488,12 +481,25 @@ let rec eval peek (env : Tinyocaml.env) expr =
       | EvaluatedGuardStep p' -> Match (x, p'::ps)
       | FailedToMatch -> Match (x, ps)
       end
+| TryWith (e, cases) ->
+    if is_value e then e else
+      begin try eval peek env e with
+        ExceptionRaised (x, payload) ->
+          match eval_match_exception env x payload cases with
+            FailedToMatch -> Raise (x, payload)
+          | EvaluatedGuardStep case -> failwith "guards on exception matching not supported yet"
+          | Matched e' -> e'
+          (*(match List.hd cases with (_, _, x) -> x) (*FIXME FIXME FIXME *)*)
+      end
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
 | Int32 _ | Int64 _ | NativeInt _ | Char _
 | InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _
 | Constr (_, None)
 | Function _ | Sig _ | ModuleConstraint _ ->
     failwith ("already a value: " ^ (Pptinyocaml.to_string expr))
+
+and eval_match_exception env exnname exnpayload cases =
+  Matched (match List.hd cases with (_, _, x) -> x)  
 
 and eval_case peek env expr (pattern, guard, rhs) =
   match matches expr pattern rhs with
