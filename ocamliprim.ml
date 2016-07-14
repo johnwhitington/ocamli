@@ -69,7 +69,9 @@ let percent_string_length =
 
 let percent_raise =
   mk "%raise"
-    (function [e] -> Raise ("FixPercentRaise", None) | _ -> failwith "percent_raise")
+    (function
+     | [Constr (n, eopt)] -> Raise (n, eopt)
+     | _ -> failwith "percent_raise")
 
 let percent_raise_notrace =
   mk "%raise_notrace"
