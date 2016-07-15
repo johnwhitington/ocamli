@@ -189,6 +189,8 @@ and of_real_ocaml_module_expr env module_expr =
       ModuleConstraint
         (of_real_ocaml_module_type env module_type,
          of_real_ocaml_module_expr env module_expr)
+  | Pmod_ident {txt = Longident.Lident x} ->
+      ModuleIdentifier x
   | _ -> failwith "of_real_ocaml_module_expr"
 
 and of_real_ocaml_module_binding env mb =

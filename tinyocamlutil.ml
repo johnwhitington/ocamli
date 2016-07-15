@@ -27,7 +27,7 @@ let rec is_value = function
     List.for_all (fun (_, e) -> is_value e) bindings -> true
 | Let (_, bindings, e) when
     List.for_all (fun (_, e) -> is_value e) bindings && is_value e -> true
-| ExceptionDef _ | TypeDef _ | ModuleBinding _ -> true
+| ExceptionDef _ | TypeDef _ | ModuleBinding _ | ModuleConstraint _ | ModuleIdentifier _ -> true
 | Open (_, t) | LocalOpen (_, t) -> is_value t
 | _ -> false
 

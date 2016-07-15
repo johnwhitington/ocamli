@@ -85,6 +85,7 @@ and t =
 | Sig of t list                (** Module signature *)
 | ModuleBinding of (string * t)(** Module M = ... *)
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
+| ModuleIdentifier of string
 | Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
 | Open of (string * t)         (* open Unix *)

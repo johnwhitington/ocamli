@@ -139,6 +139,8 @@ let rec print_tiny_inner f isleft parent node =
   | ModuleConstraint (t, e) ->
       txt "mc*";
       print_tiny_inner f false (Some node) e
+  | ModuleIdentifier x ->
+      txt x
   | Tuple xs ->
       let l = List.length xs in
       str "(";

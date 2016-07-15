@@ -111,7 +111,7 @@ let stdlib_modules =
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
    ("Sys",                      stdlib_dir, "sys.ml");
-   (*("String",                   stdlib_dir, "string.ml");*) (* FIXME: Failure("of_real_ocaml_module_expr") *)
+   ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");

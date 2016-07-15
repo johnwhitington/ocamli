@@ -85,6 +85,7 @@ and t =
 | Sig of t list               (* Module signature. *)
 | ModuleBinding of (string * t) (* Module M = ... *)
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
+| ModuleIdentifier of string (* M *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 | Open of (string * t)   (* open Unix followed by other things. *)
@@ -128,7 +129,8 @@ let of_ocaml_value x typ =
 let rec recurse f exp =
   match exp with
   | (Bool _ | Float _ | Var _ | Int _ | Int32 _ | Int64 _ | NativeInt _
-     | Char _ | String _ | OutChannel _ | InChannel _ | Unit | Nil) as x -> x
+     | Char _ | String _ | OutChannel _ | InChannel _ | Unit | Nil |
+     ModuleIdentifier _ ) as x -> x
   | Op (op, a, b) -> Op (op, f a, f b)
   | And (a, b) -> And (f a, f b)
   | Or (a, b) -> Or (f a, f b)
@@ -308,6 +310,7 @@ let rec to_string = function
 | ModuleConstraint (modtype, t) ->
     Printf.sprintf "ModuleConstraint (%s, %s)"
       (to_string_modtype modtype) (to_string t)
+| ModuleIdentifier x -> "ModuleIdentifier" ^ x
 
 and to_string_modtype = function
   ModTypeSignature t ->
