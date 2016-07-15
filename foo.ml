@@ -1,3 +1,3 @@
-let (exn : exn) = Not_found in exn
+module B = Bytes
 
-
+let _ = B.make 6 'a'

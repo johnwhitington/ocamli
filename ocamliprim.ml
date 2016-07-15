@@ -279,7 +279,17 @@ let caml_make_vect =
     (function [Int len; x] -> Array (Array.make len x)
      | _ -> failwith "caml_make_vect")
 
+external unsafe_fill : bytes -> int -> int -> char -> unit
+                     = "caml_fill_string" [@@noalloc]
+
+let caml_fill_string =
+  mk4 "caml_fill_string"
+    (function
+       [String b; Int x; Int y; Char c] -> unsafe_fill (Bytes.unsafe_of_string b) x y c; Unit
+     | _ -> failwith "caml_fill_string")
+
 let builtin_primitives = [
+  caml_fill_string;
   caml_make_vect;
   percent_nativeint_sub;
   percent_nativeint_lsl;

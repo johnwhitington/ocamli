@@ -26,7 +26,7 @@ external unsafe_blit : string -> int ->  bytes -> int -> int -> unit
 external unsafe_fill : bytes -> int -> int -> char -> unit
                      = "caml_fill_string" [@@noalloc]*)
 
-module B = Bytes
+(*module B = Bytes*)
 
 (*let bts = B.unsafe_to_string
 let bos = B.unsafe_of_string

@@ -5,6 +5,8 @@ open Tinyocaml
 
 let debug = ref false
 
+let load_stdlib = ref true
+
 let stdlib_dir =
   let tname = Filename.temp_file "ocaml" "ocamli" in
     ignore (Sys.command ("ocamlc -config >" ^ tname));
@@ -111,7 +113,7 @@ let stdlib_modules =
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
    ("Sys",                      stdlib_dir, "sys.ml");
-   ("String",                   stdlib_dir, "string.ml");
+   (*("String",                   stdlib_dir, "string.ml");*)
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
@@ -135,7 +137,8 @@ let loadlib () =
     stdlib_modules
     []
 
-let _ = Eval.lib := loadlib ()
+let load_library () =
+  if !load_stdlib then Eval.lib := loadlib ()
 
 let print_binding (pat, e) =
   Printf.printf "%s = %s\n" (to_string_pat pat) (Pptinyocaml.to_string e)

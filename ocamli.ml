@@ -27,7 +27,8 @@ let argspec =
    ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
    ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
-   ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets")]
+   ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
+   ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library")]
 
 let go () =
   Arg.parse argspec setfile
@@ -43,6 +44,7 @@ let go () =
     I.fastcurry := !fastcurry;
     Tinyocamlutil.fastcurry := !fastcurry;
     Pptinyocaml.fastcurry := !fastcurry;
+  Ocamlilib.load_library ();
   Ocamlilib.showlib ();
   let rec really_run first state =
     if !prompt then wait_for_enter ();
