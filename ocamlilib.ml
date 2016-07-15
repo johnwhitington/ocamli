@@ -61,23 +61,72 @@ let load_module (name : string) (env : env) (file : string) =
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod'))
 
-(* FIXME This needs to reflect the link order of the OCaml standard library, so
-that any module initialisations happen in the correct order. *)
-(* FIXME Once we have the 'open' keyword working, we can use an 'open Pervasives'
-to do pervasives automatically *)
+
 let stdlib_modules =
-  [(*("Foo", "./stdlib", "foo.ml");*)
-   ("Unix", "./stdlib", "unix.ml"); (* Calling Printexc give Not_found *)
-   ("Printexc", stdlib_dir, "printexc.ml");
-   ("Printf", stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work - give Not_found *)
-   ("CamlinternalFormat", "./stdlib", "camlinternalFormat.ml"); (* FIXME Parse labelled and optional arguments *)
-   ("Sys", stdlib_dir, "sys.ml");
-   ("Callback", stdlib_dir, "callback.ml");
-   ("Obj", stdlib_dir, "obj.ml");
-   ("Array", stdlib_dir, "array.ml");
-   ("List", stdlib_dir, "list.ml");
-   ("Pervasives", stdlib_dir, "pervasives.ml");
+  [(*("Foo",                    "./stdlib", "foo.ml");*)
+   ("Unix",                     "./stdlib", "unix.ml"); (* Calling Printexc give Not_found *)
+   (*("Bigarray",                 "./stdlib", "bigarray.ml"); (* unknown node * fun*) *)
+   (* bigarray, thread, num, str, graphics, any others? *)
+   (*("stdLabels",                stdlib_dir, "stdLabels.ml");
+   ("moreLabels",               stdlib_dir, "moreLabels.ml");
+   ("stringLabels",             stdlib_dir, "stringLabels.ml");
+   ("bytesLabels",              stdlib_dir, "bytesLabels.ml");
+   ("listLabels",               stdlib_dir, "listLabels.ml");
+   ("arrayLabels",              stdlib_dir, "arrayLabels.ml");*) (* FIXME labels *)
+   ("Complex",                  stdlib_dir, "complex.ml");
+   (*("Filename",                 stdlib_dir, "filename.ml"); (* unknown node * *)*)
+   (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); (* unknown * structure item *)*)
+   (*("Genlex",                   stdlib_dir, "genlex.ml"); (* FIXME: unknown * node *)*)
+   (*("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml"); (* FIXME * unknow node *)*)
+   (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
+   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); FIXME of_real_ocaml_module_expr *)
+   ("Callback",                 stdlib_dir, "callback.ml");
+   (*("Scanf",                    stdlib_dir, "scanf.ml"); (* FIXME Unknown * structure item *)*)
+   ("Uchar",                    stdlib_dir, "uchar.ml");
+   (*("Format",                  stdlib_dir, "format.ml"); (* FIXME Unknown * pattern *)*)
+   (*("Weak",                     stdlib_dir, "weak.ml"); FIXME Unknown structure item *)
+   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); FIXME Unknown node *)
+   (*("Random",                   stdlib_dir, "random.ml"); FIXME Unknown record entry type *)
+   (*("Digest",                   stdlib_dir, "digest.ml"); (* Unknown pattern * *)*)
+   ("Gc",                       stdlib_dir, "gc.ml");
+   ("Printexc",                 stdlib_dir, "printexc.ml");
+   (*("Arg",                      stdlib_dir, "arg.ml"); (* FIXME unknown node * fun (labelled/optional *)*)
+   ("Printf",                   stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work - give Not_found *)
+   ("CamlinternalFormat",       "./stdlib", "camlinternalFormat.ml"); (* FIXME Parse labelled and optional arguments *)
+   ("Buffer",                   stdlib_dir, "buffer.ml");
+   (*("Stream",                   stdlib_dir, "stream.ml");*) (* Unknown pattern *)
+   (*("Lazy",                     stdlib_dir, "lazy.ml");*)
+   ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
+   (*("Queue",                    stdlib_dir, "queue.ml"); (* FIXME Unknown * pattern *)*)
+   ("Stack",                    stdlib_dir, "stack.ml");
+   (*("Map",                      stdlib_dir, "map.ml");*)
+   (*("Set",                      stdlib_dir, "set.ml");*)
+   ("Parsing",                  stdlib_dir, "parsing.ml");
+   ("Lexing",                   stdlib_dir, "lexing.ml");
+   ("Nativeint",                stdlib_dir, "nativeint.ml");
+   ("Int64",                    stdlib_dir, "int64.ml");
+   ("Int32",                    stdlib_dir, "int32.ml");
+   ("Array",                    stdlib_dir, "array.ml");
+   ("Obj",                      stdlib_dir, "obj.ml");
+   ("Marshal",                  stdlib_dir, "marshal.ml");
+   ("Sort",                     stdlib_dir, "sort.ml");
+   ("Sys",                      stdlib_dir, "sys.ml");
+   (*("String",                   stdlib_dir, "string.ml");*) (* FIXME: Failure("of_real_ocaml_module_expr") *)
+   ("Bytes",                    stdlib_dir, "bytes.ml");
+   ("Char",                     stdlib_dir, "char.ml");
+   ("List",                     stdlib_dir, "list.ml");
+   ("Pervasives",               stdlib_dir, "pervasives.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+
+(* camlinternalFormatBasics.cmo pervasives.cmo list.cmo char.cmo
+ * bytes.cmo string.cmo sys.cmo sort.cmo marshal.cmo obj.cmo array.cmo int32.cmo
+ * int64.cmo nativeint.cmo lexing.cmo parsing.cmo set.cmo map.cmo stack.cmo
+ * queue.cmo camlinternalLazy.cmo lazy.cmo stream.cmo buffer.cmo
+ * camlinternalFormat.cmo printf.cmo arg.cmo printexc.cmo gc.cmo digest.cmo
+ * random.cmo hashtbl.cmo weak.cmo format.cmo uchar.cmo scanf.cmo callback.cmo
+ * camlinternalOO.cmo oo.cmo camlinternalMod.cmo genlex.cmo ephemeron.cmo
+ * filename.cmo complex.cmo arrayLabels.cmo listLabels.cmo bytesLabels.cmo
+ * stringLabels.cmo moreLabels.cmo stdLabels.cmo*)
 
 let loadlib () =
   List.fold_right

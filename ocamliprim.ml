@@ -261,7 +261,28 @@ let caml_obj_block =
     (function [Int a; Int b] -> Int 0
      | _ -> failwith "caml_obj_block")
 
+external sub: nativeint -> nativeint -> nativeint = "%nativeint_sub"
+external shift_left: nativeint -> int -> nativeint = "%nativeint_lsl"
+
+let percent_nativeint_lsl =
+  mk2 "%nativeint_lsl"
+    (function [NativeInt a; Int b] -> NativeInt (shift_left a b)
+     | _ -> failwith "percent_nativeint_lsl")
+
+let percent_nativeint_sub =
+  mk2 "%nativeint_sub"
+    (function [NativeInt a; NativeInt b] -> NativeInt (sub a b)
+     | _ -> failwith "percent_nativeint_sub")
+
+let caml_make_vect =
+  mk2 "caml_make_vect"
+    (function [Int len; x] -> Array (Array.make len x)
+     | _ -> failwith "caml_make_vect")
+
 let builtin_primitives = [
+  caml_make_vect;
+  percent_nativeint_sub;
+  percent_nativeint_lsl;
   caml_obj_block;
   caml_obj_tag;
   percent_obj_field;
