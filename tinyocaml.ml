@@ -88,6 +88,7 @@ and t =
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 | Open of (string * t)   (* open Unix followed by other things. *)
+| LocalOpen of (string * t) (* String.(length "4") *)
 
 (* The type of OCaml values in memory *)
 type untyped_ocaml_value =
@@ -134,7 +135,7 @@ let rec recurse f exp =
   | Cmp (cmp, a, b) -> Cmp (cmp, f a, f b)
   | If (e, e1, e2) -> If (f e, f e1, recurse_option f e2)
   | Let (recflag, bindings, e) ->
-      Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, recurse f e)
+      Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, f e)
   | LetDef (recflag, bindings) ->
       LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
   | Fun (n, fexp, env) -> Fun (n, f fexp, env)
@@ -168,7 +169,8 @@ let rec recurse f exp =
       Function (List.map (recurse_case f) patmatch, env)
   | Tuple l -> Tuple (List.map f l)
   | Assert e -> Assert (f e)
-  | Open x -> Open x
+  | Open (n, e) -> Open (n, f e)
+  | LocalOpen (n, e) -> LocalOpen (n, f e)
 
 and recurse_option f = function
   None -> None
@@ -299,6 +301,8 @@ let rec to_string = function
       "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
 | Open (x, e) ->
     Printf.sprintf "Open (%s, %s)" x (to_string e)
+| LocalOpen (x, e) ->
+    Printf.sprintf "LocalOpen (%s, %s)" x (to_string e)
 | ModuleBinding (m, t) ->
     Printf.sprintf "ModuleBinding (%s, %s)" m (to_string t)
 | ModuleConstraint (modtype, t) ->

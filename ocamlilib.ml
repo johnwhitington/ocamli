@@ -67,10 +67,10 @@ that any module initialisations happen in the correct order. *)
 to do pervasives automatically *)
 let stdlib_modules =
   [(*("Foo", "./stdlib", "foo.ml");*)
-   (*("Unix", "./stdlib", "unix.ml");*)
-   ("Printexc", "./stdlib", "printexc.ml");
-   ("Printf", stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work *)
-   ("CamlinternalFormat", "./stdlib", "camlinternalFormat.ml"); (* FIXME Char.(......) local opens *)
+   ("Unix", "./stdlib", "unix.ml"); (* Calling Printexc give Not_found *)
+   ("Printexc", stdlib_dir, "printexc.ml");
+   ("Printf", stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work - give Not_found *)
+   ("CamlinternalFormat", "./stdlib", "camlinternalFormat.ml"); (* FIXME Parse labelled and optional arguments *)
    ("Sys", stdlib_dir, "sys.ml");
    ("Callback", stdlib_dir, "callback.ml");
    ("Obj", stdlib_dir, "obj.ml");

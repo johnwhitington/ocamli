@@ -103,6 +103,8 @@ let rec of_real_ocaml_expression_desc env = function
     Assert (of_real_ocaml env e)
 | Pexp_newtype (_, e) -> of_real_ocaml env e
 | Pexp_constraint (e, _) -> of_real_ocaml env e
+| Pexp_open (_, {txt = Longident.Lident n}, e) ->
+    LocalOpen (n, of_real_ocaml env e)
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_binding env {pvb_pat = {ppat_desc}; pvb_expr} =

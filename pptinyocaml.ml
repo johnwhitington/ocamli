@@ -84,6 +84,14 @@ let rec print_tiny_inner f isleft parent node =
       str rp;
       txt "\n";
       print_tiny_inner f isleft parent e
+  | LocalOpen (x, e) ->
+      str lp;
+      txt x;
+      txt ".";
+      str "(";
+      print_tiny_inner f isleft parent e;
+      str ")";
+      str rp
   | Assert e ->
       str lp;
       boldtxt "assert ";

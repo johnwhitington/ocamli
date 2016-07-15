@@ -302,7 +302,7 @@ let char_of_counter counter = match counter with
 (***)
 
 (* Print a char_set in a buffer with the OCaml format lexical convention. *)
-(*let bprint_char_set buf char_set =
+let bprint_char_set buf char_set =
   let rec print_start set =
     let is_alone c =
       let before, after = Char.(chr (code c - 1), chr (code c + 1)) in
@@ -2003,7 +2003,7 @@ fun pad prec fmt ->
 
 (* Parse a string representing a format and create a fmt_ebb. *)
 (* Raise an Failure exception in case of invalid format. *)
-let fmt_ebb_of_string ?legacy_behavior str =
+(*let fmt_ebb_of_string ?legacy_behavior str =
   (* Parameters naming convention:                                    *)
   (*   - lit_start: start of the literal sequence.                    *)
   (*   - str_ind: current index in the string.                        *)
