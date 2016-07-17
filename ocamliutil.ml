@@ -1,6 +1,7 @@
 (* For writing evaluators with *)
 open Parsetree
 open Asttypes
+open Tinyocaml
 
 let typecheck = ref true
 
@@ -76,4 +77,42 @@ let rec option_map f = function
       match f h with
         None -> option_map f t
       | Some x -> x::option_map f t
+
+(* Opening a module Find any items in the environment beginning with 'n', strip the name, and
+duplicate them at the top of the environment. *)
+let begins_with n s =
+  String.length n <= String.length s &&
+  n = String.sub s 0 (String.length n)
+
+let rec pattern_begins_with n = function
+  PatVar s when begins_with n s -> true
+| PatTuple ts when List.for_all (pattern_begins_with n) ts -> true
+| _ -> false
+
+let binding_begins_with n (p, e) =
+  pattern_begins_with n p
+
+let bindings_beginning_with n env =
+  option_map
+    (fun (recflag, bindings) ->
+      if List.for_all (binding_begins_with n) !bindings
+        then Some (recflag, bindings)
+        else None)
+    env
+
+let cut n s =
+  String.sub s (String.length n + 1) (String.length s - String.length n - 1)
+
+let rec strip_pattern n = function
+  PatVar s -> PatVar (cut n s)
+| PatTuple ts -> PatTuple (List.map (strip_pattern n) ts)
+| _ -> failwith "implement Ocamliutil.strip_pattern"
+
+let strip_binding n (p, e) = (strip_pattern n p, e)
+
+let strip_bindings n (recflag, bs) =
+  (recflag, ref (List.map (strip_binding n) !bs))
+
+let open_module n env =
+  List.map (strip_bindings n) (bindings_beginning_with n env) @ env
 

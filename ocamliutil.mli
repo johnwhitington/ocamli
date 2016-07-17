@@ -37,5 +37,8 @@ val option_map : ('a -> 'b option) -> 'a list -> 'b list
 val load_file : string -> string
 
 val env : Env.t
+
 val ast : string -> Parsetree.structure
+
+val open_module : string -> Tinyocaml.env -> Tinyocaml.env
 

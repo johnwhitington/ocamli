@@ -218,7 +218,9 @@ and of_real_ocaml_structure_item env = function
      (Some (of_real_ocaml_module_binding env module_binding), env)
   (* open M *)
 | {pstr_desc = Pstr_open open_description} ->
-     (Some (Open (of_real_ocaml_open_description open_description)), env) (* FIXME Do the open here... *)
+     let n = of_real_ocaml_open_description open_description in
+       (*Printf.printf "Opening module %s. Len was %i\n" n (List.length env);*)
+       (Some (Open n), let x = open_module n env in (*Printf.printf "len now %i\n" (List.length x);*) x)
 | _ -> failwith "unknown structure item"
 
 and of_real_ocaml_structure env acc = function
