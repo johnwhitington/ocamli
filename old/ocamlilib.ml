@@ -1,9 +1,10 @@
-open Tinyocaml
+(* ocamlilib *)
+(* Load a module from disk *)
 open Ocamliutil
+open Tinyocaml
 
 let debug = ref false
 
-(* Beginning of what was ocamilib.ml *)
 let load_stdlib = ref true
 
 let stdlib_dir =
@@ -54,12 +55,14 @@ let add_prefix_to_binding name (pattern, e) =
 
 let add_prefix_to_bindings name (recflag, bindings) =
   (recflag, ref (List.map (add_prefix_to_binding name) !bindings))
+
 let load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
-  let themod = Tinyocamlrw.of_real_ocaml (ast (load_file file)) in
+  let themod = Tinyocamlrw.of_real_ocaml (Ocamliutil.ast (load_file file)) in
     let themod' = Eval.eval_until_value false env themod in (* <-- module initialisation *)
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod'))
+
 
 let stdlib_modules =
   [(*("Foo",                    "./stdlib", "foo.ml");*)

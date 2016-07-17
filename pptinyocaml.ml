@@ -77,13 +77,12 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
-  | Open (x, e) ->
+  | Open x ->
       str lp;
       boldtxt "open ";
       txt x;
       str rp;
       txt "\n";
-      print_tiny_inner f isleft parent e
   | LocalOpen (x, e) ->
       str lp;
       txt x;

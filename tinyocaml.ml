@@ -88,7 +88,7 @@ and t =
 | ModuleIdentifier of string (* M *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
-| Open of (string * t)   (* open Unix followed by other things. *)
+| Open of string            (* open Unix followed by other things. *)
 | LocalOpen of (string * t) (* String.(length "4") *)
 
 (* The type of OCaml values in memory *)
@@ -171,7 +171,7 @@ let rec recurse f exp =
       Function (List.map (recurse_case f) patmatch, env)
   | Tuple l -> Tuple (List.map f l)
   | Assert e -> Assert (f e)
-  | Open (n, e) -> Open (n, f e)
+  | Open n -> Open n
   | LocalOpen (n, e) -> LocalOpen (n, f e)
 
 and recurse_option f = function
@@ -301,8 +301,8 @@ let rec to_string = function
 | Match (e, patmatch) ->
     Printf.sprintf
       "Match (%s, %s)" (to_string e) (to_string_patmatch patmatch)
-| Open (x, e) ->
-    Printf.sprintf "Open (%s, %s)" x (to_string e)
+| Open x ->
+    Printf.sprintf "Open %s" x
 | LocalOpen (x, e) ->
     Printf.sprintf "LocalOpen (%s, %s)" x (to_string e)
 | ModuleBinding (m, t) ->

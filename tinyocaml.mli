@@ -88,7 +88,7 @@ and t =
 | ModuleIdentifier of string
 | Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
-| Open of (string * t)         (* open Unix *)
+| Open of string         (* open Unix *)
 | LocalOpen of (string * t)    (* String.(length "4") *)
 
 val string_of_op : op -> string
@@ -125,4 +125,5 @@ val string_of_longident : Longident.t -> string
 val to_string_bindings : binding list -> string
 
 val to_string_env : env -> string
+
 

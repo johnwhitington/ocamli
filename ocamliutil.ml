@@ -41,7 +41,7 @@ type last_op =
 let unimp s = raise (ExnUnimplemented s)
 let malformed s = raise (ExnMalformed s)
 
-let to_string ast =
+let ast_to_string ast =
   let b = Buffer.create 80 in
   let formatter = Format.formatter_of_buffer b in
     Pprintast.expression formatter ast;

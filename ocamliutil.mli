@@ -22,7 +22,7 @@ val unimp : string -> 'a
 
 val malformed : string -> 'a
 
-val to_string : Parsetree.expression -> string
+val ast_to_string : Parsetree.expression -> string
 
 val with_desc : Parsetree.expression_desc -> Parsetree.expression
 

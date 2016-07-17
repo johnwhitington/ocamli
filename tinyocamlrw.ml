@@ -1,13 +1,9 @@
 open Parsetree
 open Asttypes
 open Tinyocaml
+open Ocamliutil
 
 exception UnknownNode of string
-
-type structitem =
-  ItemNone
-| Item of t
-| ItemOpen of string
 
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
@@ -204,7 +200,7 @@ and of_real_ocaml_open_description o =
 
 and of_real_ocaml_structure_item env = function
   (* "1" or "let x = 1 in 2" *)
-  {pstr_desc = Pstr_eval (e, _)} -> (Item (of_real_ocaml env e), env)
+  {pstr_desc = Pstr_eval (e, _)} -> (Some (of_real_ocaml env e), env)
   (* let x = 1 *)
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
      let theref = ref [] in
@@ -212,37 +208,35 @@ and of_real_ocaml_structure_item env = function
      let bindings' = List.map (of_real_ocaml_binding ((recflag', theref)::env)) bindings in
        theref := bindings';
        let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
-         (Item (LetDef (recflag', bindings')), env')
+         (Some (LetDef (recflag', bindings')), env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
-     (Item (ExceptionDef (txt, t)), env)
+     (Some (ExceptionDef (txt, t)), env)
   (* top level attribute *)
-| {pstr_desc = Pstr_attribute _} -> (ItemNone, env)
+| {pstr_desc = Pstr_attribute _} -> (None, env)
   (* external n : t = "fn" *)
 | {pstr_desc = Pstr_primitive value_description} ->
     let n, primitive = of_real_ocaml_primitive value_description in
     let bindings = [(PatVar n, primitive)] in
     let env' = (false, ref bindings)::env in
-      (Item (LetDef (false, bindings)), env')
+      (Some (LetDef (false, bindings)), env')
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
-     (Item (TypeDef (recflag == Recursive, typedecls)), env)
+     (Some (TypeDef (recflag == Recursive, typedecls)), env)
   (* module M = ... *)
 | {pstr_desc = Pstr_module module_binding} ->
-     (Item (of_real_ocaml_module_binding env module_binding), env)
+     (Some (of_real_ocaml_module_binding env module_binding), env)
   (* open M *)
 | {pstr_desc = Pstr_open open_description} ->
-     (ItemOpen (of_real_ocaml_open_description open_description), env)
+     (Some (Open (of_real_ocaml_open_description open_description)), env) (* FIXME Do the open here... *)
 | _ -> failwith "unknown structure item"
 
 and of_real_ocaml_structure env acc = function
   | [] -> List.rev acc
   | s::ss ->
       match of_real_ocaml_structure_item env s with
-        (ItemNone, _) -> of_real_ocaml_structure env acc ss
-      | (Item s, env') -> of_real_ocaml_structure env' (s::acc) ss
-      | (ItemOpen s, env') ->
-          List.rev (Open (s, Struct (false, of_real_ocaml_structure env' acc ss))::acc)
+        (None, _) -> of_real_ocaml_structure env acc ss
+      | (Some s, env') -> of_real_ocaml_structure env' (s::acc) ss
 
 let of_real_ocaml x =
   Struct (false, of_real_ocaml_structure [] [] x)
@@ -314,3 +308,4 @@ and to_real_ocaml x =
 let to_real_ocaml x =
   [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
     pstr_loc = Location.none}]
+

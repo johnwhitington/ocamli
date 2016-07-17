@@ -20,7 +20,8 @@ let bound_in_bindings bindings =
 let rec appears var = function
   Var v when v = var -> true
 | Var _ -> false
-| Open (_, t) | LocalOpen (_, t) -> appears var t (* FIXME Do we need to take account of the open here? It alters names... *)
+| Open _ -> false
+| LocalOpen (_, t) -> appears var t (* FIXME Do we need to take account of the open here? It alters names... *)
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
 | Seq (a, b) | Cons (a, b) | Append (a, b) -> appears var a || appears var b
 | Constr (_, Some x) -> appears var x
@@ -261,7 +262,6 @@ let open_module n env =
 
 let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
-| Open (n, e) -> Open (n, eval peek (open_module n env) e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))
 | Assert (Bool false) ->
@@ -497,7 +497,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Int32 _ | Int64 _ | NativeInt _ | Char _
 | InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _
 | Constr (_, None)
-| Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ ->
+| Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ | Open _ ->
     failwith ("already a value: " ^ (Pptinyocaml.to_string expr))
 
 (* e.g eval_match_exception [Failure] [Some (String "foo") [(pattern, guard, rhs)]] *)
