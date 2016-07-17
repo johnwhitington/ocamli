@@ -159,16 +159,6 @@ and of_real_ocaml_primitive p =
   let n = p.pval_name.txt in
     (n, Ocamliprim.lookup_primitive (List.hd p.pval_prim))
 
-(*and of_real_ocaml_structure env s =
-  (* FIXME env *)
-  let items =
-    List.map (of_real_ocaml_structure_item env) s
-  in
-    let final =
-      Ocamliutil.option_map (fun x -> x) (List.map fst items)
-    in
-      Struct (true, final)*)
-
 and of_real_ocaml_signature env s =
   Sig []
 
@@ -238,8 +228,8 @@ and of_real_ocaml_structure env acc = function
         (None, _) -> of_real_ocaml_structure env acc ss
       | (Some s, env') -> of_real_ocaml_structure env' (s::acc) ss
 
-let of_real_ocaml x =
-  Struct (false, of_real_ocaml_structure [] [] x)
+let of_real_ocaml env x =
+  Struct (false, of_real_ocaml_structure env [] x)
 
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function

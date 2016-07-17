@@ -99,7 +99,7 @@ let print_string x =
 
 (* Evaluate a phrase to a string *)
 let eval s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml (ast s)) in
+  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast s)) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
       | Next state -> eval_inner state
@@ -135,7 +135,7 @@ let extract_tiny = function
 
 (* String to Tinyocaml.t result *)
 let eval_string s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml (ast s)) in
+  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast s)) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
       | Next state ->
@@ -148,7 +148,7 @@ let eval_string s =
       eval_inner state
     
 let eval_string_to_ast s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml (ast s)) in
+  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast s)) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
       | Next state ->
