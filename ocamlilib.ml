@@ -114,11 +114,11 @@ let stdlib_modules =
    ("Sort",                     stdlib_dir, "sort.ml");*)
    (*("Sys",                      "./stdlib", "sys.ml");*)
    (*("String",                   stdlib_dir, "string.ml");*)
-   (*("Bytes",                    stdlib_dir, "bytes.ml");
+   (*("Bytes",                    stdlib_dir, "bytes.ml");*)
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
    ("Pervasives",               stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 
 let loadlib () =
   List.fold_right
