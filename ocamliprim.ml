@@ -1,15 +1,13 @@
 open Tinyocaml
 open Ocamliutil
 
-let mkvar x = Var (x, x)
-
 let mk name f =
-  (name, Fun (PatVar "*x", CallBuiltIn (name, [mkvar "*x"], f), []))
+  (name, Fun (PatVar "*x", CallBuiltIn (name, [Var "*x"], f), []))
 
 let mk2 name f =
   (name,
    Fun (PatVar "*x",
-     Fun (PatVar "*y", CallBuiltIn (name, [mkvar "*x"; mkvar "*y"], f), []), []))
+     Fun (PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), []))
 
 let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
    (name,
@@ -17,7 +15,7 @@ let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
        Fun (PatVar (star x2),
          Fun (PatVar (star x3),
            Fun (PatVar (star x4),
-             CallBuiltIn (name, [mkvar (star x1); mkvar (star x2); mkvar (star x3); mkvar (star x4)], f), []), []), []), []))
+             CallBuiltIn (name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4)], f), []), []), []), []))
 
 let caml_register_named_value =
   mk2 "caml_register_named_value"

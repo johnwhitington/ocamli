@@ -60,7 +60,7 @@ and t =
 | Fun of (pattern * t * env)  (* fun x -> e *)
 | Function of (case list * env)   
 (* non-values *)
-| Var of (string * string)    (* x, display_x (e.g might be "List.map", "map" if "open List" has preceded it. *)
+| Var of string               (* x *)
 | Op of (op * t * t)          (* + - / * *)
 | And of (t * t)              (* && *)
 | Or of (t * t)               (* || *)
@@ -223,7 +223,7 @@ let rec to_string = function
 | Char c -> Printf.sprintf "Char %C" c
 | OutChannel o -> Printf.sprintf "OutChannel"
 | InChannel i -> Printf.sprintf "InChannel"
-| Var (x, display_x) -> Printf.sprintf "Var %s (%s)" display_x x
+| Var s -> Printf.sprintf "Var %s" s
 | Record l -> to_string_record l
 | Op (op, l, r) ->
     Printf.sprintf "Op (%s, %s, %s)" (to_string_op op) (to_string l) (to_string r)

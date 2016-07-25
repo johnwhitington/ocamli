@@ -27,9 +27,7 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
-| Pexp_ident {txt = v} ->
-    let vstr = Tinyocaml.string_of_longident v in
-      Var (vstr, vstr)
+| Pexp_ident {txt = v} -> Var (Tinyocaml.string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml env e, of_real_ocaml env e1, Some (of_real_ocaml env e2))
 | Pexp_ifthenelse (e, e1, None) ->
@@ -68,7 +66,7 @@ let rec of_real_ocaml_expression_desc env = function
          | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
              Cmp (cmp_of_string cmp , e, e')
 
-         | _ -> App (App (Var (f, f), e), e') 
+         | _ -> App (App (Var f, e), e') 
          end
 | Pexp_apply (e, [(Nolabel, e')]) -> (* one operand *)
     App (of_real_ocaml env e, of_real_ocaml env e')
@@ -244,7 +242,7 @@ let rec to_real_ocaml_expression_desc = function
       Pexp_construct
         ({txt = Longident.Lident (string_of_bool b); loc = Location.none},
           None)
-  | Var (v, _) ->
+  | Var v ->
       Pexp_ident {txt = Longident.Lident v; loc = Location.none}
   | Op (op, l, r) -> to_real_ocaml_apply l r (string_of_op op)
   | And (l, r) -> to_real_ocaml_apply l r "&&"
