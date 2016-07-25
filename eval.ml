@@ -18,7 +18,7 @@ let bound_in_bindings bindings =
 
 (* True if a variable appears not shadowed. *)
 let rec appears var = function
-  Var v when v = var -> true
+  Var (v, _) when v = var -> true
 | Var _ -> false
 | Open _ -> false
 | LocalOpen (_, t) -> appears var t (* FIXME Do we need to take account of the open here? It alters names... *)
@@ -255,13 +255,13 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Cmp (op, Int a, Int b) ->
     last := Comparison::!last;
     Bool (comp op a b)
-| Cmp (op, Var a, Int b) ->
+| Cmp (op, Var (a, _), Int b) ->
     last := Comparison::!last;
     Bool (comp op (lookup_int_var env a) b)
-| Cmp (op, Int a, Var b) ->
+| Cmp (op, Int a, Var (b, _)) ->
     last := Comparison::!last;
     Bool (comp op a (lookup_int_var env b))
-| Cmp (op, Var a, Var b) ->
+| Cmp (op, Var (a, _), Var (b, _)) ->
     last := Comparison::!last;
     Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
@@ -348,7 +348,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
         end
     else
       App (Function ((p::ps), fenv), eval peek env x) (* 2 *)
-| App (Var v, x) ->
+| App (Var (v, display_v), x) ->
     begin match lookup_value v env with
       Fun (fname, fexp, fenv) ->
         if is_value x then
@@ -356,7 +356,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
           implicit-lets in the Tinyocaml.t data type *)
           build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
         else
-          App (Var v, eval peek env x)
+          App (Var (v, display_v), eval peek env x)
     | Function cases ->
         eval peek env (App (Function cases, x)) (* FIXME this is substitution *)
     | Var v' ->
@@ -419,11 +419,11 @@ let rec eval peek (env : Tinyocaml.env) expr =
     if List.for_all is_value args
       then if not peek then fn args else Unit
       else CallBuiltIn (name, eval_first_non_value_item peek env [] args, fn)
-| Var v ->
+| Var (v, display_v) ->
     begin try lookup_value v env with
       Not_found ->
         print_string (to_string_env env);
-        failwith (Printf.sprintf "Var %s not found" v)
+        failwith (Printf.sprintf "Var %s = %s not found" v display_v)
     end
 | Cons (x, y) ->
     if is_value x then

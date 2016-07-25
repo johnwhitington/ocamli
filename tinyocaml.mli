@@ -60,7 +60,7 @@ and t =
 | Nil                          (** [] *)
 | Fun of (pattern * t * env)          (** fun x -> e *)
 | Function of (case list * env)       (** function x -> e | y -> f ... *)
-| Var of string                (** x *)
+| Var of (string * string)              (** x, display_x *)
 | Op of (op * t * t)           (** + - / * *)
 | And of (t * t)               (** && *)
 | Or of (t * t)                (** || *)
