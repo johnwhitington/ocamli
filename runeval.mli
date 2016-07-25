@@ -1,5 +1,5 @@
-val silent : bool ref
-val quiet : bool ref
+val show : bool ref
+val showall : bool ref
 val top : bool ref
 val debug : bool ref
 val showpervasives : bool ref

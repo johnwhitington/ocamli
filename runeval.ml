@@ -2,8 +2,8 @@ open Ocamliutil
 open Asttypes
 open Parsetree
 
-let silent = ref false
-let quiet = ref false
+let show = ref false
+let showall = ref false
 let top = ref false
 let debug = ref false
 let showpervasives = ref false

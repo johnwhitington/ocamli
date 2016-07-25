@@ -8,13 +8,13 @@ let setdebug () =
 
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
-   ("-quiet", Arg.Set quiet, " Print only the result");
-   ("-silent", Arg.Set silent, " Print only what the program prints");
+   ("-show", Arg.Set show, " Print the final result of the program");
+   ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
    ("-step", Arg.Set_float step, " Wait a number of seconds after each step but last");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-width", Arg.Set_int width, " Set the output width");
-   ("-e", Arg.String settext, " Runevaluate the program text given");
+   ("-e", Arg.String settext, " Evaluate the program text given");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
@@ -54,7 +54,7 @@ let go () =
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
-          not (!quiet || !silent) &&
+          !showall &&
           (!show_simple_arithmetic || show_this_stage (I.last ()) (I.peek state') (I.tiny state) (I.tiny state')) &&
           (!showpervasives || show_this_pervasive_stage (I.last ()))
         then
@@ -77,10 +77,10 @@ let go () =
         really_run false state'
     | IsValue ->
         (* Only print if !quiet. On Silent we don't want it, on normal, we have already printed *)
-        if !quiet then begin
+        if !show && not !showall then begin
           if !printer = "tiny" then
             begin
-              print_string (string_of_tiny ~preamble:"=>* " (fixup (I.peek state) (I.tiny state)))
+              print_string (string_of_tiny ~preamble:"" (fixup (I.peek state) (I.tiny state)))
             end
           else
             (); (*print_string (to_string (getexpr (I.tree state)));*)
@@ -112,7 +112,7 @@ let go () =
            flush stdout;
            exit 0
          end;
-      if not (!quiet || !silent) then
+      if !showall then
         begin
           if !printer = "tiny" then
             print_string (string_of_tiny ~preamble:"    " (fixup (I.peek state) (I.tiny state)))
