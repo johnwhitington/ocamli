@@ -23,7 +23,7 @@ let rec is_value = function
 | Constr (_, Some t) -> is_value t
 | Cons (e, e') when
     is_value e && is_value e' -> true
-| LetDef (_, bindings) when
+| LetDef (_, bindings, _) when
     List.for_all (fun (_, e) -> is_value e) bindings -> true
 | Let (_, bindings, e) when
     List.for_all (fun (_, e) -> is_value e) bindings && is_value e -> true
@@ -67,11 +67,11 @@ let rec underline_redex e =
           Let (recflag, bindings, underline_redex e')
         else
           Let (recflag, underline_first_non_value_binding bindings, e')
-    | LetDef (recflag, bindings) ->
+    | LetDef (recflag, bindings, env) ->
         if List.for_all (fun (_, v) -> is_value v) bindings then
           failwith "letdef already a value"
         else
-          LetDef (recflag, underline_first_non_value_binding bindings)
+          LetDef (recflag, underline_first_non_value_binding bindings, env)
     | App (Fun f, x) ->
         if is_value x then underline e else App (Fun f, underline_redex x)
     | App (Function f, x) ->

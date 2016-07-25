@@ -67,7 +67,7 @@ and t =
 | Cmp of (cmp * t * t)         (** < > <> = <= >= *)
 | If of (t * t * t option)            (** if e then e1 [else e2] *)
 | Let of (bool * binding list * t) (** let x = e in e' *)
-| LetDef of (bool * binding list)  (** let x = e *)
+| LetDef of (bool * binding list * env)  (** let x = e *)
 | TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int *)
 | App of (t * t)               (** e e' *)
 | Seq of (t * t)               (** e; e *)
@@ -124,6 +124,6 @@ val string_of_longident : Longident.t -> string
 
 val to_string_bindings : binding list -> string
 
-val to_string_env : env -> string
+val to_string_env : ?full:bool -> env -> string
 
 

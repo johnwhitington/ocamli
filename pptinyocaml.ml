@@ -257,7 +257,13 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | LetDef (recflag, bindings) ->
+  | LetDef (recflag, bindings, env) ->
+      if !debug then
+        begin
+          txt "|E|";
+          txt (to_string_env ~full:true env);
+          txt "|E|"
+        end;
       str lp;
       let first = ref true in
       List.iter
@@ -276,12 +282,12 @@ let rec print_tiny_inner f isleft parent node =
         bindings;
       str rp
   | Fun ((fpat, fexp, fenv) as fn) ->
-      if !debug then
+      (*if !debug then
         begin
           txt "|E|";
           txt (to_string_env fenv);
           txt "|E|"
-        end;
+        end;*)
       print_series_of_funs lp rp f true (Some node) (Fun fn)
   | App (e, e') ->
       str lp;

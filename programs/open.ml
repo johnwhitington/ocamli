@@ -1,7 +1,7 @@
 open Sys
 
-let x = argv
+let x () = argv
 
-let y = x
+let y = x ()
 
 
