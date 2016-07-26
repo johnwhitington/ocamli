@@ -116,7 +116,27 @@ let strip_bindings n (recflag, bs) =
 let open_module n env =
   List.map (strip_bindings n) (bindings_beginning_with n env) @ env
 
+let rec prefix_pattern prefix = function
+  PatVar s -> PatVar (prefix ^ "." ^ s)
+| PatTuple ts -> PatTuple (List.map (prefix_pattern prefix) ts)
+| _ -> failwith "implement Ocamliutil.prefix_pattern"
 
-let alias_module current alias env = env
+let prefix_binding prefix (p, e) = (prefix_pattern prefix p, e)
+
+let prefix_bindings p (recflag, bs) =
+  (recflag, ref (List.map (prefix_binding p) !bs))
+
+(* For "module B = Bytes" Find any binding beginning with 'Bytes', replace
+'Bytes' with 'B', and stick on to the front of the environment. *)
+let alias_module current alias env =
+  (*Printf.printf "Aliasing %s --> %s\n" current alias;*)
+  let replaced =
+    List.map
+      (prefix_bindings alias)
+      (List.map
+        (strip_bindings current)
+        (bindings_beginning_with current env))
+  in
+    replaced @ env
 
 

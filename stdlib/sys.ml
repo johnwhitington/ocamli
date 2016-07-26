@@ -13,26 +13,28 @@
 (*                                                                        *)
 (**************************************************************************)
 
+external big_endian : unit -> bool = "%big_endian"
+let big_endian = big_endian ()
 (* WARNING: sys.ml is generated from sys.mlp.  DO NOT EDIT sys.ml or
    your changes will be lost.
 *)
 
 (* System interface *)
 
-external get_config: unit -> string * int * bool = "caml_sys_get_config"
-external get_argv: unit -> string * string array = "caml_sys_get_argv"
-external big_endian : unit -> bool = "%big_endian"
-external word_size : unit -> int = "%word_size"
+(*external get_config: unit -> string * int * bool = "caml_sys_get_config"
+external get_argv: unit -> string * string array = "caml_sys_get_argv"*)
+
+(*external word_size : unit -> int = "%word_size"
 external int_size : unit -> int = "%int_size"
 external max_wosize : unit -> int = "%max_wosize"
 external unix : unit -> bool = "%ostype_unix"
 external win32 : unit -> bool = "%ostype_win32"
-external cygwin : unit -> bool = "%ostype_cygwin"
+external cygwin : unit -> bool = "%ostype_cygwin"*)
 
-let (executable_name, argv) = get_argv()
-let (os_type, _, _) = get_config()
-(*let big_endian = big_endian ()
-let word_size = word_size ()
+(*let (executable_name, argv) = get_argv()
+let (os_type, _, _) = get_config()*)
+
+(*let word_size = word_size ()
 let int_size = int_size ()
 let unix = unix ()
 let win32 = win32 ()

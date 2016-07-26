@@ -182,10 +182,11 @@ and of_real_ocaml_module_expr env module_expr =
 and of_real_ocaml_module_binding env mb =
   let name = mb.pmb_name.txt in
     match of_real_ocaml_module_expr env mb.pmb_expr with
-      ModuleIdentifier alias ->
-        (Some (ModuleBinding (name, ModuleIdentifier alias)), alias_module name alias env)
+      ModuleIdentifier original ->
+        (Some (ModuleBinding (name, ModuleIdentifier original)), alias_module original name env)
     | x ->
-        Printf.eprintf "Unknown module binding type\n";
+        (* e.g LargeFile in Pervasives *)
+        (*Printf.eprintf "Unknown module binding type: %s\n" (to_string x);*)
         (Some (ModuleBinding (name, x)), env)
 
 and of_real_ocaml_open_description o =
