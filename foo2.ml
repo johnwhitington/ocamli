@@ -1,5 +1,6 @@
-open Char
+let x = 1
 
-let x = code 'A'
+let x = x
 
 let y = x
+

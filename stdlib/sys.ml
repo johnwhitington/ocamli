@@ -13,8 +13,12 @@
 (*                                                                        *)
 (**************************************************************************)
 
-external big_endian : unit -> bool = "%big_endian"
-let big_endian = big_endian ()
+let word_size () = 1
+let word_size = word_size ()
+let max_string_length = word_size / 8
+
+(*external big_endian : unit -> bool = "%big_endian"
+let big_endian = big_endian ()*)
 (* WARNING: sys.ml is generated from sys.mlp.  DO NOT EDIT sys.ml or
    your changes will be lost.
 *)
@@ -24,23 +28,24 @@ let big_endian = big_endian ()
 (*external get_config: unit -> string * int * bool = "caml_sys_get_config"
 external get_argv: unit -> string * string array = "caml_sys_get_argv"*)
 
-(*external word_size : unit -> int = "%word_size"
-external int_size : unit -> int = "%int_size"
-external max_wosize : unit -> int = "%max_wosize"
-external unix : unit -> bool = "%ostype_unix"
+
+(*external int_size : unit -> int = "%int_size"*)
+
+(*external unix : unit -> bool = "%ostype_unix"
 external win32 : unit -> bool = "%ostype_win32"
 external cygwin : unit -> bool = "%ostype_cygwin"*)
 
 (*let (executable_name, argv) = get_argv()
 let (os_type, _, _) = get_config()*)
 
-(*let word_size = word_size ()
-let int_size = int_size ()
+
+(*let int_size = int_size ()
 let unix = unix ()
 let win32 = win32 ()
-let cygwin = cygwin ()
-let max_array_length = max_wosize ()
-let max_string_length = word_size / 8 * max_array_length - 1
+let cygwin = cygwin ()*)
+
+
+(*
 external runtime_variant : unit -> string = "caml_runtime_variant"
 external runtime_parameters : unit -> string = "caml_runtime_parameters"
 

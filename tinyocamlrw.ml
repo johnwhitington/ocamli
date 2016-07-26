@@ -205,7 +205,7 @@ and of_real_ocaml_structure_item env = function
        theref := bindings';
        let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
          (* Do any module initialization required *)
-         let evalled = Eval.eval_until_value false env' (LetDef (recflag', bindings')) in 
+         let evalled = Eval.eval_until_value false (if recflag' then env' else env) (LetDef (recflag', bindings')) in 
            (Some evalled, env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->

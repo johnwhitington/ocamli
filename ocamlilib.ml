@@ -109,9 +109,9 @@ let stdlib_modules =
    ("Int32",                    stdlib_dir, "int32.ml");
    ("Array",                    stdlib_dir, "array.ml");
    ("Obj",                      stdlib_dir, "obj.ml");
-   ("Marshal",                  stdlib_dir, "marshal.ml");
-   ("Sort",                     stdlib_dir, "sort.ml");*)
-   ("Sys",                      "./stdlib", "sys.ml");
+   ("Marshal",                  stdlib_dir, "marshal.ml");*)
+   ("Sort",                     stdlib_dir, "sort.ml");
+   (*("Sys",                      "./stdlib", "sys.ml");*)
    ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
