@@ -28,6 +28,7 @@ type pattern =
 | PatOr of pattern * pattern
 | PatConstr of string * pattern option
 | PatConstraint of pattern * Parsetree.core_type
+| PatRecord of bool * (string * pattern) list
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -349,6 +350,7 @@ and to_string_pat = function
 | PatConstraint _ -> "PatConstraint"
 | PatArray _ -> "PatArray"
 | PatConstr _ -> "PatConstr"
+| PatRecord _ -> "PatRecord"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
@@ -423,4 +425,5 @@ let rec bound_in_pattern = function
 | PatConstr (_, None) -> []
 | PatConstr (_, Some x) -> bound_in_pattern x
 | PatConstraint (p, t) -> bound_in_pattern p
+| PatRecord (_, ps) -> List.flatten (List.map bound_in_pattern (List.map snd ps))
 

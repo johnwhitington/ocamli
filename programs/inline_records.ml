@@ -1,6 +1,6 @@
-type t = A of {x : int; y : float}
+type t = A of {x : int; mutable y : float}
 
 let p = A {x = 5; y = 6.5}
 
-let _ = match p with A q -> q.x
+let r = match p with A {x = xx; y = yy} -> xx
 

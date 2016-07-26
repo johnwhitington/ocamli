@@ -151,6 +151,9 @@ and of_real_ocaml_pattern env = function
     PatConstr (x, Some (of_real_ocaml_pattern env p.ppat_desc))
 | Ppat_constraint (pat, coretype) ->
     PatConstraint (of_real_ocaml_pattern env pat.ppat_desc, coretype)
+| Ppat_record (items, openflag) ->
+    PatRecord (openflag = Open,
+               List.map (fun (n, p) -> (string_of_longident n.txt, of_real_ocaml_pattern env p.ppat_desc)) items)
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc

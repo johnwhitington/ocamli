@@ -29,6 +29,7 @@ type pattern =
 | PatOr of pattern * pattern
 | PatConstr of string * pattern option
 | PatConstraint of pattern * Parsetree.core_type
+| PatRecord of bool * (string * pattern) list
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 

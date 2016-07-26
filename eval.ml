@@ -183,6 +183,8 @@ let rec matches expr pattern rhs =
         end
     | Tuple es, PatTuple ps ->
         match_many_binders es ps rhs
+    | Record es, PatRecord (_, ps) ->
+        match_many_binders (List.map (!) (List.map snd es)) (List.map snd ps) rhs
     | Array es, PatArray ps ->
         match_many_binders (Array.to_list es) (Array.to_list ps) rhs
     | e, PatAlias (a, p) ->

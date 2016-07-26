@@ -64,42 +64,43 @@ let load_module (name : string) (env : env) (file : string) =
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
 
 let stdlib_modules =
-  [(*("Foo",                    "./stdlib", "foo.ml");*)
-   (*("Unix",                     "./stdlib", "unix.ml"); (* Calling Printexc give Not_found *)
-   (*("Bigarray",                 "./stdlib", "bigarray.ml"); (* unknown node * fun*) *)
+  [(*(*("Foo",                    "./stdlib", "foo.ml");*)
+   ("Unix",                     "./stdlib", "unix.ml"); (* Calling Printexc give Not_found *)
+   ("Bigarray",                 "./stdlib", "bigarray.ml"); (* unknown node * fun*)
    (* bigarray, thread, num, str, graphics, any others? *)
-   (*("stdLabels",                stdlib_dir, "stdLabels.ml");
+   ("stdLabels",                stdlib_dir, "stdLabels.ml");
    ("moreLabels",               stdlib_dir, "moreLabels.ml");
    ("stringLabels",             stdlib_dir, "stringLabels.ml");
    ("bytesLabels",              stdlib_dir, "bytesLabels.ml");
    ("listLabels",               stdlib_dir, "listLabels.ml");
-   ("arrayLabels",              stdlib_dir, "arrayLabels.ml");*) (* FIXME labels *)
-   ("Complex",                  stdlib_dir, "complex.ml");
+   ("arrayLabels",              stdlib_dir, "arrayLabels.ml"); (* FIXME labels *)
+   ("Complex",                  stdlib_dir, "complex.ml");*)
    (*("Filename",                 stdlib_dir, "filename.ml"); (* unknown node * *)*)
    (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); (* unknown * structure item *)*)
    (*("Genlex",                   stdlib_dir, "genlex.ml"); (* FIXME: unknown * node *)*)
    (*("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml"); (* FIXME * unknow node *)*)
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
    (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); FIXME of_real_ocaml_module_expr *)
-   ("Callback",                 stdlib_dir, "callback.ml");
+   (*("Callback",                 stdlib_dir, "callback.ml");*)
    (*("Scanf",                    stdlib_dir, "scanf.ml"); (* FIXME Unknown * structure item *)*)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                  stdlib_dir, "format.ml"); (* FIXME Unknown * pattern *)*)
+   (*("Format",                  stdlib_dir, "format.ml");*)
    (*("Weak",                     stdlib_dir, "weak.ml"); FIXME Unknown structure item *)
    (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); FIXME Unknown node *)
    (*("Random",                   stdlib_dir, "random.ml"); FIXME Unknown record entry type *)
-   (*("Digest",                   stdlib_dir, "digest.ml"); (* Unknown pattern * *)*)
-   ("Gc",                       stdlib_dir, "gc.ml");
-   ("Printexc",                 stdlib_dir, "printexc.ml");
+   (*("Digest",                   "./stdlib", "digest.ml"); (* Unknown pattern
+    * *) (* FIXME Exception pattern s *)*)
+   (*("Gc",                       stdlib_dir, "gc.ml");*)
+   (*("Printexc",                 stdlib_dir, "printexc.ml");*)
    (*("Arg",                      stdlib_dir, "arg.ml"); (* FIXME unknown node * fun (labelled/optional *)*)
    ("Printf",                   stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work - give Not_found *)
    ("CamlinternalFormat",       "./stdlib", "camlinternalFormat.ml"); (* FIXME Parse labelled and optional arguments *)
    ("Buffer",                   stdlib_dir, "buffer.ml");
    (*("Stream",                   stdlib_dir, "stream.ml");*) (* Unknown pattern *)
    (*("Lazy",                     stdlib_dir, "lazy.ml");*)
-   ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
-   (*("Queue",                    stdlib_dir, "queue.ml"); (* FIXME Unknown * pattern *)*)
-   ("Stack",                    stdlib_dir, "stack.ml");
+   (*("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");*)
+   ("Queue",                    stdlib_dir, "queue.ml");
+   (*("Stack",                    stdlib_dir, "stack.ml");
    (*("Map",                      stdlib_dir, "map.ml");*)
    (*("Set",                      stdlib_dir, "set.ml");*)
    ("Parsing",                  stdlib_dir, "parsing.ml");
@@ -110,7 +111,7 @@ let stdlib_modules =
    ("Array",                    stdlib_dir, "array.ml");
    ("Obj",                      stdlib_dir, "obj.ml");
    ("Marshal",                  stdlib_dir, "marshal.ml");*)
-   ("Sort",                     stdlib_dir, "sort.ml");
+   (*("Sort",                     stdlib_dir, "sort.ml");*)
    (*("Sys",                      "./stdlib", "sys.ml");*)
    ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");

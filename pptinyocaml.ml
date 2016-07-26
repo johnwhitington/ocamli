@@ -316,7 +316,8 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " done"
   | Record items ->
       str "{";
-      List.iter (print_record_entry f) items;
+      let first = ref true in
+      List.iter (fun x -> if not !first then txt "; "; first := false; print_record_entry f x) items;
       str "}"
   | Field (e, n) ->
       str lp;
@@ -397,6 +398,16 @@ and print_type_declaration f isleft parent tds =
          end)
       tds
 
+and print_label_declaration f isleft parent labeldec =
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  if labeldec.pld_mutable = Mutable then boldtxt "mutable ";
+  txt labeldec.pld_name.txt;
+  txt " : ";
+  print_core_type f isleft parent labeldec.pld_type
+
 and print_constuctor_declaration f isleft parent cd =
   let txt = Format.pp_print_text f in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
@@ -413,7 +424,16 @@ and print_constuctor_declaration f isleft parent cd =
           first := false;
           print_core_type f isleft parent t)
         ts
-  | _ -> txt "print_constuctor_declaration unknown"
+  | Pcstr_record labels ->
+      if labels <> [] then (boldtxt " of "; txt "{");
+      let first = ref true in
+        List.iter
+          (fun labeldec ->
+            if not !first then txt "; ";
+            first := false;
+            print_label_declaration f isleft parent labeldec)
+          labels;
+      if labels <> [] then txt "}"
   end
 
 and print_core_type f isleft parent t =
@@ -558,7 +578,16 @@ and print_pattern f isleft parent pat =
     | PatConstraint (p, typ) ->
         print_pattern f isleft parent p;
         txt " : <<typ>>";
-
+    | PatRecord (openflag, items) ->
+        txt "{";
+        List.iter
+          (fun (n, p) ->
+            txt n;
+            txt " : ";
+            print_pattern f isleft parent p)
+          items;
+        if not openflag then txt "_";
+        txt "}"
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in
