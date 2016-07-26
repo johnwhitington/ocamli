@@ -42,3 +42,5 @@ val ast : string -> Parsetree.structure
 
 val open_module : string -> Tinyocaml.env -> Tinyocaml.env
 
+val alias_module : string -> string -> Tinyocaml.env -> Tinyocaml.env
+

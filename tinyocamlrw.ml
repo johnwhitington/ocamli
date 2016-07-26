@@ -181,7 +181,12 @@ and of_real_ocaml_module_expr env module_expr =
 
 and of_real_ocaml_module_binding env mb =
   let name = mb.pmb_name.txt in
-    ModuleBinding (name, of_real_ocaml_module_expr env mb.pmb_expr)
+    match of_real_ocaml_module_expr env mb.pmb_expr with
+      ModuleIdentifier alias ->
+        (Some (ModuleBinding (name, ModuleIdentifier alias)), alias_module name alias env)
+    | x ->
+        Printf.eprintf "Unknown module binding type\n";
+        (Some (ModuleBinding (name, x)), env)
 
 and of_real_ocaml_open_description o =
   match o.popen_lid.txt with
@@ -217,7 +222,7 @@ and of_real_ocaml_structure_item env = function
      (Some (TypeDef (recflag == Recursive, typedecls)), env)
   (* module M = ... *)
 | {pstr_desc = Pstr_module module_binding} ->
-     (Some (of_real_ocaml_module_binding env module_binding), env)
+     of_real_ocaml_module_binding env module_binding
   (* open M *)
 | {pstr_desc = Pstr_open open_description} ->
      let n = of_real_ocaml_open_description open_description in

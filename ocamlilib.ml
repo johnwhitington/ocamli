@@ -58,9 +58,10 @@ let add_prefix_to_bindings name (recflag, bindings) =
 let load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
   let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
-    let themod' = Eval.eval_until_value false env themod in (* <-- module initialisation *)
+    (*let themod' = Eval.eval_until_value false env themod in (* <-- module
+     * initialisation *)*)
       if !debug then Printf.printf "done\n%!";
-      List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod'))
+      List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
 
 let stdlib_modules =
   [(*("Foo",                    "./stdlib", "foo.ml");*)
@@ -112,7 +113,7 @@ let stdlib_modules =
    ("Sort",                     stdlib_dir, "sort.ml");*)
    ("Sys",                      "./stdlib", "sys.ml");
    (*("String",                   stdlib_dir, "string.ml");*)
-   (*("Bytes",                    stdlib_dir, "bytes.ml");*)
+   ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
    ("Pervasives",               stdlib_dir, "pervasives.ml");

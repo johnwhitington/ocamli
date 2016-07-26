@@ -116,3 +116,7 @@ let strip_bindings n (recflag, bs) =
 let open_module n env =
   List.map (strip_bindings n) (bindings_beginning_with n env) @ env
 
+
+let alias_module current alias env = env
+
+
