@@ -1,5 +1,5 @@
-let x = fun () -> 1
+open Char
 
-let x = x ()
+let x = code 'A'
 
 let y = x

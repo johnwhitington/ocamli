@@ -198,7 +198,9 @@ and of_real_ocaml_structure_item env = function
      let bindings' = List.map (of_real_ocaml_binding ((recflag', theref)::env)) bindings in
        theref := bindings';
        let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
-         (Some (LetDef (recflag', bindings')), env')
+         (* Do any module initialization required *)
+         let evalled = Eval.eval_until_value false env' (LetDef (recflag', bindings')) in 
+           (Some evalled, env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
      (Some (ExceptionDef (txt, t)), env)

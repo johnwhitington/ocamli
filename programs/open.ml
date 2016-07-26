@@ -1,7 +1,16 @@
-open Sys
+(* Works *)
+
+(*open Sys
 
 let x () = argv
 
-let y = x ()
+let y = x ()*)
 
 
+
+(* Does not work *)
+open Sys
+
+let x = argv
+
+let y = x
