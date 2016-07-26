@@ -198,7 +198,7 @@ and of_real_ocaml_structure_item env = function
      let bindings' = List.map (of_real_ocaml_binding ((recflag', theref)::env)) bindings in
        theref := bindings';
        let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
-         (Some (LetDef (recflag', bindings', if recflag' then env' else env)), env')
+         (Some (LetDef (recflag', bindings')), env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
      (Some (ExceptionDef (txt, t)), env)
@@ -209,7 +209,7 @@ and of_real_ocaml_structure_item env = function
     let n, primitive = of_real_ocaml_primitive value_description in
     let bindings = [(PatVar n, primitive)] in
     let env' = (false, ref bindings)::env in
-      (Some (LetDef (false, bindings, env)), env')
+      (Some (LetDef (false, bindings)), env')
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
      (Some (TypeDef (recflag == Recursive, typedecls)), env)

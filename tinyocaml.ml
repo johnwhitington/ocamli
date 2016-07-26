@@ -67,7 +67,7 @@ and t =
 | Cmp of (cmp * t * t)        (* < > <> = <= >= *)
 | If of (t * t * t option)    (* if e then e1 [else e2] *)
 | Let of (bool * binding list * t) (* let x = e [and ...] in e' *)
-| LetDef of (bool * binding list * env) (* let x = e [and ...] *)
+| LetDef of (bool * binding list) (* let x = e [and ...] *)
 | TypeDef of (bool * Parsetree.type_declaration list) (* type t = A | B of int [and t' = A' | B' of int] *)
 | App of (t * t)              (* e e' *)
 | Seq of (t * t)              (* e; e *)
@@ -138,8 +138,8 @@ let rec recurse f exp =
   | If (e, e1, e2) -> If (f e, f e1, recurse_option f e2)
   | Let (recflag, bindings, e) ->
       Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, f e)
-  | LetDef (recflag, bindings, env) ->
-      LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings, env)
+  | LetDef (recflag, bindings) ->
+      LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
   | Fun (n, fexp, env) -> Fun (n, f fexp, env)
   | App (a, b) -> App (f a, f b)
   | Seq (a, b) -> Seq (f a, f b)
@@ -240,7 +240,7 @@ let rec to_string = function
 | Let (recflag, bindings, e') ->
     Printf.sprintf "%s (%s, %s)"
       (if recflag then "LetRec" else "Let") (to_string_bindings bindings) (to_string e')
-| LetDef (recflag, bindings, env) ->
+| LetDef (recflag, bindings) ->
     Printf.sprintf "%s (%s)"
       (if recflag then "LetDefRec" else "LetDef") (to_string_bindings bindings)
 | Fun (fname, fexp, fenv) ->

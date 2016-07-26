@@ -42,7 +42,7 @@ let rec appears var = function
       (* If appears in rhs of a let or in (e' but not bound by the let) *)
          List.exists (appears var) (List.map snd bindings)
       || (appears var e' && not (List.mem var (bound_in_bindings bindings)))
-| LetDef (recflag, bindings, _) ->
+| LetDef (recflag, bindings) ->
     (* If recursive, the bound names in all patterns occlude *)
     if recflag then
          not (List.mem var (bound_in_bindings bindings))
@@ -312,12 +312,12 @@ let rec eval peek (env : Tinyocaml.env) expr =
         end
     else
       Let (recflag, eval_first_non_value_binding peek false env [] bindings, e)
-| LetDef (recflag, bindings, env') ->
+| LetDef (recflag, bindings) ->
     if List.for_all (fun (_, e) -> is_value e) bindings
       then
         failwith "letdef already a value"
       else
-        LetDef (recflag, eval_first_non_value_binding peek recflag (env' @ env) [] bindings, env')
+        LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
 | App (Fun ((fname, fexp, fenv) as f), x) ->
     if is_value x
       then build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
@@ -541,7 +541,7 @@ and eval_first_non_value_item peek (env : env) r = function
 | h::t ->
     if is_value h then
       let env' =
-        match h with LetDef (rf, bs, letdefenv) -> letdefenv @ ((rf, ref bs)::env) | _ -> env
+        match h with LetDef (rf, bs) -> (rf, ref bs)::env | _ -> env
       in
         eval_first_non_value_item peek env' (h::r) t
     else

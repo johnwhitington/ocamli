@@ -38,9 +38,7 @@ let definitions_of_module = function
     Ocamliutil.option_map
       (fun x ->
         match x with
-          (* We can throw away the environment here, because the RHS has been
-           * evaluated at module load time. *)
-          LetDef (recflag, bindings, env) -> Some (recflag, ref bindings)
+          LetDef (recflag, bindings) -> Some (recflag, ref bindings)
         | _ -> None) 
       items
 | _ -> failwith "definitions_of_module"
@@ -115,10 +113,10 @@ let stdlib_modules =
    (*("Sys",                      "./stdlib", "sys.ml");*)
    (*("String",                   stdlib_dir, "string.ml");*)
    (*("Bytes",                    stdlib_dir, "bytes.ml");*)
-   ("Char",                     stdlib_dir, "char.ml");
+   (*("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
    ("Pervasives",               stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
 
 let loadlib () =
   List.fold_right

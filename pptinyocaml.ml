@@ -257,13 +257,7 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | LetDef (recflag, bindings, env) ->
-      if !debug then
-        begin
-          txt "|E|";
-          txt (to_string_env ~full:true env);
-          txt "|E|"
-        end;
+  | LetDef (recflag, bindings) ->
       str lp;
       let first = ref true in
       List.iter
