@@ -77,41 +77,40 @@ let stdlib_modules =
    ("Complex",                  stdlib_dir, "complex.ml");*)
    (*("Filename",                 stdlib_dir, "filename.ml"); (* unknown node * *)*)
    (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); (* unknown * structure item *)*)
-   (*("Genlex",                   stdlib_dir, "genlex.ml"); (* FIXME: unknown * node *)*)
-   (*("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml"); (* FIXME * unknow node *)*)
+   ("Genlex",                   "./stdlib", "genlex.ml");
+   ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
    (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); FIXME of_real_ocaml_module_expr *)
-   (*("Callback",                 stdlib_dir, "callback.ml");*)
-   (*("Scanf",                    stdlib_dir, "scanf.ml"); (* FIXME Unknown * structure item *)*)
+   ("Callback",                 stdlib_dir, "callback.ml");
+   (*("Scanf",                    stdlib_dir, "scanf.ml"); FIXME: Modinit causes Not_found *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                  stdlib_dir, "format.ml");*)
-   (*("Weak",                     stdlib_dir, "weak.ml"); FIXME Unknown structure item *)
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); FIXME Unknown node *)
-   (*("Random",                   stdlib_dir, "random.ml"); FIXME Unknown record entry type *)
-   (*("Digest",                   "./stdlib", "digest.ml"); (* Unknown pattern
-    * *) (* FIXME Exception pattern s *)*)
-   (*("Gc",                       stdlib_dir, "gc.ml");*)
-   (*("Printexc",                 stdlib_dir, "printexc.ml");*)
+   (*("Format",                  stdlib_dir, "format.ml"); FIXME: Not_found on * modinit *)
+   (*("Weak",                     stdlib_dir, "weak.ml"); FIXME: of_real_ocaml_module_error *)
+   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); Needs Sys.getenv *)
+   (*("Random",                   stdlib_dir, "random.ml"); (*FIXME Not_found * *)*)
+   ("Digest",                   stdlib_dir, "digest.ml");
+   ("Gc",                       stdlib_dir, "gc.ml");
+   ("Printexc",                 stdlib_dir, "printexc.ml");
    (*("Arg",                      stdlib_dir, "arg.ml"); (* FIXME unknown node * fun (labelled/optional *)*)
    ("Printf",                   stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work - give Not_found *)
-   ("CamlinternalFormat",       "./stdlib", "camlinternalFormat.ml"); (* FIXME Parse labelled and optional arguments *)
+   (*("CamlinternalFormat",       "./stdlib", "camlinternalFormat.ml"); (* FIXME * Parse labelled and optional arguments *)*)
    ("Buffer",                   stdlib_dir, "buffer.ml");
-   (*("Stream",                   stdlib_dir, "stream.ml");*) (* Unknown pattern *)
-   (*("Lazy",                     stdlib_dir, "lazy.ml");*)
-   (*("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");*)
+   ("Stream",                   stdlib_dir, "stream.ml");
+   ("Lazy",                     stdlib_dir, "lazy.ml");
+   ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
    ("Queue",                    stdlib_dir, "queue.ml");
-   (*("Stack",                    stdlib_dir, "stack.ml");
-   (*("Map",                      stdlib_dir, "map.ml");*)
-   (*("Set",                      stdlib_dir, "set.ml");*)
+   ("Stack",                    stdlib_dir, "stack.ml");
+   (*("Map",                      stdlib_dir, "map.ml"); * of_real_ocaml_module_expr *)
+   (*("Set",                      stdlib_dir, "set.ml");*) (* of_real_ocaml_module_expr *)
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
-   ("Nativeint",                stdlib_dir, "nativeint.ml");
+   (*("Nativeint",                stdlib_dir, "nativeint.ml"); (* Require Sys.word_size *)
    ("Int64",                    stdlib_dir, "int64.ml");
-   ("Int32",                    stdlib_dir, "int32.ml");
+   ("Int32",                    stdlib_dir, "int32.ml");*)
    ("Array",                    stdlib_dir, "array.ml");
    ("Obj",                      stdlib_dir, "obj.ml");
-   ("Marshal",                  stdlib_dir, "marshal.ml");*)
-   (*("Sort",                     stdlib_dir, "sort.ml");*)
+   ("Marshal",                  stdlib_dir, "marshal.ml");
+   ("Sort",                     stdlib_dir, "sort.ml");
    (*("Sys",                      "./stdlib", "sys.ml");*)
    ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");

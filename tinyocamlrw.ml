@@ -101,6 +101,7 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_constraint (e, _) -> of_real_ocaml env e
 | Pexp_open (_, {txt = Longident.Lident n}, e) ->
     LocalOpen (n, of_real_ocaml env e)
+| Pexp_lazy e -> Lazy (of_real_ocaml env e)
 | _ -> raise (UnknownNode "unknown node")
 
 and of_real_ocaml_binding env {pvb_pat = {ppat_desc}; pvb_expr} =
@@ -154,6 +155,8 @@ and of_real_ocaml_pattern env = function
 | Ppat_record (items, openflag) ->
     PatRecord (openflag = Open,
                List.map (fun (n, p) -> (string_of_longident n.txt, of_real_ocaml_pattern env p.ppat_desc)) items)
+| Ppat_exception p ->
+    PatException (of_real_ocaml_pattern env p.ppat_desc)
 | _ -> failwith "unknown pattern"
 
 and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
@@ -213,6 +216,9 @@ and of_real_ocaml_structure_item env = function
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
      (Some (ExceptionDef (txt, t)), env)
+  (* exception E = E' *)
+| {pstr_desc = Pstr_exception _} ->
+     (None, env) (* FIXME *)
   (* top level attribute *)
 | {pstr_desc = Pstr_attribute _} -> (None, env)
   (* external n : t = "fn" *)
@@ -232,6 +238,9 @@ and of_real_ocaml_structure_item env = function
      let n = of_real_ocaml_open_description open_description in
        (*Printf.printf "Opening module %s. Len was %i\n" n (List.length env);*)
        (Some (Open n), let x = open_module n env in (*Printf.printf "len now %i\n" (List.length x);*) x)
+  (* module type *)
+| {pstr_desc = Pstr_modtype _} ->
+      (None, env)
 | _ -> failwith "unknown structure item"
 
 and of_real_ocaml_structure env acc = function

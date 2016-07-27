@@ -65,6 +65,7 @@ let rec appears var = function
 | Raise (_, Some x) -> appears var x
 | Raise (_, None) -> false
 | Assert x -> appears var x
+| Lazy x -> appears var x
 | Int _ | Bool _ | Float _ | Unit
 | Int32 _ | Int64 _ | NativeInt _ | Char _ | TypeDef _ | Sig _
 | ModuleBinding _ | ModuleConstraint _ | ModuleIdentifier _
@@ -226,6 +227,7 @@ let build_lets_from_fenv fenv e =
   
 let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
+| Lazy e -> Lazy (eval peek env e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))
 | Assert (Bool false) ->
@@ -441,7 +443,21 @@ let rec eval peek (env : Tinyocaml.env) expr =
     Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
 | Match (x, p::ps) ->
     if not (is_value x) then
-      Match (eval peek env x, p::ps)
+      try Match (eval peek env x, p::ps) with
+        ExceptionRaised (x, payload) ->
+          (*Printf.printf "Caught Exception raised in body of a match. Checking \
+          for exception cases...\n";*)
+          let exc_cases =
+             option_map
+              (function (PatException p, guard, rhs) -> Some (p, guard, rhs) | _ -> None)
+              (p::ps)
+          in
+            (*Printf.printf "Found %i candidate cases...\n" (List.length
+             * exc_cases);*)
+            match eval_match_exception peek env x payload exc_cases with
+              FailedToMatch -> Raise (x, payload)
+            | EvaluatedGuardStep _ -> failwith "guards on exceptions not supported yet"
+            | Matched e' -> e'
     else
       begin match eval_case peek env x p with
       | Matched e -> e
@@ -465,7 +481,8 @@ let rec eval peek (env : Tinyocaml.env) expr =
     failwith ("already a value: " ^ (Pptinyocaml.to_string expr))
 
 (* e.g eval_match_exception [Failure] [Some (String "foo") [(pattern, guard, rhs)]] *)
-and eval_match_exception peek env exnname exnpayload = function
+and eval_match_exception peek env exnname exnpayload cases =
+  match cases with
     [] -> FailedToMatch
   | c::cs ->
       let expr = Constr (exnname, exnpayload) in

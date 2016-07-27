@@ -77,6 +77,11 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
+  | Lazy e ->
+      str lp;
+      boldtxt "lazy ";
+      print_tiny_inner f isleft (Some node) e;
+      str rp
   | Open x ->
       str lp;
       boldtxt "open ";
@@ -88,7 +93,7 @@ let rec print_tiny_inner f isleft parent node =
       txt x;
       txt ".";
       str "(";
-      print_tiny_inner f isleft parent e;
+      print_tiny_inner f isleft (Some node) e;
       str ")";
       str rp
   | Assert e ->
@@ -588,6 +593,9 @@ and print_pattern f isleft parent pat =
           items;
         if not openflag then txt "_";
         txt "}"
+    | PatException p ->
+        boldtxt "exception ";
+        print_pattern f isleft parent p
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

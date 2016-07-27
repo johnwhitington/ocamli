@@ -29,6 +29,7 @@ type pattern =
 | PatConstr of string * pattern option
 | PatConstraint of pattern * Parsetree.core_type
 | PatRecord of bool * (string * pattern) list
+| PatException of pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -91,6 +92,7 @@ and t =
 | Assert of t                 (* assert *)
 | Open of string            (* open Unix followed by other things. *)
 | LocalOpen of (string * t) (* String.(length "4") *)
+| Lazy of t                 (* lazy t *)
 
 (* The type of OCaml values in memory *)
 type untyped_ocaml_value =
@@ -174,6 +176,7 @@ let rec recurse f exp =
   | Assert e -> Assert (f e)
   | Open n -> Open n
   | LocalOpen (n, e) -> LocalOpen (n, f e)
+  | Lazy e -> Lazy (f e)
 
 and recurse_option f = function
   None -> None
@@ -312,6 +315,7 @@ let rec to_string = function
     Printf.sprintf "ModuleConstraint (%s, %s)"
       (to_string_modtype modtype) (to_string t)
 | ModuleIdentifier x -> "ModuleIdentifier" ^ x
+| Lazy e -> Printf.sprintf "Lazy (%s)" (to_string e)
 
 and to_string_modtype = function
   ModTypeSignature t ->
@@ -351,6 +355,7 @@ and to_string_pat = function
 | PatArray _ -> "PatArray"
 | PatConstr _ -> "PatConstr"
 | PatRecord _ -> "PatRecord"
+| PatException _ -> "PatException"
 
 and to_string_patmatch xs =
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string_case x ^ ", ") xs)
@@ -426,4 +431,5 @@ let rec bound_in_pattern = function
 | PatConstr (_, Some x) -> bound_in_pattern x
 | PatConstraint (p, t) -> bound_in_pattern p
 | PatRecord (_, ps) -> List.flatten (List.map bound_in_pattern (List.map snd ps))
+| PatException p -> bound_in_pattern p
 

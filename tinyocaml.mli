@@ -30,6 +30,7 @@ type pattern =
 | PatConstr of string * pattern option
 | PatConstraint of pattern * Parsetree.core_type
 | PatRecord of bool * (string * pattern) list
+| PatException of pattern
 
 and case = pattern * t option * t (* pattern, guard, rhs *)
 
@@ -85,12 +86,13 @@ and t =
 | Struct of (bool * t list)  (** Module implementation. If bool is false, we don't print it (i.e it's the top level struct) *)
 | Sig of t list                (** Module signature *)
 | ModuleBinding of (string * t)(** Module M = ... *)
-| ModuleConstraint of (modtype * t)  (* ME : MT *)
+| ModuleConstraint of (modtype * t)  (** ME : MT *)
 | ModuleIdentifier of string
 | Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
-| Open of string         (* open Unix *)
-| LocalOpen of (string * t)    (* String.(length "4") *)
+| Open of string               (** open Unix *)
+| LocalOpen of (string * t)    (** String.(length "4") *)
+| Lazy of t                    (** lazy e *)
 
 val string_of_op : op -> string
 
