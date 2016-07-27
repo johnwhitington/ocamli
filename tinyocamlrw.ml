@@ -20,10 +20,10 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_construct ({txt = Lident "[]"}, _) -> Nil
 | Pexp_construct ({txt = Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
     Cons (of_real_ocaml env e, of_real_ocaml env e')
-| Pexp_construct ({txt = Lident x}, None) ->
-    Constr (x, None)
-| Pexp_construct ({txt = Lident x}, Some e) ->
-    Constr (x, Some (of_real_ocaml env e))
+| Pexp_construct ({txt}, None) ->
+    Constr (string_of_longident txt, None)
+| Pexp_construct ({txt}, Some e) ->
+    Constr (string_of_longident txt, Some (of_real_ocaml env e))
 | Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
@@ -147,9 +147,9 @@ and of_real_ocaml_pattern env = function
     PatOr
       (of_real_ocaml_pattern env p.ppat_desc,
        of_real_ocaml_pattern env p'.ppat_desc)
-| Ppat_construct ({txt = Lident x}, None) -> PatConstr (x, None)
-| Ppat_construct ({txt = Lident x}, Some p) ->
-    PatConstr (x, Some (of_real_ocaml_pattern env p.ppat_desc))
+| Ppat_construct ({txt}, None) -> PatConstr (string_of_longident txt, None)
+| Ppat_construct ({txt}, Some p) ->
+    PatConstr (string_of_longident txt, Some (of_real_ocaml_pattern env p.ppat_desc))
 | Ppat_constraint (pat, coretype) ->
     PatConstraint (of_real_ocaml_pattern env pat.ppat_desc, coretype)
 | Ppat_record (items, openflag) ->

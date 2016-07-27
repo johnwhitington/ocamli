@@ -64,20 +64,19 @@ let load_module (name : string) (env : env) (file : string) =
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
 
 let stdlib_modules =
-  [(*(*("Foo",                    "./stdlib", "foo.ml");*)
-   ("Unix",                     "./stdlib", "unix.ml"); (* Calling Printexc give Not_found *)
-   ("Bigarray",                 "./stdlib", "bigarray.ml"); (* unknown node * fun*)
+  [(*("Unix",                     "./stdlib", "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
+   (*("Bigarray",                 "./stdlib", "bigarray.ml");*) (* Optional and labelled *)
    (* bigarray, thread, num, str, graphics, any others? *)
-   ("stdLabels",                stdlib_dir, "stdLabels.ml");
+   (*("stdLabels",                stdlib_dir, "stdLabels.ml");
    ("moreLabels",               stdlib_dir, "moreLabels.ml");
    ("stringLabels",             stdlib_dir, "stringLabels.ml");
    ("bytesLabels",              stdlib_dir, "bytesLabels.ml");
    ("listLabels",               stdlib_dir, "listLabels.ml");
-   ("arrayLabels",              stdlib_dir, "arrayLabels.ml"); (* FIXME labels *)
-   ("Complex",                  stdlib_dir, "complex.ml");*)
-   (*("Filename",                 stdlib_dir, "filename.ml"); (* unknown node * *)*)
-   (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); (* unknown * structure item *)*)
-   ("Genlex",                   "./stdlib", "genlex.ml");
+   ("arrayLabels",              stdlib_dir, "arrayLabels.ml");*) (* FIXME labels *)
+   ("Complex",                  stdlib_dir, "complex.ml");
+   (*("Filename",                 stdlib_dir, "filename.ml"); Need Sys.getenv *)
+   (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); * of_real_ocaml_module_expr *)
+   ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
    (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); FIXME of_real_ocaml_module_expr *)
@@ -127,7 +126,10 @@ let loadlib () =
     []
 
 let load_library () =
-  if !load_stdlib then Eval.lib := loadlib ()
+  let t = !Ocamliutil.typecheck in
+    Ocamliutil.typecheck := false;
+    if !load_stdlib then Eval.lib := loadlib ();
+    Ocamliutil.typecheck := t
 
 let print_binding (pat, e) =
   Printf.printf "%s = %s\n" (to_string_pat pat) (Pptinyocaml.to_string e)

@@ -288,7 +288,16 @@ let caml_fill_string =
        [String b; Int x; Int y; Char c] -> unsafe_fill (Bytes.unsafe_of_string b) x y c; Unit
      | _ -> failwith "caml_fill_string")
 
+external caml_ba_init : unit -> unit = "caml_ba_init"
+
+let caml_ba_init =
+  mk "caml_ba_init"
+    (function
+        [Unit] -> caml_ba_init (); Unit
+      | _ -> failwith "caml_ba_init")
+
 let builtin_primitives = [
+  caml_ba_init;
   caml_fill_string;
   caml_make_vect;
   percent_nativeint_sub;
