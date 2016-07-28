@@ -56,9 +56,9 @@ let string_of_tag = function
 
 let rec find_funs e =
   match e with
-    Fun (_, fname, fexp, _) ->
+    Fun (flabel, fname, fexp, _) ->
       let more, e' = find_funs fexp in
-        (fname::more, e')
+        ((fname, flabel)::more, e')
   | _ -> ([], e)
 
 let pp_constructor_arg pp = function
@@ -255,7 +255,7 @@ let rec print_tiny_inner f isleft parent node =
              print_pattern f false (Some node) v NoLabel;
              txt " ";
              let morefuns, e = find_funs e in
-             List.iter (fun l -> print_pattern f false (Some node) l NoLabel; txt " ") morefuns;
+             List.iter (fun (p, l) -> print_pattern f false (Some node) p l; txt " ") morefuns;
              txt "= ";
              print_tiny_inner f false (Some node) e)
           bindings;
@@ -275,7 +275,7 @@ let rec print_tiny_inner f isleft parent node =
            print_pattern f false (Some node) v NoLabel;
            txt " ";
            let morefuns, e = find_funs e in
-             List.iter (fun l -> print_pattern f false (Some node) l NoLabel; txt " ") morefuns;
+             List.iter (fun (p, l) -> print_pattern f false (Some node) p l; txt " ") morefuns;
            txt "= ";
            print_tiny_inner f false (Some node) e)
         bindings;
@@ -527,8 +527,8 @@ and print_pattern f isleft parent pat label =
         let pvar () = str (Ocamliutil.unstar v) in
         begin match label with
           NoLabel -> pvar ();
-        | Labelled s -> str "~"; str s; pvar ()
-        | Optional (s, None) -> str "?"; str s; pvar ()
+        | Labelled s -> str "~"; pvar ()
+        | Optional (s, None) -> str "?"; pvar ()
         | Optional (s, Some e) ->
             str "?("; str s; str " = ";
             print_tiny_inner f false parent e;

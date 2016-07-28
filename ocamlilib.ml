@@ -63,16 +63,24 @@ let load_module (name : string) (env : env) (file : string) =
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
 
+(* Remaining problems:
+  * (1) Module initialisation hence Sys and others
+  * (2) of_real_ocaml_module_expr - some sort of unknown module thing
+  * (3) The 'include' keyword *)
 let stdlib_modules =
   [(*("Unix",                     "./stdlib", "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
-   (*("Bigarray",                 "./stdlib", "bigarray.ml");*) (* Optional and labelled *)
-   (* bigarray, thread, num, str, graphics, any others? *)
+   (*("Num",                 "./stdlib", "num.ml");*) 
+   (*("Str",                 "./stdlib", "str.ml");*) 
+   (*("Threads",                 "./stdlib", "threads.ml");*) 
+   (*("Graphics",                 "./stdlib", "graphics.ml");*) 
+   (*("Dynlink",                 "./stdlib", "threads.ml");*) 
+   (*("Bigarray",                 "./stdlib", "bigarray.ml");*) 
    (*("stdLabels",                stdlib_dir, "stdLabels.ml");
    ("moreLabels",               stdlib_dir, "moreLabels.ml");
    ("stringLabels",             stdlib_dir, "stringLabels.ml");
    ("bytesLabels",              stdlib_dir, "bytesLabels.ml");
-   ("listLabels",               stdlib_dir, "listLabels.ml");
-   ("arrayLabels",              stdlib_dir, "arrayLabels.ml");*) (* FIXME labels *)
+   ("listLabels",               stdlib_dir, "listLabels.ml");*)
+   (*("arrayLabels",            stdlib_dir, "arrayLabels.ml");*) (* include statement. *)
    ("Complex",                  stdlib_dir, "complex.ml");
    (*("Filename",                 stdlib_dir, "filename.ml"); Need Sys.getenv *)
    (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); * of_real_ocaml_module_expr *)
@@ -90,9 +98,9 @@ let stdlib_modules =
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
    ("Printexc",                 stdlib_dir, "printexc.ml");
-   (*("Arg",                      stdlib_dir, "arg.ml"); (* FIXME unknown node * fun (labelled/optional *)*)
-   ("Printf",                   stdlib_dir, "printf.ml"); (* FIXME Printf doesn't work - give Not_found *)
-   (*("CamlinternalFormat",       "./stdlib", "camlinternalFormat.ml"); (* FIXME * Parse labelled and optional arguments *)*)
+   ("Arg",                      stdlib_dir, "arg.ml");
+   ("Printf",                   stdlib_dir, "printf.ml");
+   ("CamlinternalFormat",       stdlib_dir, "camlinternalFormat.ml");
    ("Buffer",                   stdlib_dir, "buffer.ml");
    ("Stream",                   stdlib_dir, "stream.ml");
    ("Lazy",                     stdlib_dir, "lazy.ml");
