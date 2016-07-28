@@ -189,7 +189,6 @@ let memq x a =
   loop 0
 
 exception Bottom of int
-
 let sort cmp a =
   let maxson l i =
     let i31 = i+i+i+1 in
