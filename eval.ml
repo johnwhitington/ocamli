@@ -51,7 +51,9 @@ let rec appears var = function
       List.exists (fun (_, e) -> appears var e) bindings
 | Match (e, patmatch) ->
     appears var e || List.exists (appears_in_case var) patmatch
-| Fun (fname, fexp, env) -> not (List.mem var (bound_in_pattern fname)) && appears var fexp
+| Fun (flabel, fname, fexp, env) ->
+    not (List.mem var (bound_in_pattern fname)) &&
+    (appears var fexp || appears_in_label var flabel)
 | Function (cases, env) -> List.exists (appears_in_case var) cases
 | Record items ->
     List.exists (fun (_, {contents = e}) -> appears var e) items
@@ -81,6 +83,10 @@ and appears_in_case var (pat, guard, rhs) =
       | Some g -> appears var g
     in
       (appears_in_guard || appears var rhs) && not (List.mem var bound)
+
+and appears_in_label var = function
+  Optional (_, Some e) -> appears var e
+| _ -> false
 
 let rec collect_unused_lets = function
   Let (recflag, bindings, e) ->
@@ -283,10 +289,10 @@ let rec eval peek (env : Tinyocaml.env) expr =
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)
         begin match e with
-          Fun (fx, fe, fenv) ->
+          Fun (flabel, fx, fe, fenv) ->
             begin match filter_bindings fx bindings with
-              [] -> Fun (fx, fe, fenv)
-            | bindings' -> Fun (fx, Let (recflag, bindings', fe), fenv)
+              [] -> Fun (flabel, fx, fe, fenv)
+            | bindings' -> Fun (flabel, fx, Let (recflag, bindings', fe), fenv)
             end
         | Function (cases, fenv) ->
             (* Put in the guard of any case where it appears unoccluded by the
@@ -322,7 +328,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
         failwith "letdef already a value"
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
-| App (Fun ((fname, fexp, fenv) as f), x) ->
+| App (Fun ((flabel, fname, fexp, fenv) as f), x) ->
     if is_value x
       then build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
       else App (Fun f, eval peek env x)
@@ -354,7 +360,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       App (Function ((p::ps), fenv), eval peek env x) (* 2 *)
 | App (Var v, x) ->
     begin match lookup_value v env with
-      Fun (fname, fexp, fenv) ->
+      Fun (flabel, fname, fexp, fenv) ->
         if is_value x then
           (* We must use fenv to build lets here. This will go away when we have
           implicit-lets in the Tinyocaml.t data type *)
@@ -537,9 +543,9 @@ and eval_curry_collect_args args = function
 
 and eval_curry_makelets f args =
   match f, args with
-  | Fun (a, fexp, fenv), [x] ->
+  | Fun (label, a, fexp, fenv), [x] ->
       Let (false, [a, x], fexp)
-  | Fun (a, fexp, fenv), x::xs ->
+  | Fun (label, a, fexp, fenv), x::xs ->
       Let (false, [a, x], eval_curry_makelets fexp xs)
   | _ -> failwith "eval_curry_makelets"
 
@@ -551,7 +557,7 @@ and suitable_for_curry e =
   | e -> (0, e)
   in
     let rec all_funs (n, e) =
-      n = 0 || match e with Fun (_, e', _) -> all_funs (n - 1, e') | _ -> false
+      n = 0 || match e with Fun (_, _, e', _) -> all_funs (n - 1, e') | _ -> false
     in
       all_funs (count_apps e)
 

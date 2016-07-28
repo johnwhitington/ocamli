@@ -2,19 +2,19 @@ open Tinyocaml
 open Ocamliutil
 
 let mk name f =
-  (name, Fun (PatVar "*x", CallBuiltIn (name, [Var "*x"], f), []))
+  (name, Fun (NoLabel, PatVar "*x", CallBuiltIn (name, [Var "*x"], f), []))
 
 let mk2 name f =
   (name,
-   Fun (PatVar "*x",
-     Fun (PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), []))
+   Fun (NoLabel, PatVar "*x",
+     Fun (NoLabel, PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), []))
 
 let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
    (name,
-     Fun (PatVar (star x1),
-       Fun (PatVar (star x2),
-         Fun (PatVar (star x3),
-           Fun (PatVar (star x4),
+     Fun (NoLabel, PatVar (star x1),
+       Fun (NoLabel, PatVar (star x2),
+         Fun (NoLabel, PatVar (star x3),
+           Fun (NoLabel, PatVar (star x4),
              CallBuiltIn (name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4)], f), []), []), []), []))
 
 let caml_register_named_value =

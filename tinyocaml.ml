@@ -40,6 +40,8 @@ and env = (bool * binding list ref) list
 and modtype = (* not final *)
   ModTypeSignature of t
 
+and label = NoLabel | Labelled of string | Optional of string * t option
+
 and t =
 (* values *)
   Unit                        (* () *)
@@ -59,7 +61,7 @@ and t =
 | Constr of string * t option (* Constructor [data] *)
 | Cons of (t * t)             (* List *)
 | Nil                         (* [] *)
-| Fun of (pattern * t * env)  (* fun x -> e *)
+| Fun of (label * pattern * t * env)  (* fun x -> e *)
 | Function of (case list * env)   
 (* non-values *)
 | Var of string               (* x *)
@@ -143,7 +145,7 @@ let rec recurse f exp =
       Let (recflag, List.map (fun (n, v) -> (n, f v)) bindings, f e)
   | LetDef (recflag, bindings) ->
       LetDef (recflag, List.map (fun (n, v) -> (n, f v)) bindings)
-  | Fun (n, fexp, env) -> Fun (n, f fexp, env)
+  | Fun (label, n, fexp, env) -> Fun (recurse_label f label, n, f fexp, env)
   | App (a, b) -> App (f a, f b)
   | Seq (a, b) -> Seq (f a, f b)
   | While (a, b, c, d) -> While (f a, f b, f c, f d)
@@ -177,6 +179,10 @@ let rec recurse f exp =
   | Open n -> Open n
   | LocalOpen (n, e) -> LocalOpen (n, f e)
   | Lazy e -> Lazy (f e)
+
+and recurse_label f = function
+  | Optional (s, Some x) -> Optional (s, Some (f x))
+  | x -> x
 
 and recurse_option f = function
   None -> None
@@ -247,9 +253,9 @@ let rec to_string = function
 | LetDef (recflag, bindings) ->
     Printf.sprintf "%s (%s)"
       (if recflag then "LetDefRec" else "LetDef") (to_string_bindings bindings)
-| Fun (fname, fexp, fenv) ->
-    Printf.sprintf "Fun (%s, %s, %s)"
-      (to_string_pat fname) (to_string fexp) (to_string_env fenv)
+| Fun (flabel, fname, fexp, fenv) ->
+    Printf.sprintf "Fun (%s, %s, %s, %s)"
+      (to_string_label flabel) (to_string_pat fname) (to_string fexp) (to_string_env fenv)
 | App (e, e') ->
     Printf.sprintf "App (%s, %s)" (to_string e) (to_string e')
 | Seq (e, e') ->
@@ -316,6 +322,12 @@ let rec to_string = function
       (to_string_modtype modtype) (to_string t)
 | ModuleIdentifier x -> "ModuleIdentifier" ^ x
 | Lazy e -> Printf.sprintf "Lazy (%s)" (to_string e)
+
+and to_string_label = function
+  NoLabel -> "NoLabel"
+| Labelled s -> Printf.sprintf "Labelled %s" s
+| Optional (s, None) -> Printf.sprintf "Optional %s" s
+| Optional (s, Some e) -> Printf.sprintf "Optional %s = %s\n" s (to_string e)
 
 and to_string_modtype = function
   ModTypeSignature t ->

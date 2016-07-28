@@ -41,6 +41,8 @@ and env = (bool * binding list ref) list
 and modtype = (* not final *)
   ModTypeSignature of t
 
+and label = NoLabel | Labelled of string | Optional of string * t option
+
 (** The type of tiny-ocaml programs *)
 and t =
   Unit                         (** () *)
@@ -60,7 +62,7 @@ and t =
 | Constr of string * t option  (** Constuctor [data] *)
 | Cons of (t * t)              (** :: *)
 | Nil                          (** [] *)
-| Fun of (pattern * t * env)          (** fun x -> e *)
+| Fun of (label * pattern * t * env)          (** fun x -> e *)
 | Function of (case list * env)       (** function x -> e | y -> f ... *)
 | Var of string                (** x *)
 | Op of (op * t * t)           (** + - / * *)

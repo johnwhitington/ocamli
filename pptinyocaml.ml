@@ -56,7 +56,7 @@ let string_of_tag = function
 
 let rec find_funs e =
   match e with
-    Fun (fname, fexp, _) ->
+    Fun (_, fname, fexp, _) ->
       let more, e' = find_funs fexp in
         (fname::more, e')
   | _ -> ([], e)
@@ -252,10 +252,10 @@ let rec print_tiny_inner f isleft parent node =
              else
                boldtxt " and ";
              first := false;
-             print_pattern f false (Some node) v;
+             print_pattern f false (Some node) v NoLabel;
              txt " ";
              let morefuns, e = find_funs e in
-             List.iter (fun l -> print_pattern f false (Some node) l; txt " ") morefuns;
+             List.iter (fun l -> print_pattern f false (Some node) l NoLabel; txt " ") morefuns;
              txt "= ";
              print_tiny_inner f false (Some node) e)
           bindings;
@@ -272,21 +272,16 @@ let rec print_tiny_inner f isleft parent node =
            else
              boldtxt " and ";
            first := false;
-           print_pattern f false (Some node) v;
+           print_pattern f false (Some node) v NoLabel;
            txt " ";
            let morefuns, e = find_funs e in
-             List.iter (fun l -> print_pattern f false (Some node) l; txt " ") morefuns;
+             List.iter (fun l -> print_pattern f false (Some node) l NoLabel; txt " ") morefuns;
            txt "= ";
            print_tiny_inner f false (Some node) e)
         bindings;
       str rp
-  | Fun ((fpat, fexp, fenv) as fn) ->
-      (*if !debug then
-        begin
-          txt "|E|";
-          txt (to_string_env fenv);
-          txt "|E|"
-        end;*)
+  | Fun ((_, _, _, fenv) as fn) ->
+      (*if !debug then begin txt "|E|"; txt (to_string_env fenv); txt "|E|" end;*)
       print_series_of_funs lp rp f true (Some node) (Fun fn)
   | App (e, e') ->
       str lp;
@@ -486,14 +481,14 @@ and print_series_of_funs lp rp f isleft parent e =
   let boldtxt t = bold (); txt t; unbold () in
   (* Return a list of fnames and an fexp. There will be at least one. *)
   let rec gather_funs fnames = function
-     Fun (fname, fexp, _) -> gather_funs (fname::fnames) fexp
+     Fun (flabel, fname, fexp, _) -> gather_funs ((flabel, fname)::fnames) fexp
   |  x -> (List.rev fnames, x)
   in
     str lp;
     boldtxt "fun ";
     let names, exp = gather_funs [] e in
     List.iter
-      (fun x -> print_pattern f false (Some e) x; txt " ")
+      (fun (label, x) -> print_pattern f false (Some e) x label; txt " ")
       names;
     txt "-> ";
     print_tiny_inner f false (Some e) exp;
@@ -505,7 +500,7 @@ and print_case f isleft parent (pattern, guard, rhs) =
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
   txt "| ";
-  print_pattern f isleft parent pattern;
+  print_pattern f isleft parent pattern NoLabel;
   begin match guard with
   | None -> ()
   | Some g ->
@@ -516,7 +511,7 @@ and print_case f isleft parent (pattern, guard, rhs) =
   print_tiny_inner f false parent rhs;
   txt " "
 
-and print_pattern f isleft parent pat =
+and print_pattern f isleft parent pat label =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
@@ -528,7 +523,17 @@ and print_pattern f isleft parent pat =
     | PatUnit ->
         str "()"
     | PatVar v ->
-        str (Ocamliutil.unstar v)
+        (* Print 'v' or '~v' or '?v' or '?(v = 4)' *)
+        let pvar () = str (Ocamliutil.unstar v) in
+        begin match label with
+          NoLabel -> pvar ();
+        | Labelled s -> str "~"; str s; pvar ()
+        | Optional (s, None) -> str "?"; str s; pvar ()
+        | Optional (s, Some e) ->
+            str "?("; str s; str " = ";
+            print_tiny_inner f false parent e;
+            str ")"
+        end
     | PatInt i ->
         str (string_of_int i)
     | PatInt32 i ->
@@ -548,7 +553,7 @@ and print_pattern f isleft parent pat =
         let l = List.length items in
           List.iteri
             (fun i x ->
-               print_pattern f isleft parent x;
+               print_pattern f isleft parent x NoLabel;
                if i < l - 1 then txt ", ")
             items;
         str ")"
@@ -557,31 +562,31 @@ and print_pattern f isleft parent pat =
         let l = Array.length items in
           Array.iteri
             (fun i x ->
-               print_pattern f isleft parent x;
+               print_pattern f isleft parent x NoLabel;
                if i < l - 1 then txt "; ")
             items;
         str "|]"
     | PatNil -> str "[]"
     | PatCons (h, t) ->
-        print_pattern f isleft parent h;
+        print_pattern f isleft parent h NoLabel;
         str "::";
-        print_pattern f isleft parent t
+        print_pattern f isleft parent t NoLabel
     | PatAlias (a, p) ->
-        print_pattern f isleft parent p;
+        print_pattern f isleft parent p NoLabel;
         boldtxt " as ";
         str a
     | PatOr (a, b) ->
-        print_pattern f isleft parent a;
+        print_pattern f isleft parent a NoLabel;
         txt " | ";
-        print_pattern f isleft parent b
+        print_pattern f isleft parent b NoLabel
     | PatConstr (name, None) ->
         txt name
     | PatConstr (name, Some p) ->
         txt name;
         txt " ";
-        print_pattern f isleft parent p
+        print_pattern f isleft parent p NoLabel
     | PatConstraint (p, typ) ->
-        print_pattern f isleft parent p;
+        print_pattern f isleft parent p NoLabel;
         txt " : <<typ>>";
     | PatRecord (openflag, items) ->
         txt "{";
@@ -589,13 +594,13 @@ and print_pattern f isleft parent pat =
           (fun (n, p) ->
             txt n;
             txt " : ";
-            print_pattern f isleft parent p)
+            print_pattern f isleft parent p NoLabel)
           items;
         if not openflag then txt "_";
         txt "}"
     | PatException p ->
         boldtxt "exception ";
-        print_pattern f isleft parent p
+        print_pattern f isleft parent p NoLabel
 
 and print_record_entry f (n, {contents = e}) =
   let str = Format.fprintf f "%s" in

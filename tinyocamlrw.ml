@@ -32,10 +32,11 @@ let rec of_real_ocaml_expression_desc env = function
     If (of_real_ocaml env e, of_real_ocaml env e1, Some (of_real_ocaml env e2))
 | Pexp_ifthenelse (e, e1, None) ->
     If (of_real_ocaml env e, of_real_ocaml env e1, None)
-| Pexp_fun (Nolabel, None, pat, exp) ->
+| Pexp_fun (label, opt, pat, exp) ->
     let ocaml_exp = of_real_ocaml env exp in
-      Fun (of_real_ocaml_pattern env pat.ppat_desc, ocaml_exp, env)
-| Pexp_fun _ -> failwith "unknown node fun"
+      Fun (of_real_ocaml_label env label opt,
+           of_real_ocaml_pattern env pat.ppat_desc,
+           ocaml_exp, env)
 | Pexp_function cases ->
     let cases = List.map (of_real_ocaml_case env) cases in
       Function (cases, env)
@@ -103,6 +104,14 @@ let rec of_real_ocaml_expression_desc env = function
     LocalOpen (n, of_real_ocaml env e)
 | Pexp_lazy e -> Lazy (of_real_ocaml env e)
 | _ -> raise (UnknownNode "unknown node")
+
+and of_real_ocaml_label env label opt =
+  match label, opt with
+    Nolabel, None -> NoLabel
+  | Labelled l, None -> Labelled l
+  | Optional l, None -> Optional (l, None)
+  | Optional l, Some e -> Optional (l, Some (of_real_ocaml env e))
+  | _ -> failwith "bad of_real_ocaml_label"
 
 and of_real_ocaml_binding env {pvb_pat = {ppat_desc}; pvb_expr} =
   (of_real_ocaml_pattern env ppat_desc, of_real_ocaml env pvb_expr)
@@ -273,7 +282,7 @@ let rec to_real_ocaml_expression_desc = function
   | If (e, e1, Some e2) ->
       Pexp_ifthenelse (to_real_ocaml e, to_real_ocaml e1, Some (to_real_ocaml e2))
   | Let (flag, bindings, e) -> to_real_ocaml_let flag bindings e
-  | Fun (pat, e, _) ->
+  | Fun (_, pat, e, _) ->
       Pexp_fun (Nolabel, None, to_real_ocaml_pattern pat, to_real_ocaml e)
   | App (e, e') ->
       Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
