@@ -39,6 +39,7 @@ and env = (bool * binding list ref) list
 
 and modtype = (* not final *)
   ModTypeSignature of t
+| ModTypeIdent of string
 
 and label = NoLabel | Labelled of string | Optional of string * t option
 
@@ -90,6 +91,7 @@ and t =
 | ModuleBinding of (string * t) (* Module M = ... *)
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
 | ModuleIdentifier of string (* M *)
+| Functor of string * modtype option * t (* functor (X : MT) -> ME *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 | Open of string            (* open Unix followed by other things. *)
@@ -166,6 +168,7 @@ let rec recurse f exp =
   | Sig l -> Sig (List.map f l)
   | ModuleBinding (n, m) -> ModuleBinding (n, f m)
   | ModuleConstraint (t, e) -> ModuleConstraint (t, f e)
+  | Functor (x, mt, me) -> Functor (x, mt, f me)
   | Cons (e, e') -> Cons (f e, f e')
   | Constr (n, None) -> Constr (n, None)
   | Constr (n, Some t) -> Constr (n, Some (f t))
@@ -321,6 +324,7 @@ let rec to_string = function
     Printf.sprintf "ModuleConstraint (%s, %s)"
       (to_string_modtype modtype) (to_string t)
 | ModuleIdentifier x -> "ModuleIdentifier" ^ x
+| Functor _ -> "Functor"
 | Lazy e -> Printf.sprintf "Lazy (%s)" (to_string e)
 
 and to_string_label = function
@@ -332,6 +336,8 @@ and to_string_label = function
 and to_string_modtype = function
   ModTypeSignature t ->
     Printf.sprintf "ModTypeSignature (%s)" (to_string t)
+| ModTypeIdent s ->
+    Printf.sprintf "ModTypeSignature (%s)" s
 
 and to_string_bindings bs =
   List.fold_left ( ^ ) "" (List.map to_string_binding bs)

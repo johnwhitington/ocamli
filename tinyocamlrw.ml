@@ -181,6 +181,8 @@ and of_real_ocaml_module_type env module_type =
   match module_type.pmty_desc with
     Pmty_signature s ->
       ModTypeSignature (of_real_ocaml_signature env s)
+  | Pmty_ident {txt} ->
+      ModTypeIdent (string_of_longident txt)
   | _ -> failwith "of_real_ocaml_module_type"
 
 and of_real_ocaml_module_expr env module_expr =
@@ -192,6 +194,13 @@ and of_real_ocaml_module_expr env module_expr =
          of_real_ocaml_module_expr env module_expr)
   | Pmod_ident {txt = Longident.Lident x} ->
       ModuleIdentifier x
+  | Pmod_functor ({txt}, mt, me) ->
+      let mt' =
+        match mt with
+        | None -> None
+        | Some mt -> Some (of_real_ocaml_module_type env mt)
+      in
+        Functor (txt, mt', of_real_ocaml_module_expr env me)
   | _ -> failwith "of_real_ocaml_module_expr"
 
 and of_real_ocaml_module_binding env mb =

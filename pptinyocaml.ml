@@ -77,6 +77,18 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
+  | Functor (n, mt, me) ->
+      str lp;
+      boldtxt "functor (";
+      str n;
+      (*FIXME print mt *)
+      begin match mt with
+        None -> ()
+      | Some _ -> ()
+      end;
+      str "->";
+      (*FIXME print me *)
+      str rp
   | Lazy e ->
       str lp;
       boldtxt "lazy ";

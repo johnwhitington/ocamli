@@ -83,7 +83,7 @@ let stdlib_modules =
    (*("arrayLabels",            stdlib_dir, "arrayLabels.ml");*) (* include statement. *)
    ("Complex",                  stdlib_dir, "complex.ml");
    (*("Filename",                 stdlib_dir, "filename.ml"); Need Sys.getenv *)
-   (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); * of_real_ocaml_module_expr *)
+   (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); Requires random * *)
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
@@ -92,7 +92,7 @@ let stdlib_modules =
    (*("Scanf",                    stdlib_dir, "scanf.ml"); FIXME: Modinit causes Not_found *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                  stdlib_dir, "format.ml"); FIXME: Not_found on * modinit *)
-   (*("Weak",                     stdlib_dir, "weak.ml"); FIXME: of_real_ocaml_module_error *)
+   (*("Weak",                     stdlib_dir, "weak.ml"); FIXME: unknown * primitive *)
    (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); Needs Sys.getenv *)
    (*("Random",                   stdlib_dir, "random.ml"); (*FIXME Not_found * *)*)
    ("Digest",                   stdlib_dir, "digest.ml");
@@ -107,8 +107,8 @@ let stdlib_modules =
    ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
    ("Queue",                    stdlib_dir, "queue.ml");
    ("Stack",                    stdlib_dir, "stack.ml");
-   (*("Map",                      stdlib_dir, "map.ml"); * of_real_ocaml_module_expr *)
-   (*("Set",                      stdlib_dir, "set.ml");*) (* of_real_ocaml_module_expr *)
+   ("Map",                      stdlib_dir, "map.ml");
+   ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
    (*("Nativeint",                stdlib_dir, "nativeint.ml"); (* Require Sys.word_size *)

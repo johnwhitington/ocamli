@@ -40,6 +40,7 @@ and env = (bool * binding list ref) list
 
 and modtype = (* not final *)
   ModTypeSignature of t
+| ModTypeIdent of string
 
 and label = NoLabel | Labelled of string | Optional of string * t option
 
@@ -90,6 +91,7 @@ and t =
 | ModuleBinding of (string * t)(** Module M = ... *)
 | ModuleConstraint of (modtype * t)  (** ME : MT *)
 | ModuleIdentifier of string
+| Functor of string * modtype option * t (* functor (X : MT) -> ME *)
 | Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
 | Open of string               (** open Unix *)
