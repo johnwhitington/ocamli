@@ -28,7 +28,8 @@ let argspec =
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
    ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
-   ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library")]
+   ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
+   ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs")]
 
 let go () =
   Arg.parse argspec setfile

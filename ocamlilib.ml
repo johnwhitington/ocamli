@@ -2,6 +2,7 @@ open Tinyocaml
 open Ocamliutil
 
 let debug = ref false
+let otherlibs = ref ""
 
 (* Beginning of what was ocamilib.ml *)
 let load_stdlib = ref true
@@ -63,19 +64,16 @@ let load_module (name : string) (env : env) (file : string) =
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
 
-(* Remaining problems:
-  * (1) Module initialisation hence Sys and others
-  * (2) of_real_ocaml_module_expr - some sort of unknown module thing
-  * (3) The 'include' keyword *)
-let stdlib_modules =
-  [(*("Unix",                     "./stdlib", "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
-   (*("Num",                 "./stdlib", "num.ml");*) 
-   (*("Str",                      "./stdlib", "str.ml"); mod init fails *)
-   (*("Threads",                 "./stdlib", "threads.ml");*) 
-   (*("Graphics",                 "./stdlib", "graphics.ml");*) 
-   (*("Dynlink",                 "./stdlib", "dynlink.ml");*) 
-   (*("Bigarray",                 "./stdlib", "bigarray.ml");*) 
-   ("StdLabels",                stdlib_dir, "stdLabels.ml");
+let otherlib_modules () =
+  [(*("Unix",                    !otherlibs, "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
+   (*("Num",                     !otherlibs, "num.ml");*)
+   (*("Str",                     !otherlibs, "str.ml"); mod init fails *)
+   (*("Threads",                 !otherlibs, "threads.ml");*) 
+   (*("Graphics",                !otherlibs, "graphics.ml");*) 
+    ("Bigarray",                 !otherlibs, "bigarray.ml")] (* find Genarray in Bigarray *)
+
+let stdlib_modules () =
+  [("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
    ("StringLabels",             stdlib_dir, "stringLabels.ml");
    ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
@@ -130,7 +128,7 @@ let loadlib () =
   List.fold_right
     (fun (n, lib, filename) libs ->
       load_module n libs (Filename.concat lib filename) @ libs)
-    stdlib_modules
+    ((if !otherlibs <> "" then otherlib_modules () else []) @ stdlib_modules ())
     []
 
 let load_library () =

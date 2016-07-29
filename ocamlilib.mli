@@ -1,5 +1,6 @@
 (* ocamlilib *)
 val debug : bool ref
+val otherlibs : string ref
 
 val showlib : unit -> unit
 
