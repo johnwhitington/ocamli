@@ -9,6 +9,12 @@ let mk2 name f =
    Fun (NoLabel, PatVar "*x",
      Fun (NoLabel, PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), []))
 
+let mk3 name f =
+  (name,
+   Fun (NoLabel, PatVar "*x",
+     Fun (NoLabel, PatVar "*y",
+       Fun (NoLabel, PatVar "*z", CallBuiltIn (name, [Var "*x"; Var "*y"; Var "*z"], f), []), []), []))
+
 let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
    (name,
      Fun (NoLabel, PatVar (star x1),
@@ -296,7 +302,36 @@ let caml_ba_init =
         [Unit] -> caml_ba_init (); Unit
       | _ -> failwith "caml_ba_init")
 
+type 'a w
+
+external caml_weak_create : int -> 'a w = "caml_weak_create"
+
+let caml_weak_create =
+  mk "caml_weak_create"
+    (function
+        [Int i] -> Unit (* FIXME*)
+      | _ -> failwith "caml_weak_create")
+
+external string_safe_get : string -> int -> char = "%string_safe_get"
+
+external string_safe_set : string -> int -> char -> unit = "%string_safe_set"
+
+let percent_string_safe_get =
+  mk2 "%string_safe_get"
+    (function
+       [String s; Int i] -> Char (s.[i])
+     | _ -> failwith "percent_string_safe_get")
+
+let percent_string_safe_set =
+  mk3 "%string_safe_set"
+    (function
+       [String s; Int i; Char c] -> ignore (string_safe_set s i c); Unit
+     | _ -> failwith "percent_string_safe_set")
+
 let builtin_primitives = [
+  percent_string_safe_get;
+  percent_string_safe_set;
+  caml_weak_create;
   caml_ba_init;
   caml_fill_string;
   caml_make_vect;

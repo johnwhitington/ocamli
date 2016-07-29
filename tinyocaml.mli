@@ -41,6 +41,7 @@ and env = (bool * binding list ref) list
 and modtype = (* not final *)
   ModTypeSignature of t
 | ModTypeIdent of string
+| ModTypeWith of modtype * Parsetree.with_constraint list
 
 and label = NoLabel | Labelled of string | Optional of string * t option
 
@@ -91,11 +92,13 @@ and t =
 | ModuleBinding of (string * t)(** Module M = ... *)
 | ModuleConstraint of (modtype * t)  (** ME : MT *)
 | ModuleIdentifier of string
+| ModuleApply of (t * t)
 | Functor of string * modtype option * t (* functor (X : MT) -> ME *)
 | Append of (t * t)            (** @ *)
 | Assert of t                  (** assert e *)
 | Open of string               (** open Unix *)
 | LocalOpen of (string * t)    (** String.(length "4") *)
+| Include of t
 | Lazy of t                    (** lazy e *)
 
 val string_of_op : op -> string

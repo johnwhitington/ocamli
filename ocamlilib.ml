@@ -70,29 +70,29 @@ let load_module (name : string) (env : env) (file : string) =
 let stdlib_modules =
   [(*("Unix",                     "./stdlib", "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
    (*("Num",                 "./stdlib", "num.ml");*) 
-   (*("Str",                 "./stdlib", "str.ml");*) 
+   (*("Str",                      "./stdlib", "str.ml"); mod init fails *)
    (*("Threads",                 "./stdlib", "threads.ml");*) 
    (*("Graphics",                 "./stdlib", "graphics.ml");*) 
-   (*("Dynlink",                 "./stdlib", "threads.ml");*) 
+   (*("Dynlink",                 "./stdlib", "dynlink.ml");*) 
    (*("Bigarray",                 "./stdlib", "bigarray.ml");*) 
-   (*("stdLabels",                stdlib_dir, "stdLabels.ml");
-   ("moreLabels",               stdlib_dir, "moreLabels.ml");
-   ("stringLabels",             stdlib_dir, "stringLabels.ml");
-   ("bytesLabels",              stdlib_dir, "bytesLabels.ml");
-   ("listLabels",               stdlib_dir, "listLabels.ml");*)
-   (*("arrayLabels",            stdlib_dir, "arrayLabels.ml");*) (* include statement. *)
+   ("StdLabels",                stdlib_dir, "stdLabels.ml");
+   ("MoreLabels",               stdlib_dir, "moreLabels.ml");
+   ("StringLabels",             stdlib_dir, "stringLabels.ml");
+   ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
+   ("ListLabels",               stdlib_dir, "listLabels.ml");
+   ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
    (*("Filename",                 stdlib_dir, "filename.ml"); Need Sys.getenv *)
    (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); Requires random * *)
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
-   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); FIXME of_real_ocaml_module_expr *)
+   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); fails on * modident *)
    ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    stdlib_dir, "scanf.ml"); FIXME: Modinit causes Not_found *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                  stdlib_dir, "format.ml"); FIXME: Not_found on * modinit *)
-   (*("Weak",                     stdlib_dir, "weak.ml"); FIXME: unknown * primitive *)
+   ("Weak",                     stdlib_dir, "weak.ml");
    (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); Needs Sys.getenv *)
    (*("Random",                   stdlib_dir, "random.ml"); (*FIXME Not_found * *)*)
    ("Digest",                   stdlib_dir, "digest.ml");
@@ -111,7 +111,7 @@ let stdlib_modules =
    ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
-   (*("Nativeint",                stdlib_dir, "nativeint.ml"); (* Require Sys.word_size *)
+   (*("Nativeint",              stdlib_dir, "nativeint.ml"); (* Require Sys.word_size *)
    ("Int64",                    stdlib_dir, "int64.ml");
    ("Int32",                    stdlib_dir, "int32.ml");*)
    ("Array",                    stdlib_dir, "array.ml");

@@ -68,10 +68,12 @@ let rec appears var = function
 | Raise (_, None) -> false
 | Assert x -> appears var x
 | Lazy x -> appears var x
+| Include x -> appears var x
 | Functor (_, _, me) -> appears var me
 | Int _ | Bool _ | Float _ | Unit
 | Int32 _ | Int64 _ | NativeInt _ | Char _ | TypeDef _ | Sig _
 | ModuleBinding _ | ModuleConstraint _ | ModuleIdentifier _
+| ModuleApply _
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 (* True if a) appears unoccluded in the 'when' expression b) appears unoccluded
@@ -484,7 +486,8 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Int32 _ | Int64 _ | NativeInt _ | Char _
 | InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _
 | Constr (_, None)
-| Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ | Open _ | Functor _ ->
+| Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ | Open _ | Functor _
+| ModuleApply _ | Include _ ->
     failwith ("already a value: " ^ (Pptinyocaml.to_string expr))
 
 (* e.g eval_match_exception [Failure] [Some (String "foo") [(pattern, guard, rhs)]] *)

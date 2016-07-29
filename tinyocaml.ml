@@ -40,6 +40,7 @@ and env = (bool * binding list ref) list
 and modtype = (* not final *)
   ModTypeSignature of t
 | ModTypeIdent of string
+| ModTypeWith of modtype * Parsetree.with_constraint list
 
 and label = NoLabel | Labelled of string | Optional of string * t option
 
@@ -91,11 +92,13 @@ and t =
 | ModuleBinding of (string * t) (* Module M = ... *)
 | ModuleConstraint of (modtype * t)  (* ME : MT *)
 | ModuleIdentifier of string (* M *)
+| ModuleApply of (t * t) (* M1 (M2) *)
 | Functor of string * modtype option * t (* functor (X : MT) -> ME *)
 | Append of (t * t)           (* @ *)
 | Assert of t                 (* assert *)
 | Open of string            (* open Unix followed by other things. *)
 | LocalOpen of (string * t) (* String.(length "4") *)
+| Include of t
 | Lazy of t                 (* lazy t *)
 
 (* The type of OCaml values in memory *)
@@ -168,6 +171,7 @@ let rec recurse f exp =
   | Sig l -> Sig (List.map f l)
   | ModuleBinding (n, m) -> ModuleBinding (n, f m)
   | ModuleConstraint (t, e) -> ModuleConstraint (t, f e)
+  | ModuleApply (m1, m2) -> ModuleApply (f m1, f m2)
   | Functor (x, mt, me) -> Functor (x, mt, f me)
   | Cons (e, e') -> Cons (f e, f e')
   | Constr (n, None) -> Constr (n, None)
@@ -182,6 +186,7 @@ let rec recurse f exp =
   | Open n -> Open n
   | LocalOpen (n, e) -> LocalOpen (n, f e)
   | Lazy e -> Lazy (f e)
+  | Include e -> Include (f e)
 
 and recurse_label f = function
   | Optional (s, Some x) -> Optional (s, Some (f x))
@@ -323,9 +328,13 @@ let rec to_string = function
 | ModuleConstraint (modtype, t) ->
     Printf.sprintf "ModuleConstraint (%s, %s)"
       (to_string_modtype modtype) (to_string t)
+| ModuleApply (m1, m2) ->
+    Printf.sprintf "ModuleApply (%s, %s)"
+      (to_string m1) (to_string m2)
 | ModuleIdentifier x -> "ModuleIdentifier" ^ x
 | Functor _ -> "Functor"
 | Lazy e -> Printf.sprintf "Lazy (%s)" (to_string e)
+| Include e -> Printf.sprintf "Include (%s)" (to_string e)
 
 and to_string_label = function
   NoLabel -> "NoLabel"
@@ -338,6 +347,8 @@ and to_string_modtype = function
     Printf.sprintf "ModTypeSignature (%s)" (to_string t)
 | ModTypeIdent s ->
     Printf.sprintf "ModTypeSignature (%s)" s
+| ModTypeWith (mt, constraints) ->
+    Printf.sprintf "ModTypeWith"
 
 and to_string_bindings bs =
   List.fold_left ( ^ ) "" (List.map to_string_binding bs)

@@ -77,6 +77,18 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
+  | Include e ->
+      str lp;
+      boldtxt "include ";
+      print_tiny_inner f isleft (Some node) e;
+      str rp
+  | ModuleApply (m1, m2) ->
+      str lp;
+      print_tiny_inner f isleft (Some node) m1;
+      txt "(";
+      print_tiny_inner f isleft (Some node) m2;
+      txt ")";
+      str rp
   | Functor (n, mt, me) ->
       str lp;
       boldtxt "functor (";

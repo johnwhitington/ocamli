@@ -183,7 +183,12 @@ and of_real_ocaml_module_type env module_type =
       ModTypeSignature (of_real_ocaml_signature env s)
   | Pmty_ident {txt} ->
       ModTypeIdent (string_of_longident txt)
-  | _ -> failwith "of_real_ocaml_module_type"
+  | Pmty_functor _ -> failwith "of_real_ocaml_modtype: functor"
+  | Pmty_with (mt, constraints) ->
+      ModTypeWith (of_real_ocaml_module_type env mt, constraints)
+  | Pmty_typeof _ -> failwith "of_real_ocaml_modtype: typeof"
+  | Pmty_extension _ -> failwith "of_real_ocaml_modtype: extension"
+  | Pmty_alias _ -> failwith "of_real_ocaml_modtype: alias"
 
 and of_real_ocaml_module_expr env module_expr =
   match module_expr.pmod_desc with
@@ -192,8 +197,8 @@ and of_real_ocaml_module_expr env module_expr =
       ModuleConstraint
         (of_real_ocaml_module_type env module_type,
          of_real_ocaml_module_expr env module_expr)
-  | Pmod_ident {txt = Longident.Lident x} ->
-      ModuleIdentifier x
+  | Pmod_ident {txt} ->
+      ModuleIdentifier (string_of_longident txt)
   | Pmod_functor ({txt}, mt, me) ->
       let mt' =
         match mt with
@@ -201,7 +206,11 @@ and of_real_ocaml_module_expr env module_expr =
         | Some mt -> Some (of_real_ocaml_module_type env mt)
       in
         Functor (txt, mt', of_real_ocaml_module_expr env me)
-  | _ -> failwith "of_real_ocaml_module_expr"
+  | Pmod_apply (me1, me2) ->
+      ModuleApply
+        (of_real_ocaml_module_expr env me1, of_real_ocaml_module_expr env me2)
+  | Pmod_unpack _ -> failwith "of_real_ocaml_module_expr: pmod_unpack"
+  | Pmod_extension _ -> failwith "of_real_ocaml_module_expr: pmod_extension"
 
 and of_real_ocaml_module_binding env mb =
   let name = mb.pmb_name.txt in
@@ -259,6 +268,9 @@ and of_real_ocaml_structure_item env = function
   (* module type *)
 | {pstr_desc = Pstr_modtype _} ->
       (None, env)
+  (* include M *)
+| {pstr_desc = Pstr_include include_declaration} ->
+    (Some (Include (of_real_ocaml_module_expr env include_declaration.pincl_mod)), env)
 | _ -> failwith "unknown structure item"
 
 and of_real_ocaml_structure env acc = function
