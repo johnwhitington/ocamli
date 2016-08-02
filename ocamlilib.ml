@@ -59,8 +59,7 @@ let add_prefix_to_bindings name (recflag, bindings) =
 let load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
   let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
-    (*let themod' = Eval.eval_until_value false env themod in (* <-- module
-     * initialisation *)*)
+    let themod = Eval.eval_until_value false env themod in (* <-- module * initialisation *)
       if !debug then Printf.printf "done\n%!";
       List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
 
@@ -70,7 +69,7 @@ let otherlib_modules () =
    (*("Str",                     !otherlibs, "str.ml"); mod init fails *)
    (*("Threads",                 !otherlibs, "threads.ml");*) 
    (*("Graphics",                !otherlibs, "graphics.ml");*) 
-    ("Bigarray",                 !otherlibs, "bigarray.ml")] (* find Genarray in Bigarray *)
+   (* ("Bigarray",                 !otherlibs, "bigarray.ml")*)] (* find Genarray in Bigarray *)
 
 let stdlib_modules () =
   [("StdLabels",                stdlib_dir, "stdLabels.ml");
@@ -80,20 +79,20 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   (*("Filename",                 stdlib_dir, "filename.ml"); Need Sys.getenv *)
-   (*("Emphemeron",               stdlib_dir, "ephemeron.ml"); Requires random * *)
+   (*("Filename",                 stdlib_dir, "filename.ml"); (* FIXME * Sys.os_type *)*)
+   ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
-   (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * camlinternalOO *)
-   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); fails on * modident *)
+   (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * * camlinternalOO *)
+   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); *) (*FIXME modinit fails *)
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*("Scanf",                    stdlib_dir, "scanf.ml"); FIXME: Modinit causes Not_found *)
+   (*("Scanf",                    stdlib_dir, "scanf.ml");*) (* FIXME Modinit fails *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                  stdlib_dir, "format.ml"); FIXME: Not_found on * modinit *)
+   (*("Format",                  stdlib_dir, "format.ml"); FIXME: not found on * modinit *)
    ("Weak",                     stdlib_dir, "weak.ml");
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); Needs Sys.getenv *)
-   (*("Random",                   stdlib_dir, "random.ml"); (*FIXME Not_found * *)*)
-   ("Digest",                   stdlib_dir, "digest.ml");
+   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); (* FIXME not found on * Modinit *)*)
+   ("Random",                   stdlib_dir, "random.ml");
+   (*("Digest",                   stdlib_dir, "digest.ml");*) (* dep String *)
    ("Gc",                       stdlib_dir, "gc.ml");
    ("Printexc",                 stdlib_dir, "printexc.ml");
    ("Arg",                      stdlib_dir, "arg.ml");
@@ -107,17 +106,17 @@ let stdlib_modules () =
    ("Stack",                    stdlib_dir, "stack.ml");
    ("Map",                      stdlib_dir, "map.ml");
    ("Set",                      stdlib_dir, "set.ml");
-   ("Parsing",                  stdlib_dir, "parsing.ml");
+   (*("Parsing",                  stdlib_dir, "parsing.ml");*) (* mod initialization fails *)
    ("Lexing",                   stdlib_dir, "lexing.ml");
-   (*("Nativeint",              stdlib_dir, "nativeint.ml"); (* Require Sys.word_size *)
+   ("Nativeint",                stdlib_dir, "nativeint.ml");
    ("Int64",                    stdlib_dir, "int64.ml");
-   ("Int32",                    stdlib_dir, "int32.ml");*)
+   ("Int32",                    stdlib_dir, "int32.ml");
    ("Array",                    stdlib_dir, "array.ml");
    ("Obj",                      stdlib_dir, "obj.ml");
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
-   (*("Sys",                      "./stdlib", "sys.ml");*)
-   ("String",                   stdlib_dir, "string.ml");
+   ("Sys",                      "./stdlib", "sys.ml");
+   (*("String",                   stdlib_dir, "string.ml");*) (* module B = Bytes *)
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
