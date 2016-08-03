@@ -1,0 +1,75 @@
+\documentclass[10pt]{article}
+\usepackage{nameref}
+\usepackage{cleveref}
+\usepackage{palatino}
+\usepackage[scaled=0.9]{beramono}
+\usepackage[T1]{fontenc}
+\usepackage[protrusion=true,expansion=true]{microtype}
+\usepackage[draft=false]{hyperref}
+\usepackage[left=4cm, right=4cm, top=2cm, bottom=1.8cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{ulem}
+\usepackage{attrib}
+\begin{document}
+
+\title{Seaching through a Trace with Patterns}
+\maketitle
+
+The principal method by which a bug will be located in our system is by the (semi-)automatic edition of the program trace. This can happen as the program is evaluated, or by interactive searching afterward. But we need a way to express the searches.
+
+Text-based approaches (e.g regular expressions) are not much use. Fine for searching for a function name, but no good for tree-based data like functional programs. We want to be able to say, for example:
+
+\begin{enumerate}
+\item ``Find any function application in the trace taking an empty tree as input.''
+\item ``Show me all calls to function \texttt{f}''
+\item ``Show me any time a list begins with a negative number''
+\end{enumerate}
+
+\noindent Patterns for 1, 2, 3 might be ``\texttt{\_ Lf}'', ``f \_'', and ``[-\_; ...]''.
+
+\section{Patterns}
+
+For example...
+
+\begin{tabular}{ll}
+\texttt{\_} & wildcard\\
+\texttt{()} & parentheses\\
+\texttt{{[}p; p{]}} & lists (similarly for records, tuples etc)\\
+\texttt{...} & to indicate the tail of a list\\
+\texttt{text} & literal text\\
+\texttt{remove*} & wildcards as part of text\\
+\end{tabular}
+
+\begin{itemize}
+\item We use the same lexical conventions as OCaml, so we can reuse the OCaml lexer. The parser should not be too difficult, just must have a subset of the associativities / precedences of the OCaml one.
+\item The parser should accept \textit{any} string, just counts as text to match.
+\end{itemize}
+
+\section{TODO}
+
+\begin{enumerate}
+\item Define a small example pattern language
+\item Choose a subset of \texttt{Tinyocaml.t}
+\item Find Example program, trace, and patterns
+\item Write the pattern parser
+\item Write the matcher, which sees if a pattern matches a line of the trace, by matching the tree of the pattern against the tree of that line, rather than text against text. Need a way to indicate the matched part, say by underlining.
+\end{enumerate}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
