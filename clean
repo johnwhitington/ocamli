@@ -7,5 +7,7 @@ cd ppx_eval
 make clean
 cd ../test
 make clean
+cd ../patternlexer
+make clean
 ocamlfind remove ocamli
 ocamlfind remove ppx_eval
