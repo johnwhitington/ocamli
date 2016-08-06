@@ -56,6 +56,49 @@ For example...
 \item Write the matcher, which sees if a pattern matches a line of the trace, by matching the tree of the pattern against the tree of that line, rather than text against text. Need a way to indicate the matched part, say by underlining.
 \end{enumerate}
 
+\section{Difficult examples}
+
+How do we match pattern \texttt{1 + 2 + 3}. Does the tree \texttt{1 + (2 + 3)} match? Could we just remove all parentheses? Too many false matches?
+
+\section{The text approach}
+
+Advantages:
+\begin{itemize}
+\item Probably simpler to implement
+\item Regular expressions are familiar to the user - no need for our own pattern language, or at least we could base it on something.
+\end{itemize}
+
+\noindent Limitations:
+
+\begin{itemize}
+\item No clean support for dealing with parentheses, associativity, precedence.
+\item We want wildcards which correspond to nodes of a tree, not text items!
+\end{itemize}
+
+\section{The tree approach}
+
+Advantages:
+\begin{itemize}
+\item Mirrors the structure of the language - feels a bit like pattern matching -- OCaml users already familiar -- in fact, will be a strict superset of OCaml pattern matching.
+\end{itemize}
+
+\noindent Limitations:
+\begin{itemize}
+\item Dealing with precedence and associativity means the tree shapes don't necessarily match.
+\end{itemize}
+
+\section{References}
+
+\begin{enumerate}
+\item ``Pattern Matching in Trees'' (Hoffmann, O'Donnell, 1982). This early paper considers the pattern matching of trees in terms of interpreters for languages whose evaluation is defined by term rewriting rules. This is relevant to our wider work, despite finding it in this context.
+\item ``Pattern matching syntax trees''\\ \url{http://checkmyworking.com/2014/06/pattern-matching-syntax-trees/} This is interesting work in the context of matching up childrens' answers to computer algebra questions with the expected answers. It uses a special kind of pattern matching which knows about nesting of parentheses, and commutivity (for example, $x + 1$ and $1 + x$ are considered equal).
+\item There may be good research in this area for XML processing systems -- it's all trees. XPath. See \url{https://theantlrguy.atlassian.net/wiki/display/~admin/2013/09/01/Matching+parse+tree+patterns,+paths}
+\item \textit{Darren C. Atkinson and William G. Griswold, "Effective pattern matching of source code using abstract syntax patterns} look this one up. 
+\item Darren C. Atkinson and William Griswold and Collin McCurdy \textit{Fast, Flexible Syntactic Pattern Matching and Processing}.
+\item A toolset for FORTRAN programs -- contains pattern matching over fortran statements \url{https://www.irisa.fr/caps/projects/TSF/demo/doc/draft.html}
+\item Roger F. Crew, \textit{ASTLOG: A Language for Examining Abstract Syntax Trees}.
+\end{enumerate}
+
 \end{document}
 
 
