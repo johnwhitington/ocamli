@@ -35,7 +35,13 @@ let argspec =
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs")]
 
 let print_line preamble tiny =
-  print_string (string_of_tiny ~preamble tiny)
+  let s = string_of_tiny ~preamble:"" tiny in
+    if Str.string_match (Str.regexp !searchfor) s 0 then
+      print_string (string_of_tiny ~preamble tiny)
+
+let would_print_line tiny =
+  let s = string_of_tiny ~preamble:"" tiny in
+    Str.string_match (Str.regexp !searchfor) s 0
 
 let go () =
   Arg.parse argspec setfile
@@ -48,9 +54,9 @@ let go () =
          _ -> failwith "Unknown machine"
        ) : Evaluator)
   in
-    I.fastcurry := !fastcurry;
-    Tinyocamlutil.fastcurry := !fastcurry;
-    Pptinyocaml.fastcurry := !fastcurry;
+  I.fastcurry := !fastcurry;
+  Tinyocamlutil.fastcurry := !fastcurry;
+  Pptinyocaml.fastcurry := !fastcurry;
   Ocamlilib.load_library ();
   Ocamlilib.showlib ();
   let rec really_run first state =
@@ -70,7 +76,7 @@ let go () =
             if I.newlines state then print_string "\n";
             print_line preamble (I.tiny state');
             skipped := false;
-            if not !prompt then print_string "\n"
+            if not !prompt && would_print_line (I.tiny state') then print_string "\n"
           end
         else
           skipped := true
@@ -107,7 +113,7 @@ let go () =
       if !showall then
         begin
           print_line "    " (I.tiny state);
-          if not !prompt then print_string "\n"
+          if not !prompt && would_print_line (I.tiny state) then print_string "\n"
         end;
       if !debugpp then exit 0;
       really_run true state
