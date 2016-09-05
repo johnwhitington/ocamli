@@ -3,7 +3,6 @@ val showall : bool ref
 val top : bool ref
 val debug : bool ref
 val showpervasives : bool ref
-val machine : string ref
 val printer : string ref
 val width : int ref
 val show_simple_arithmetic : bool ref
@@ -17,19 +16,6 @@ val source : mode option ref
 val setfile : string -> unit
 val settext : string -> unit
 
-module type Evaluator =
-  sig
-    type t
-    val init : Tinyocaml.t -> t
-    val next : t -> t Ocamliutil.result
-    val tiny : t -> Tinyocaml.t
-    val to_string : t -> string
-    val last : unit -> Ocamliutil.last_op list
-    val peek : t -> Ocamliutil.last_op list
-    val newlines : t -> bool
-    val fastcurry : bool ref
-  end
-val implementations : (string * (module Evaluator)) list
 val remove_recs : string list ref
 val add_remove_rec : string -> unit
 val remove_rec_all : bool ref

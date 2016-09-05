@@ -7,7 +7,6 @@ let showall = ref false
 let top = ref false
 let debug = ref false
 let showpervasives = ref false
-let machine = ref "environment"
 let printer = ref "tiny"
 let width = ref 80
 let show_simple_arithmetic = ref true
@@ -28,25 +27,6 @@ let setfile s =
 
 let settext s =
   source := Some (FromText s)
-
-module type Evaluator =
-  sig
-    type t
-    val init : Tinyocaml.t -> t
-    val next : t -> t Ocamliutil.result
-    val tiny : t -> Tinyocaml.t
-    val to_string : t -> string
-    val last : unit -> Ocamliutil.last_op list
-    val peek : t -> Ocamliutil.last_op list
-    val newlines : t -> bool
-    val fastcurry : bool ref
-  end
-
-let implementations =
-  [(*("naive", (module Naive : Evaluator));
-   ("naiveSimple", (module NaiveSimple : Evaluator));
-   ("naiveSimpleOneStep", (module NaiveSimpleOneStep : Evaluator));*)
-   ("environment", (module Eval : Evaluator))]
 
 let remove_recs = ref []
 
