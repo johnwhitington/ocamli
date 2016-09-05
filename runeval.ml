@@ -65,8 +65,6 @@ let string_of_tiny ~preamble x =
   let x = Tinyocamlutil.remove_named_recursive_functions !remove_rec_all !remove_recs x in
     Pptinyocaml.to_string ~preamble x
 
-let fixup ops x = x
-
 (* last: the op that got us here *)
 (* next: the next op *)
 (* prevstate: the previous state *)

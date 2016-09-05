@@ -6,8 +6,11 @@ let setdebug () =
   Ocamlilib.debug := true;
   Pptinyocaml.debug := true
 
+let searchfor = ref ""
+
 let argspec =
   [("-machine", Arg.Set_string machine, " Set the abstract machine");
+   ("-search", Arg.Set_string searchfor, " Show only matching evaluation steps");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
@@ -30,6 +33,9 @@ let argspec =
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs")]
+
+let print_line preamble tiny =
+  print_string (string_of_tiny ~preamble tiny)
 
 let go () =
   Arg.parse argspec setfile
@@ -55,20 +61,14 @@ let go () =
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
-          !showall &&
+          !showall &&  
           (!show_simple_arithmetic || show_this_stage (I.last ()) (I.peek state') (I.tiny state) (I.tiny state')) &&
           (!showpervasives || show_this_pervasive_stage (I.last ()))
         then
           begin
-            if !printer = "tiny" then
-              begin
-                let preamble = if !skipped then "=>* " else "=>  " in
-                if I.newlines state then print_string "\n";
-                print_string (string_of_tiny ~preamble (fixup (I.peek state') (I.tiny state')))
-              end
-            else
-              ();
-              (*print_string (to_string (getexpr (I.tree state')));*)
+            let preamble = if !skipped then "=>* " else "=>  " in
+            if I.newlines state then print_string "\n";
+            print_line preamble (I.tiny state');
             skipped := false;
             if not !prompt then print_string "\n"
           end
@@ -79,12 +79,7 @@ let go () =
     | IsValue ->
         (* Only print if !quiet. On Silent we don't want it, on normal, we have already printed *)
         if !show && not !showall then begin
-          if !printer = "tiny" then
-            begin
-              print_string (string_of_tiny ~preamble:"" (fixup (I.peek state) (I.tiny state)))
-            end
-          else
-            (); (*print_string (to_string (getexpr (I.tree state)));*)
+          print_line "" (I.tiny state);
           print_string "\n"
         end
     | Malformed s ->
@@ -99,11 +94,7 @@ let go () =
         if !debug then raise Exit
   in
    let run code =
-    if !printer = "simple" then
-      begin
-        Pptinyocaml.simple := true;
-        printer := "tiny"
-      end;
+    if !printer = "simple" then Pptinyocaml.simple := true;
     Pptinyocaml.width := !width;
     let state = I.init (Tinyocamlrw.of_real_ocaml !Eval.lib (Ocamliutil.ast code)) in
        if !debugtiny then
@@ -115,11 +106,7 @@ let go () =
          end;
       if !showall then
         begin
-          if !printer = "tiny" then
-            print_string (string_of_tiny ~preamble:"    " (fixup (I.peek state) (I.tiny state)))
-          else
-            ();
-            (*print_string (to_string (getexpr (I.tree state)));*)
+          print_line "    " (I.tiny state);
           if not !prompt then print_string "\n"
         end;
       if !debugpp then exit 0;

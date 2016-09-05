@@ -35,7 +35,6 @@ val add_remove_rec : string -> unit
 val remove_rec_all : bool ref
 val load_code : unit -> string option
 val string_of_tiny : preamble:string -> Tinyocaml.t -> string
-val fixup : 'a -> 'b -> 'b
 val string_of_op : Ocamliutil.last_op -> string
 val show_this_stage :
   Ocamliutil.last_op list ->
