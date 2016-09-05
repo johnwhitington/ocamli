@@ -7,9 +7,21 @@ let setdebug () =
   Pptinyocaml.debug := true
 
 let searchfor = ref ""
+let searchuntil = ref ""
+let searchafter = ref ""
+let numresults = ref max_int
+let invertsearch = ref false
+let invertuntil = ref false
+let invertafter = ref false
 
 let argspec =
   [("-search", Arg.Set_string searchfor, " Show only matching evaluation steps");
+   ("-search-not", Arg.Set invertsearch, " Invert the -search");
+   ("-n", Arg.Set_int numresults, " Show only <x> results");
+   ("-until", Arg.Set_string searchuntil, " show only until this matches");
+   ("-after", Arg.Set_string searchafter, " show only after this matches");
+   ("-until", Arg.Set invertuntil, " Invert the -until");
+   ("-after", Arg.Set invertafter, " Invert the -after");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
@@ -33,10 +45,15 @@ let argspec =
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs")]
 
+let linecount = ref 0
+
 let print_line preamble tiny =
   let s = string_of_tiny ~preamble:"" tiny in
     if Str.string_match (Str.regexp !searchfor) s 0 then
-      print_string (string_of_tiny ~preamble tiny)
+      begin
+        print_string (string_of_tiny ~preamble tiny);
+        incr linecount;
+      end
 
 let would_print_line tiny =
   let s = string_of_tiny ~preamble:"" tiny in
@@ -50,6 +67,7 @@ let go () =
   Pptinyocaml.fastcurry := !fastcurry;
   Ocamlilib.load_library ();
   Ocamlilib.showlib ();
+  if !searchfor <> "" || !searchuntil <> "" || !searchafter <> "" then showall := true;
   let rec really_run first state =
     if !prompt then wait_for_enter ();
     Unix.sleepf !step;
@@ -68,7 +86,8 @@ let go () =
             if Eval.newlines state then print_string "\n";
             print_line preamble (Eval.tiny state');
             skipped := false;
-            if not !prompt && would_print_line (Eval.tiny state') then print_string "\n"
+            if not !prompt && would_print_line (Eval.tiny state') then print_string "\n";
+            if !linecount >= !numresults then exit 0
           end
         else
           skipped := true
@@ -104,8 +123,10 @@ let go () =
          end;
       if !showall then
         begin
+          if !linecount >= !numresults then exit 0;
           print_line "    " (Eval.tiny state);
-          if not !prompt && would_print_line (Eval.tiny state) then print_string "\n"
+          if not !prompt && would_print_line (Eval.tiny state) then print_string "\n";
+          if !linecount >= !numresults then exit 0
         end;
       if !debugpp then exit 0;
       really_run true state
