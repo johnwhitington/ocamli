@@ -6,9 +6,9 @@ let setdebug () =
   Ocamlilib.debug := true;
   Pptinyocaml.debug := true
 
-let searchfor = ref ""
-let searchuntil = ref ""
-let searchafter = ref ""
+let searchfor = ref "" (* always matches *)
+let searchuntil = ref "$a" (* never matches *)
+let searchafter = ref "" (* always matches *)
 let numresults = ref max_int
 let invertsearch = ref false
 let invertuntil = ref false
@@ -16,12 +16,9 @@ let invertafter = ref false
 
 let argspec =
   [("-search", Arg.Set_string searchfor, " Show only matching evaluation steps");
-   ("-search-not", Arg.Set invertsearch, " Invert the -search");
    ("-n", Arg.Set_int numresults, " Show only <x> results");
    ("-until", Arg.Set_string searchuntil, " show only until this matches");
    ("-after", Arg.Set_string searchafter, " show only after this matches");
-   ("-until", Arg.Set invertuntil, " Invert the -until");
-   ("-after", Arg.Set invertafter, " Invert the -after");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
@@ -47,17 +44,27 @@ let argspec =
 
 let linecount = ref 0
 
+(* True if we are in printing range. i.e before or including 'until' and after or
+including 'after' *)
+let inrange = ref false
+
 let print_line preamble tiny =
-  let s = string_of_tiny ~preamble:"" tiny in
-    if Str.string_match (Str.regexp !searchfor) s 0 then
+  let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
+    (* Check if we are entering the range *)
+    if not !inrange && Str.string_match (Str.regexp !searchafter) s 0 then inrange := true;
+    (* If it matches the search, and we are in the range, print the line *)
+    if !inrange && Str.string_match (Str.regexp !searchfor) s 0 then
       begin
         print_string (string_of_tiny ~preamble tiny);
         incr linecount;
-      end
+      end;
+    (* Check if we are leaving the range *)
+    if !inrange && Str.string_match (Str.regexp !searchuntil) s 0 then inrange := false
 
+(* Must be called following print_line, not before, because of range. Can we combine? *)
 let would_print_line tiny =
-  let s = string_of_tiny ~preamble:"" tiny in
-    Str.string_match (Str.regexp !searchfor) s 0
+  let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
+    !inrange && Str.string_match (Str.regexp !searchfor) s 0
 
 let go () =
   Arg.parse argspec setfile

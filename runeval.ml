@@ -41,9 +41,13 @@ let load_code () =
   | Some (FromText s) -> Some s
   | None -> None
 
-let string_of_tiny ~preamble x =
+let string_of_tiny ~preamble ?(codes=true) x =
   let x = Tinyocamlutil.remove_named_recursive_functions !remove_rec_all !remove_recs x in
-    Pptinyocaml.to_string ~preamble x
+    let temp = !Pptinyocaml.syntax in
+      Pptinyocaml.syntax := codes;
+      let r = Pptinyocaml.to_string ~preamble x in
+        Pptinyocaml.syntax := temp;
+        r
 
 (* last: the op that got us here *)
 (* next: the next op *)

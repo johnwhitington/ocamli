@@ -190,7 +190,7 @@ let underline_redex e =
   if is_value e then e else underline_redex e
 
 let rec strip_control = function
-  Control (_, e) -> e
+  Control (_, e) -> strip_control e
 | x -> Tinyocaml.recurse strip_control x
 
 let rec remove_named_recursive_functions all fns = function
