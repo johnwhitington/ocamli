@@ -9,6 +9,8 @@ let setdebug () =
 let searchfor = ref "" (* always matches *)
 let searchuntil = ref "$a" (* never matches *)
 let searchafter = ref "" (* always matches *)
+let untilany = ref false
+let afterany = ref false
 let numresults = ref max_int
 let invertsearch = ref false
 let invertuntil = ref false
@@ -16,9 +18,14 @@ let invertafter = ref false
 
 let argspec =
   [("-search", Arg.Set_string searchfor, " Show only matching evaluation steps");
+   ("-invert-search", Arg.Set invertsearch, " Invert the search, showing non-matching steps");
    ("-n", Arg.Set_int numresults, " Show only <x> results");
    ("-until", Arg.Set_string searchuntil, " show only until this matches");
    ("-after", Arg.Set_string searchafter, " show only after this matches");
+   ("-until-any", Arg.Set_string searchuntil, " show only until this matches");
+   ("-after-any", Arg.Set_string searchafter, " show only after this matches");
+   ("-invert-after", Arg.Set invertafter, " invert the after condition");
+   ("-invert-until", Arg.Set invertuntil, " invert the until condition");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");

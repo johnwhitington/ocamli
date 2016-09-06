@@ -105,11 +105,13 @@ An initial implementation, just with regular expressions for now, has been writt
 
 \begin{enumerate}
 \item The option \texttt{-search <searchterm>}, given a regular expression, shows only those lines matching the search term.
+\item The option \texttt{-n <n>} prints only up to $n$ matches.
 \item The option \texttt{-invert-search} which shows those lines not matching the search term.
 \item The option \texttt{-after <searchterm>} which further restricts the output to lines occurring after and including the first to match the given searchterm, which must match something which matches the \texttt{-search} searchterm.
 \item The option \texttt{-until <searchterm>} which further restricts the output to lines occurring after and including the first to match the given searchterm, which must match something which matches the \texttt{-search} searchterm. 
 \item Options \texttt{-after-any <searchterm>} and \texttt{-until-any <searchterm>} which are like \texttt{-after} and \texttt{-until} but which match on any line, not just those matching the main \texttt{-search} search term. Alternative to not in addition to \texttt{-until}/\texttt{-after}.
 \item Options \texttt{-invert-after} and \texttt{-invert-until} which invert the meanings of \texttt{-after}, \texttt{-after-any}, \texttt{-until} and \texttt{-until-any} just like \texttt{-invert-search}.
+\item The option \texttt{-around <n>} which prints $n$ lines (not $n$ search results) either side of the printed one.
 \end{enumerate}
 
 \end{document}
