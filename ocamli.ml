@@ -56,22 +56,24 @@ including 'after' *)
 let inrange = ref false
 
 let print_line preamble tiny =
-  let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-    (* Check if we are entering the range *)
-    if not !inrange && Str.string_match (Str.regexp !searchafter) s 0 then inrange := true;
-    (* If it matches the search, and we are in the range, print the line *)
-    if !inrange && Str.string_match (Str.regexp !searchfor) s 0 then
-      begin
-        print_string (string_of_tiny ~preamble tiny);
-        incr linecount;
-      end;
-    (* Check if we are leaving the range *)
-    if !inrange && Str.string_match (Str.regexp !searchuntil) s 0 then inrange := false
+  let invert = if !invertsearch then not else (fun x -> x) in
+    let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
+      (* Check if we are entering the range *)
+      if not !inrange && Str.string_match (Str.regexp !searchafter) s 0 then inrange := true;
+      (* If it matches the search, and we are in the range, print the line *)
+      if !inrange && invert (Str.string_match (Str.regexp !searchfor) s 0) then
+        begin
+          print_string (string_of_tiny ~preamble tiny);
+          incr linecount;
+        end;
+      (* Check if we are leaving the range *)
+      if !inrange && Str.string_match (Str.regexp !searchuntil) s 0 then inrange := false
 
 (* Must be called following print_line, not before, because of range. Can we combine? *)
 let would_print_line tiny =
+  let invert = if !invertsearch then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-    !inrange && Str.string_match (Str.regexp !searchfor) s 0
+    !inrange && invert (Str.string_match (Str.regexp !searchfor) s 0)
 
 let go () =
   Arg.parse argspec setfile
