@@ -16,6 +16,7 @@ let invertsearch = ref false
 let invertuntil = ref false
 let invertafter = ref false
 let stopaftersearch = ref false
+let around = ref 0
 
 let set_until_any s =
   untilany := true;
@@ -36,6 +37,7 @@ let argspec =
    ("-invert-after", Arg.Set invertafter, " invert the after condition");
    ("-invert-until", Arg.Set invertuntil, " invert the until condition");
    ("-stop", Arg.Set stopaftersearch, " stop computation after final search results");
+   ("-around", Arg.Set_int around, " show lines around the result line");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
