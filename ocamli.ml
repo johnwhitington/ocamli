@@ -66,14 +66,19 @@ including 'after' *)
 let inrange = ref false
 
 let print_line newline preamble tiny =
-  let invert = if !invertsearch then not else (fun x -> x) in
+  let invert x = if x then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-  let matched = invert (Str.string_match (Str.regexp !searchfor) s 0) in
-  let matched_until = Str.string_match (Str.regexp !searchuntil) s 0 in
-  let matched_after = Str.string_match (Str.regexp !searchafter) s 0 in
+  let matched = (invert !invertsearch) (Str.string_match (Str.regexp !searchfor) s 0) in
+  let matched_until =
+    (!untilany || matched) &&
+    (invert !invertuntil) (Str.string_match (Str.regexp !searchuntil) s 0)
+  in
+  let matched_after =
+    (!afterany || matched) &&
+    (invert !invertafter) (Str.string_match (Str.regexp !searchafter) s 0)
+  in
     (* Check if we are entering the range *)
-    if not !inrange && matched_after then
-      inrange := true;
+    if not !inrange && matched_after then inrange := true;
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
@@ -112,7 +117,7 @@ let go () =
             if Eval.newlines state then print_string "\n";
             print_line (not !prompt) preamble (Eval.tiny state');
             skipped := false;
-            if !linecount >= !numresults then raise Exit
+            if !linecount >= !numresults && !stopaftersearch then raise Exit
           end
         else
           skipped := true
@@ -145,9 +150,9 @@ let go () =
          end;
       if !showall then
         begin
-          if !linecount >= !numresults then raise Exit;
+          if !linecount >= !numresults && !stopaftersearch then raise Exit;
           print_line (not !prompt) "    " (Eval.tiny state);
-          if !linecount >= !numresults then raise Exit
+          if !linecount >= !numresults && !stopaftersearch then raise Exit
         end;
       if !debugpp then raise Exit;
       really_run true state
