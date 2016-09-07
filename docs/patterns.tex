@@ -117,6 +117,25 @@ An initial implementation, just with regular expressions for now, has been writt
 
 \section{Offline vs Online search: Pros and cons}
 
+Offline search (we make the log of the whole computation and then search it):
+
+\begin{enumerate}
+\item What we do doesn't make side effects or computation happen. It's cleaner.
+\item Producing the original trace is much slower
+\item But searching it repeatedly with different search terms is much faster (almost instant, except for very large traces).
+\item Trace may be huge (gigabytes)
+\end{enumerate}
+
+\noindent Online search (we provide the search parameters, and the search is run, printing only matching steps, as the computation proceeds):
+
+\begin{enumerate}
+\item Only what needs to be printed is printed (printing dominates time, so this is good). (n.b. this depends on whether we match on trees or lexmes, or printed output. For printed output no difference)
+\item Re-running the search may be done on cached log, so should be as quick.
+\item Fits in well with other interactive features.
+\end{enumerate}
+
+\noindent Conclusion: \textbf{need both!}
+
 \end{document}
 
 
