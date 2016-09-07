@@ -15,17 +15,27 @@ let numresults = ref max_int
 let invertsearch = ref false
 let invertuntil = ref false
 let invertafter = ref false
+let stopaftersearch = ref false
+
+let set_until_any s =
+  untilany := true;
+  searchuntil := s
+
+let set_after_any s =
+  afterany := true;
+  searchafter := s
 
 let argspec =
   [("-search", Arg.Set_string searchfor, " Show only matching evaluation steps");
    ("-invert-search", Arg.Set invertsearch, " Invert the search, showing non-matching steps");
    ("-n", Arg.Set_int numresults, " Show only <x> results");
-   ("-until", Arg.Set_string searchuntil, " show only until this matches");
-   ("-after", Arg.Set_string searchafter, " show only after this matches");
-   ("-until-any", Arg.Set_string searchuntil, " show only until this matches");
-   ("-after-any", Arg.Set_string searchafter, " show only after this matches");
+   ("-until", Arg.Set_string searchuntil, " show only until this matches a printed step");
+   ("-after", Arg.Set_string searchafter, " show only after this matches a printed step");
+   ("-until-any", Arg.String set_until_any, " show only until this matches any step");
+   ("-after-any", Arg.String set_after_any, " show only after this matches any step");
    ("-invert-after", Arg.Set invertafter, " invert the after condition");
    ("-invert-until", Arg.Set invertuntil, " invert the until condition");
+   ("-stop", Arg.Set stopaftersearch, " stop computation after final search results");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
@@ -55,25 +65,25 @@ let linecount = ref 0
 including 'after' *)
 let inrange = ref false
 
-let print_line preamble tiny =
-  let invert = if !invertsearch then not else (fun x -> x) in
-    let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-      (* Check if we are entering the range *)
-      if not !inrange && Str.string_match (Str.regexp !searchafter) s 0 then inrange := true;
-      (* If it matches the search, and we are in the range, print the line *)
-      if !inrange && invert (Str.string_match (Str.regexp !searchfor) s 0) then
-        begin
-          print_string (string_of_tiny ~preamble tiny);
-          incr linecount;
-        end;
-      (* Check if we are leaving the range *)
-      if !inrange && Str.string_match (Str.regexp !searchuntil) s 0 then inrange := false
-
-(* Must be called following print_line, not before, because of range. Can we combine? *)
-let would_print_line tiny =
+let print_line newline preamble tiny =
   let invert = if !invertsearch then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-    !inrange && invert (Str.string_match (Str.regexp !searchfor) s 0)
+  let matched = invert (Str.string_match (Str.regexp !searchfor) s 0) in
+  let matched_until = Str.string_match (Str.regexp !searchuntil) s 0 in
+  let matched_after = Str.string_match (Str.regexp !searchafter) s 0 in
+    (* Check if we are entering the range *)
+    if not !inrange && matched_after then
+      inrange := true;
+    (* If it matches the search, and we are in the range, print the line *)
+    if !inrange && matched then
+      begin
+        print_string (string_of_tiny ~preamble tiny);
+        if newline then print_string "\n";
+        flush stdout;
+        incr linecount;
+      end;
+    (* Check if we are leaving the range *)
+    if !inrange && matched_until then inrange := false
 
 let go () =
   Arg.parse argspec setfile
@@ -100,10 +110,9 @@ let go () =
           begin
             let preamble = if !skipped then "=>* " else "=>  " in
             if Eval.newlines state then print_string "\n";
-            print_line preamble (Eval.tiny state');
+            print_line (not !prompt) preamble (Eval.tiny state');
             skipped := false;
-            if not !prompt && would_print_line (Eval.tiny state') then print_string "\n";
-            if !linecount >= !numresults then exit 0
+            if !linecount >= !numresults then raise Exit
           end
         else
           skipped := true
@@ -111,10 +120,7 @@ let go () =
         really_run false state'
     | IsValue ->
         (* Only print if !quiet. On Silent we don't want it, on normal, we have already printed *)
-        if !show && not !showall then begin
-          print_line "" (Eval.tiny state);
-          print_string "\n"
-        end
+        if !show && not !showall then print_line true "" (Eval.tiny state)
     | Malformed s ->
         print_string "Malformed AST node\n";
         print_string s;
@@ -135,16 +141,15 @@ let go () =
            print_string (Tinyocaml.to_string (Eval.tiny state));
            print_string "\n";
            flush stdout;
-           exit 0
+           raise Exit
          end;
       if !showall then
         begin
-          if !linecount >= !numresults then exit 0;
-          print_line "    " (Eval.tiny state);
-          if not !prompt && would_print_line (Eval.tiny state) then print_string "\n";
-          if !linecount >= !numresults then exit 0
+          if !linecount >= !numresults then raise Exit;
+          print_line (not !prompt) "    " (Eval.tiny state);
+          if !linecount >= !numresults then raise Exit
         end;
-      if !debugpp then exit 0;
+      if !debugpp then raise Exit;
       really_run true state
    in
      try
@@ -158,6 +163,7 @@ let go () =
            match payload with None -> "" | Some p -> Pptinyocaml.to_string p
          in
            prerr_string (Printf.sprintf "Exception: %s %s.\n" n expstr)
+     | Exit -> exit 0
      | e ->
          if !debug then raise e else Printf.eprintf "Error: [%s]\n" (Printexc.to_string e);
          exit 1
