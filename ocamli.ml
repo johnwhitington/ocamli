@@ -70,6 +70,23 @@ let linecount = ref 0
 including 'after' *)
 let inrange = ref false
 
+(* The cache for lines which have been shown. *)
+let cache = ref []
+
+(* Clean cache *)
+let clean_cache () =
+  let take l n =
+    if n < 0 then raise (Invalid_argument "Utility.take") else
+    let rec take_inner r l n =
+      if n = 0 then List.rev r else
+        match l with
+        | [] -> raise (Invalid_argument "Utility.take")
+        | h::t -> take_inner (h::r) t (n - 1)
+    in
+      take_inner [] l n
+  in
+    cache := try take !cache !around with _ -> []
+
 let print_line newline preamble tiny =
   let invert x = if x then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
