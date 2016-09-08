@@ -17,6 +17,8 @@ let invertuntil = ref false
 let invertafter = ref false
 let stopaftersearch = ref false
 let around = ref 0
+let repeat = ref false
+let silenced = ref false
 
 let set_until_any s =
   untilany := true;
@@ -37,6 +39,7 @@ let argspec =
    ("-invert-after", Arg.Set invertafter, " invert the after condition");
    ("-invert-until", Arg.Set invertuntil, " invert the until condition");
    ("-stop", Arg.Set stopaftersearch, " stop computation after final search results");
+   ("-repeat", Arg.Set repeat, " allow the after...until result to be repeated.");
    ("-around", Arg.Set_int around, " show lines around the result line");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
@@ -84,13 +87,20 @@ let print_line newline preamble tiny =
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
-        print_string (string_of_tiny ~preamble tiny);
-        if newline then print_string "\n";
+        if not !silenced then print_string (string_of_tiny ~preamble tiny);
+        if newline && not !silenced then print_string "\n";
         flush stdout;
         incr linecount;
       end;
-    (* Check if we are leaving the range *)
-    if !inrange && matched_until then (inrange := false; raise Exit)
+    (* Check if we are leaving the range. If so, set numresults = 0 to prevent
+    more printing, but allow computation to continue (unless -stop is set). If
+    'repeat' is set, we continue as normal, waiting for the next -after
+    condition. If repeat, we output an extra newline to demarcate the results. *)
+    if !inrange && matched_until then
+      begin
+        inrange := false;
+        if !repeat then print_string "\n" else numresults := 0
+      end
 
 let go () =
   Arg.parse argspec setfile
@@ -119,7 +129,8 @@ let go () =
             if Eval.newlines state then print_string "\n";
             print_line (not !prompt) preamble (Eval.tiny state');
             skipped := false;
-            if !linecount >= !numresults && !stopaftersearch then raise Exit
+            if !linecount >= !numresults && !stopaftersearch then raise Exit;
+            if !linecount >= !numresults && not !stopaftersearch then silenced := true
           end
         else
           skipped := true
