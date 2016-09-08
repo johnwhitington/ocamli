@@ -90,7 +90,7 @@ let print_line newline preamble tiny =
         incr linecount;
       end;
     (* Check if we are leaving the range *)
-    if !inrange && matched_until then inrange := false
+    if !inrange && matched_until then (inrange := false; raise Exit)
 
 let go () =
   Arg.parse argspec setfile
