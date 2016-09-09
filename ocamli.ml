@@ -6,9 +6,12 @@ let setdebug () =
   Ocamlilib.debug := true;
   Pptinyocaml.debug := true
 
-let searchfor = ref "" (* always matches *)
-let searchuntil = ref "$a" (* never matches *)
-let searchafter = ref "" (* always matches *)
+let reverse_video = "\x1b[7m"
+let code_end = "\x1b[0m"
+
+let searchfor = ref (Str.regexp "") (* always matches *)
+let searchuntil = ref (Str.regexp "$a") (* never matches *)
+let searchafter = ref (Str.regexp "") (* always matches *)
 let untilany = ref false
 let afterany = ref false
 let numresults = ref max_int
@@ -19,21 +22,23 @@ let stopaftersearch = ref false
 let upto = ref 0
 let repeat = ref false
 let silenced = ref false
+let highlight = ref false
 
 let set_until_any s =
   untilany := true;
-  searchuntil := s
+  searchuntil := Str.regexp s
 
 let set_after_any s =
   afterany := true;
-  searchafter := s
+  searchafter := Str.regexp s
 
 let argspec =
-  [("-search", Arg.Set_string searchfor, " Show only matching evaluation steps");
+  [("-search", Arg.String (fun x -> searchfor := Str.regexp x; showall := true), " Show only matching evaluation steps");
    ("-invert-search", Arg.Set invertsearch, " Invert the search, showing non-matching steps");
+   ("-highlight", Arg.Set highlight, "Highlight the matching part of each matched step.");
    ("-n", Arg.Set_int numresults, " Show only <x> results");
-   ("-until", Arg.Set_string searchuntil, " show only until this matches a printed step");
-   ("-after", Arg.Set_string searchafter, " show only after this matches a printed step");
+   ("-until", Arg.String (fun x -> searchuntil := Str.regexp x; showall := true), " show only until this matches a printed step");
+   ("-after", Arg.String (fun x -> searchafter := Str.regexp x; showall := true), " show only after this matches a printed step");
    ("-until-any", Arg.String set_until_any, " show only until this matches any step");
    ("-after-any", Arg.String set_after_any, " show only after this matches any step");
    ("-invert-after", Arg.Set invertafter, " invert the after condition");
@@ -96,26 +101,40 @@ let really_print_line line =
     (take_up_to !cache !upto);
   print_string line
 
+let highlight_search regexp plainstr str =
+  ignore (Str.search_forward regexp plainstr 0);
+  Printf.printf
+    "Highlighting positions %i to %i\n"
+      (Str.match_beginning ()) (Str.match_end ());
+  str
+
 let print_line newline preamble tiny =
   cache := string_of_tiny ~preamble:"    " tiny :: !cache;
   clean_cache ();
   let invert x = if x then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-  let matched = (invert !invertsearch) (Str.string_match (Str.regexp !searchfor) s 0) in
+  let matched =
+    (invert !invertsearch)
+    (try ignore (Str.search_forward !searchfor s 0); true with Not_found -> false)
+  in
   let matched_until =
     (!untilany || matched) &&
-    (invert !invertuntil) (Str.string_match (Str.regexp !searchuntil) s 0)
+    (invert !invertuntil)
+    (try ignore (Str.search_forward !searchuntil s 0); true with Not_found -> false)
   in
   let matched_after =
     (!afterany || matched) &&
-    (invert !invertafter) (Str.string_match (Str.regexp !searchafter) s 0)
+    (invert !invertafter)
+    (try ignore (Str.search_forward !searchafter s 0); true with Not_found -> false)
   in
     (* Check if we are entering the range *)
     if not !inrange && matched_after then inrange := true;
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
-        if not !silenced then really_print_line (string_of_tiny ~preamble tiny);
+        let str = string_of_tiny ~preamble tiny in
+        let str = if !highlight then highlight_search !searchfor s str else str in
+        if not !silenced then really_print_line str;
         if newline && not !silenced then print_string "\n";
         flush stdout;
         incr linecount;
@@ -138,7 +157,8 @@ let go () =
   Pptinyocaml.fastcurry := !fastcurry;
   Ocamlilib.load_library ();
   Ocamlilib.showlib ();
-  if !searchfor <> "" || !searchuntil <> "" || !searchafter <> "" then showall := true;
+  (*if !searchfor <> "" || !searchuntil <> "" || !searchafter <> "" then showall
+   * := true;*)
   let rec really_run first state =
     if !prompt then wait_for_enter ();
     Unix.sleepf !step;
