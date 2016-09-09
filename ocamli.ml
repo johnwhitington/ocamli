@@ -16,7 +16,7 @@ let invertsearch = ref false
 let invertuntil = ref false
 let invertafter = ref false
 let stopaftersearch = ref false
-let around = ref 0
+let upto = ref 0
 let repeat = ref false
 let silenced = ref false
 
@@ -40,7 +40,7 @@ let argspec =
    ("-invert-until", Arg.Set invertuntil, " invert the until condition");
    ("-stop", Arg.Set stopaftersearch, " stop computation after final search results");
    ("-repeat", Arg.Set repeat, " allow the after...until result to be repeated.");
-   ("-around", Arg.Set_int around, " show lines around the result line");
+   ("-upto", Arg.Set_int upto, " show n lines up to each result line");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
@@ -70,24 +70,35 @@ let linecount = ref 0
 including 'after' *)
 let inrange = ref false
 
-(* The cache for lines which have been shown. *)
+let take l n =
+  if n < 0 then raise (Invalid_argument "take") else
+  let rec take_inner r l n =
+    if n = 0 then List.rev r else
+      match l with
+      | [] -> raise (Invalid_argument "take")
+      | h::t -> take_inner (h::r) t (n - 1)
+  in
+    take_inner [] l n
+
+let rec take_up_to l n =
+  if n < 0 then raise (Invalid_argument "take_up_to") else
+    try take l n with _ -> take_up_to l (n - 1)
+
 let cache = ref []
 
-(* Clean cache *)
 let clean_cache () =
-  let take l n =
-    if n < 0 then raise (Invalid_argument "Utility.take") else
-    let rec take_inner r l n =
-      if n = 0 then List.rev r else
-        match l with
-        | [] -> raise (Invalid_argument "Utility.take")
-        | h::t -> take_inner (h::r) t (n - 1)
-    in
-      take_inner [] l n
-  in
-    cache := try take !cache !around with _ -> []
+  cache := try take_up_to !cache !upto with _ -> []
+
+let really_print_line line =
+  if !upto > 0 then print_string "\n";
+  List.iter
+    (fun x -> print_string x; print_string "\n")
+    (take_up_to !cache !upto);
+  print_string line
 
 let print_line newline preamble tiny =
+  cache := string_of_tiny ~preamble:"    " tiny :: !cache;
+  clean_cache ();
   let invert x = if x then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
   let matched = (invert !invertsearch) (Str.string_match (Str.regexp !searchfor) s 0) in
@@ -104,7 +115,7 @@ let print_line newline preamble tiny =
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
-        if not !silenced then print_string (string_of_tiny ~preamble tiny);
+        if not !silenced then really_print_line (string_of_tiny ~preamble tiny);
         if newline && not !silenced then print_string "\n";
         flush stdout;
         incr linecount;
