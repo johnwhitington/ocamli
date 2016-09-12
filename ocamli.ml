@@ -78,7 +78,7 @@ let make_regexp reference str =
       then Str.regexp str
       else
         let r = regexp_of_searchterm (parse_searchterm str) in 
-          Printf.printf "Made search term %S\n" (parse_searchterm str);
+          if !showregexps then Printf.printf "Made search term %S\n" (parse_searchterm str);
           r
 
 let argspec =
@@ -111,7 +111,7 @@ let argspec =
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Unit setdebug, " Debug (for OCAMLRUNPARAM=b)");
-   ("-debug-show-regexps", Arg.Set showregexps, " Debug output of computed regular expressions")
+   ("-debug-show-regexps", Arg.Set showregexps, " Debug output of computed regular expressions");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
@@ -152,12 +152,14 @@ let really_print_line line =
     (take_up_to !cache !upto);
   print_string line
 
+let highlight_string b e s = s
+
 let highlight_search regexp plainstr str =
   ignore (Str.search_forward regexp plainstr 0);
-  Printf.printf
-    "Highlighting positions %i to %i\n"
-      (Str.match_beginning ()) (Str.match_end ());
-  str
+  let beginning = Str.match_beginning () in
+  let theend = Str.match_end () in
+  Printf.printf "Highlighting positions %i to %i\n" beginning theend;
+  highlight_string beginning theend str
 
 let print_line newline preamble tiny =
   cache := string_of_tiny ~preamble:"    " tiny :: !cache;
