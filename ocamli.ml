@@ -23,6 +23,7 @@ let upto = ref 0
 let repeat = ref false
 let silenced = ref false
 let highlight = ref false
+let regexp = ref false
 
 let set_until_any s =
   untilany := true;
@@ -32,8 +33,52 @@ let set_after_any s =
   afterany := true;
   searchafter := Str.regexp s
 
+let lexer =
+  Genlex.make_lexer
+    ["("; ")"; "{"; "}";
+     "["; "]"; "[|"; "|]"]
+
+let lexemes_of_string s =
+  Stream.npeek max_int (lexer (Stream.of_string s))
+
+let string_of_char c =
+  let s = String.create 1 in
+    String.unsafe_set s 0 c;
+    (Bytes.to_string s)
+
+let string_of_genlex_lexeme = function
+  Genlex.Kwd x | Genlex.Ident x | Genlex.String x -> x
+| Genlex.Int i -> string_of_int i
+| Genlex.Char c -> string_of_char c
+| Genlex.Float f -> string_of_float f
+
+(* Special cases:
+  *
+  * 1) The wildcard _ matches any string of characters, like .* in a regexp *)
+
+let special_case = function
+  "_" -> ".*"
+| x -> Str.quote x
+
+let parse_searchterm s =
+  let terms =
+    List.map
+      special_case
+      (List.map string_of_genlex_lexeme (lexemes_of_string s))
+  in
+    List.fold_left ( ^ ) "" terms
+
+let regexp_of_searchterm s = Str.regexp s
+
+let make_regex reference str =
+  reference :=
+    if !regexp
+      then Str.regexp str
+      else regexp_of_searchterm (parse_searchterm str)
+
 let argspec =
   [("-search", Arg.String (fun x -> searchfor := Str.regexp x; showall := true), " Show only matching evaluation steps");
+   ("-regexp", Arg.Set regexp, " Search terms are regular expressions rather than the built-in system");
    ("-invert-search", Arg.Set invertsearch, " Invert the search, showing non-matching steps");
    ("-highlight", Arg.Set highlight, "Highlight the matching part of each matched step.");
    ("-n", Arg.Set_int numresults, " Show only <x> results");
