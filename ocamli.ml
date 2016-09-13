@@ -152,14 +152,77 @@ let really_print_line line =
     (take_up_to !cache !upto);
   print_string line
 
-let highlight_string b e s = s
+(* Make a list of characters from a string, preserving order. *)
+let explode s =
+  let l = ref [] in
+    for p = String.length s downto 1 do
+      l := String.unsafe_get s (p - 1)::!l
+    done;
+    !l
+
+(* Make a string from a list of characters, preserving order. *)
+let implode l =
+  let s = String.create (List.length l) in
+    let rec list_loop x = function
+       [] -> ()
+     | i::t -> String.unsafe_set s x i; list_loop (x + 1) t
+    in
+      list_loop 0 l;
+      s
+
+(* To highlight a string, we proceed through it, counting all non-escaped
+ * characters, to determine start and end points.
+ * a) At position 's' we add a highlight-start code.
+ * b) At position 'e', we add and end-code and then re-emit any start codes
+ * occuring since the last end-code *)
+
+(* Build three sections: before, during and after. Return also any start-codes
+ * in operation (i.e not cancelled) at 'e'. *)
+let rec sections b e codes count before during after = function
+  '\x1b'::'['::'0'::'m'::t ->
+    let l = ['\x1b'; '['; 'm'] in
+    let before, during, after =
+      if count >= e then (before, during, List.rev l @ after)
+      else if count >= b then (before, List.rev l @ during, after)
+      else (List.rev l @ before, during, after)
+    in
+      sections b e [] count before during after t
+| '\x1b'::'['::x::'m'::t ->
+    let l = ['\x1b'; '['; x; 'm'] in
+    let before, during, after =
+      if count >= e then (before, during, List.rev l @ after)
+      else if count >= b then (before, List.rev l @ during, after)
+      else (List.rev l @ before, during, after)
+    in
+      sections b e (l::codes) count before during after t
+| h::t ->
+    let before, during, after =
+      if count >= e then (before, during, h::after)
+      else if count >= b then (before, h::during, after)
+      else (h::before, during, after)
+    in
+      sections b e codes (count + 1) before during after t
+| [] ->
+    (List.rev before, List.rev during, List.rev after, codes)
+
+let highlight_charlist b e chars =
+  let before, during, after, codes = sections b e [] 0 [] [] [] chars in
+    (*Printf.printf "B: %S\n" (Bytes.to_string (implode before));
+    Printf.printf "D: %S\n" (Bytes.to_string (implode during));
+    Printf.printf "C: %S\n" (Bytes.to_string (implode (List.flatten codes)));
+    Printf.printf "A: %S\n" (Bytes.to_string (implode after));*)
+    before @ explode reverse_video @ during @
+    explode code_end @ (List.flatten codes) @ after
+
+let highlight_string b e s =
+  implode (highlight_charlist b e (explode s))
 
 let highlight_search regexp plainstr str =
   ignore (Str.search_forward regexp plainstr 0);
-  let beginning = Str.match_beginning () in
-  let theend = Str.match_end () in
-  Printf.printf "Highlighting positions %i to %i\n" beginning theend;
-  highlight_string beginning theend str
+  let beginning = Str.match_beginning () + 4 in
+  let theend = Str.match_end () + 4 in
+  (*Printf.printf "Highlighting positions %i to %i\n" beginning theend;*)
+  Bytes.to_string (highlight_string beginning theend str)
 
 let print_line newline preamble tiny =
   cache := string_of_tiny ~preamble:"    " tiny :: !cache;
