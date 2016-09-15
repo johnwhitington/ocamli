@@ -138,6 +138,25 @@ Offline search (we make the log of the whole computation and then search it):
 
 \noindent Conclusion: \textbf{need both!}
 
+\section{Our own search syntax}
+
+\begin{enumerate}
+\item The old, regular expression method can be used by adding \texttt{-regex} to the command line.
+\item Our new syntax is converted internally to a regular expression, so the search mechanism is the same for both search syntaxes.
+\item We follow the same lexical conventions as OCaml, by using the Genlex module, although it's not quite clear how to get it exhaustive -- the documentation is not up to scratch.
+\item It is worth investigating if there is a general method to get all the lexemes from a ocamllex / menhir parser without it having to parse. Who can we ask about this? The mailing list?
+\end{enumerate}
+
+\noindent Conversion to Regular expression:
+
+\begin{enumerate}
+\item Lex with genlex.
+\item Add allowable whitespace between each and every genlex lexeme
+\item Replace any use of the underscore with the regexp \texttt{.*} to allow anything.
+\item Quote all the parts of the regular expression with \texttt{Str.quote}. Put together.
+\item The option \texttt{-no-parens} removes all uses of \texttt{( ) begin end} from the lexeme list. 
+\end{enumerate}
+
 \end{document}
 
 

@@ -25,6 +25,7 @@ let silenced = ref false
 let highlight = ref false
 let regexp = ref false
 let showregexps = ref false
+let noparens = ref false
 
 let set_until_any s =
   untilany := true;
@@ -60,7 +61,16 @@ let special_case = function
   "_" -> ".*"
 | x -> Str.quote x
 
-let whitespace = " *"
+let whitespace_of_items items =
+  "\\(" ^ List.fold_left ( ^ ) "" (List.map (fun x -> x ^ "\\|") items) ^ "\\)*"
+
+let classic_whitespace_items = [" "; "\\t"; "\\n"; "\\f"; "\\t"]
+
+let paren_items = ["("; ")"; "begin"; "end"]
+
+let whitespace =
+  whitespace_of_items
+    ((if !noparens then paren_items else []) @ classic_whitespace_items)
  
 let parse_searchterm s =
   let terms =
@@ -84,6 +94,7 @@ let make_regexp reference str =
 let argspec =
   [("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
    ("-regexp", Arg.Set regexp, " Search terms are regular expressions rather than the built-in system");
+   ("-no-parens", Arg.Set noparens, "Ignore parentheses and begin and end when matching with classic search syntax");
    ("-invert-search", Arg.Set invertsearch, " Invert the search, showing non-matching steps");
    ("-highlight", Arg.Set highlight, "Highlight the matching part of each matched step.");
    ("-n", Arg.Set_int numresults, " Show only <x> results");
