@@ -1,7 +1,7 @@
 open Parser
 
 (* Read a search pattern using the OCaml lexer *)
-let string_of_lexeme = function
+let string_of_token = function
   | AMPERAMPER -> "&&"
   | AMPERSAND -> "&"
   | AND -> "and"
@@ -120,6 +120,16 @@ let string_of_lexeme = function
   | COMMENT (s, _) -> s
   | DOCSTRING _ -> "FIXMEDOCSTRING"
   | EOL -> ""
+
+let tokens_of_lexbuf l =
+  let toks = ref [] in
+    try
+      while true do
+        toks := Lexer.token l :: !toks
+      done;
+      []
+    with
+      Exit -> List.rev !toks
 
 let regexp_of_lexbuf l = Str.regexp ""
 
