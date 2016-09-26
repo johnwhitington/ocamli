@@ -35,61 +35,14 @@ let set_after_any s =
   afterany := true;
   searchafter := Str.regexp s
 
-let lexer =
-  Genlex.make_lexer
-    ["("; ")"; "{"; "}";
-     "["; "]"; "[|"; "|]"]
-
-let lexemes_of_string s =
-  Stream.npeek max_int (lexer (Stream.of_string s))
-
-let string_of_char c =
-  let s = Bytes.create 1 in
-    Bytes.unsafe_set s 0 c;
-    Bytes.to_string s
-
-let string_of_genlex_lexeme = function
-  Genlex.Kwd x | Genlex.Ident x | Genlex.String x -> x
-| Genlex.Int i -> string_of_int i
-| Genlex.Char c -> string_of_char c
-| Genlex.Float f -> string_of_float f
-
-(* Special cases:
-  * 1) The wildcard _ matches any string of characters, like .* in a regexp *)
-
-let special_case = function
-  "_" -> ".*"
-| x -> Str.quote x
-
-let whitespace_of_items items =
-  "\\(" ^ List.fold_left ( ^ ) "" (List.map (fun x -> x ^ "\\|") items) ^ "\\)*"
-
-let classic_whitespace_items = [" "; "\\t"; "\\n"; "\\f"; "\\t"]
-
-let paren_items = ["("; ")"; "begin"; "end"]
-
-let whitespace =
-  whitespace_of_items
-    ((if !noparens then paren_items else []) @ classic_whitespace_items)
- 
-let parse_searchterm s =
-  let terms =
-    List.map
-      special_case
-      (List.map string_of_genlex_lexeme (lexemes_of_string s))
-  in
-    String.concat whitespace terms
-
-let regexp_of_searchterm s = Str.regexp s
-
 let make_regexp reference str =
   reference :=
     if !regexp
       then Str.regexp str
       else
-        let r = regexp_of_searchterm (parse_searchterm str) in 
-          if !showregexps then Printf.printf "Made search term %S\n" (parse_searchterm str);
-          r
+        let r = Ocamlipat.regexp_of_lexbuf (Lexing.from_string str) in 
+          if !showregexps then Printf.printf "Made search term %S\n" (Ocamlipat.regexp_of_string str);
+          Str.regexp r
 
 let argspec =
   [("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");

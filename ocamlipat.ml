@@ -1,5 +1,9 @@
 open Parser
 
+let special_case = function
+  "_" -> ".*"
+| x -> Str.quote x
+
 (* Read a search pattern using the OCaml lexer *)
 let string_of_token = function
   | AMPERAMPER -> "&&"
@@ -131,7 +135,27 @@ let tokens_of_lexbuf l =
     with
       Exit -> List.rev !toks
 
-let regexp_of_lexbuf l = Str.regexp ""
+let whitespace_of_items items =
+  "\\(" ^ List.fold_left ( ^ ) "" (List.map (fun x -> x ^ "\\|") items) ^ "\\)*"
+
+let classic_whitespace_items = [" "; "\\t"; "\\n"; "\\f"; "\\t"]
+
+let paren_items = ["("; ")"; "begin"; "end"]
+
+let whitespace =
+  whitespace_of_items
+    ((*(if !noparens then paren_items else []) @*) classic_whitespace_items)
+
+let regexp_of_lexbuf l =
+  let terms =
+    List.map
+      special_case
+      (List.map string_of_token (tokens_of_lexbuf l))
+  in
+    String.concat whitespace terms
+
+let regexp_of_string s =
+  regexp_of_lexbuf (Lexing.from_string s)
 
 (* These are the tokens from the OCaml lexer of type Parser.token *)
 
