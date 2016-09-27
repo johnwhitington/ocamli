@@ -157,6 +157,3 @@ let regexp_of_lexbuf l =
 let regexp_of_string s =
   regexp_of_lexbuf (Lexing.from_string s)
 
-(* These are the tokens from the OCaml lexer of type Parser.token *)
-
-

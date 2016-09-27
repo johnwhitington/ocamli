@@ -236,6 +236,7 @@ let build_lets_from_fenv fenv e =
   
 let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
+
 | Lazy e -> Lazy (eval peek env e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))
@@ -567,6 +568,16 @@ and suitable_for_curry e =
 
 and eval_first_non_value_item peek (env : env) r = function
   [] -> List.rev r
+| ModuleBinding (n, ModuleIdentifier source) as h::t ->
+    (* This will be inside a Struct, so we can deal with it in this unusual
+     * place, moving on to genuinely evaluate the next non-value thing later in
+     * the structure item with the modified env. *)
+    (* e.g module B = Bytes *)
+    (* For now, do this here. Really, it will probably be done on parsing since
+     * it is, essentially, a bit like the 'open' keyword in operation *)
+    (* The idea is to find everything in the environment with Bytes. in it, and
+     * add B. items for each one to the environment *)
+    eval_first_non_value_item peek env (h::r) t
 | h::t ->
     if is_value h then
       let env' =
@@ -612,7 +623,7 @@ let next e =
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->
       Printf.printf "Error in Eval.next %s\n" (Printexc.to_string x);
-      if !debug then raise Exit;
+      if !debug then raise x;
       Malformed "environment"
 
 let rec eval_until_value peek env e =

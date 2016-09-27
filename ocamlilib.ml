@@ -106,7 +106,7 @@ let stdlib_modules () =
    ("Stack",                    stdlib_dir, "stack.ml");
    ("Map",                      stdlib_dir, "map.ml");
    ("Set",                      stdlib_dir, "set.ml");
-   (*("Parsing",                  stdlib_dir, "parsing.ml");*) (* mod initialization fails *)
+   (*("Parsing",                  stdlib_dir, "parsing.ml");*) (* open Lexing needs to be fixed. *)
    ("Lexing",                   stdlib_dir, "lexing.ml");
    ("Nativeint",                stdlib_dir, "nativeint.ml");
    ("Int64",                    stdlib_dir, "int64.ml");
@@ -115,7 +115,7 @@ let stdlib_modules () =
    ("Obj",                      stdlib_dir, "obj.ml");
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
-   ("Sys",                      "./stdlib", "sys.ml");
+   ("Sys",                      stdlib_dir, "sys.ml");
    (*("String",                   stdlib_dir, "string.ml");*) (* module B = Bytes *)
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");

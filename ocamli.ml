@@ -216,6 +216,8 @@ let print_line newline preamble tiny =
         if !repeat then print_string "\n" else numresults := 0
       end
 
+external reraise : exn -> 'a = "%reraise"
+
 let go () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>\n";
@@ -296,7 +298,9 @@ let go () =
            match payload with None -> "" | Some p -> Pptinyocaml.to_string p
          in
            prerr_string (Printf.sprintf "Exception: %s %s.\n" n expstr)
-     | Exit -> exit 0
+     | Exit ->
+         if !debug then reraise Exit;
+         exit 0
      | e ->
          if !debug then raise e else Printf.eprintf "Error: [%s]\n" (Printexc.to_string e);
          exit 1
