@@ -236,7 +236,6 @@ let build_lets_from_fenv fenv e =
   
 let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
-
 | Lazy e -> Lazy (eval peek env e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))
@@ -568,16 +567,16 @@ and suitable_for_curry e =
 
 and eval_first_non_value_item peek (env : env) r = function
   [] -> List.rev r
-| ModuleBinding (n, ModuleIdentifier source) as h::t ->
-    (* This will be inside a Struct, so we can deal with it in this unusual
-     * place, moving on to genuinely evaluate the next non-value thing later in
-     * the structure item with the modified env. *)
-    (* e.g module B = Bytes *)
-    (* For now, do this here. Really, it will probably be done on parsing since
-     * it is, essentially, a bit like the 'open' keyword in operation *)
-    (* The idea is to find everything in the environment with Bytes. in it, and
-     * add B. items for each one to the environment *)
-    eval_first_non_value_item peek env (h::r) t
+| ModuleBinding (name, ModuleIdentifier original) as h::t ->
+    eval_first_non_value_item peek (alias_module original name env) (h::r) t
+| ModuleBinding (name, Struct (x, items)) as h::t ->
+    if is_value (Struct (x, items)) then
+      eval_first_non_value_item peek (open_struct_as_module name items env) (h::r) t
+    else
+      let newstruct = eval_first_non_value_item peek env [] [Struct (x, items)] in
+        List.rev r @ [ModuleBinding (name, List.hd newstruct)] @ t
+| Open name as h::t ->
+    eval_first_non_value_item peek (open_module name env) (h::r) t
 | h::t ->
     if is_value h then
       let env' =
@@ -613,6 +612,8 @@ let init x = x
 
 let init_from_tinyocaml x = x
 
+external reraise : exn -> 'a = "%reraise"
+
 let next e =
   last := [];
   try
@@ -630,7 +631,7 @@ let rec eval_until_value peek env e =
   if is_value e then e else
     let e = collect_unused_lets e in
       try eval_until_value peek env (eval peek env e) with
-        x -> Printf.printf "Failed: %s\n" (Pptinyocaml.to_string e); raise x
+        x -> Printf.printf "Failed: %s\n" (Pptinyocaml.to_string e); reraise x
 
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 

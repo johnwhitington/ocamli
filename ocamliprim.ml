@@ -328,7 +328,15 @@ let percent_string_safe_set =
        [String s; Int i; Char c] -> ignore (string_safe_set s i c); Unit
      | _ -> failwith "percent_string_safe_set")
 
+external getenv: string -> string = "caml_sys_getenv"
+
+let caml_sys_getenv =
+  mk "caml_sys_getenv"
+    (function [String s] -> String (getenv s)
+     | _ -> failwith "caml_sys_getenv")
+
 let builtin_primitives = [
+  caml_sys_getenv;
   percent_string_safe_get;
   percent_string_safe_set;
   caml_weak_create;

@@ -129,7 +129,7 @@ let prefix_bindings p (recflag, bs) =
 (* For "module B = Bytes" Find any binding beginning with 'Bytes', replace
 'Bytes' with 'B', and stick on to the front of the environment. *)
 let alias_module current alias env =
-  (*Printf.printf "Aliasing %s --> %s\n" current alias;*)
+  Printf.printf "Aliasing %s --> %s\n" current alias;
   let replaced =
     List.map
       (prefix_bindings alias)
@@ -139,4 +139,13 @@ let alias_module current alias env =
   in
     replaced @ env
 
+(* Assuming all the bindings are values already, add them to the environment as
+Name.x, Name.y etc. *)
+let bindings_of_struct_item p = function
+  | LetDef (b, ld) -> Some (prefix_bindings p (b, ref ld))
+  | _ -> None
+
+let open_struct_as_module name items env =
+  let bindings = option_map (bindings_of_struct_item name) items in
+    bindings @ env
 

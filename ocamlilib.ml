@@ -79,20 +79,20 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   (*("Filename",                 stdlib_dir, "filename.ml"); (* FIXME * Sys.os_type *)*)
+   ("Filename",                 "./stdlib", "filename.ml");
    ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * * camlinternalOO *)
-   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); *) (*FIXME modinit fails *)
+   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); inside * module *)
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*("Scanf",                    stdlib_dir, "scanf.ml");*) (* FIXME Modinit fails *)
+   (*("Scanf",                    stdlib_dir, "scanf.ml"); (* module inside *)*)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                  stdlib_dir, "format.ml"); FIXME: not found on * modinit *)
+   (*("Format",                  stdlib_dir, "format.ml"); (* FIXME: hangs on * modinit *)*)
    ("Weak",                     stdlib_dir, "weak.ml");
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); (* FIXME not found on * Modinit *)*)
+   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml");*) (* FIXME Not found on modinit *)
    ("Random",                   stdlib_dir, "random.ml");
-   (*("Digest",                   stdlib_dir, "digest.ml");*) (* dep String *)
+   ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
    ("Printexc",                 stdlib_dir, "printexc.ml");
    ("Arg",                      stdlib_dir, "arg.ml");
@@ -106,7 +106,7 @@ let stdlib_modules () =
    ("Stack",                    stdlib_dir, "stack.ml");
    ("Map",                      stdlib_dir, "map.ml");
    ("Set",                      stdlib_dir, "set.ml");
-   (*("Parsing",                  stdlib_dir, "parsing.ml");*) (* open Lexing needs to be fixed. *)
+   ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
    ("Nativeint",                stdlib_dir, "nativeint.ml");
    ("Int64",                    stdlib_dir, "int64.ml");
@@ -116,7 +116,7 @@ let stdlib_modules () =
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
    ("Sys",                      stdlib_dir, "sys.ml");
-   (*("String",                   stdlib_dir, "string.ml");*) (* module B = Bytes *)
+   ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
