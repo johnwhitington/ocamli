@@ -475,7 +475,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       end
 | TryWith (e, cases) ->
     if is_value e then e else
-      begin try eval peek env e with
+      begin try TryWith (eval peek env e, cases) with
         ExceptionRaised (x, payload) ->
           match eval_match_exception peek env x payload cases with
             FailedToMatch -> Raise (x, payload)

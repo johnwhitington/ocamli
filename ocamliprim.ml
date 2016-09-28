@@ -332,7 +332,10 @@ external getenv: string -> string = "caml_sys_getenv"
 
 let caml_sys_getenv =
   mk "caml_sys_getenv"
-    (function [String s] -> String (getenv s)
+    (function [String s] ->
+        begin try String (getenv s) with
+          Not_found -> Raise ("Not_found", None) 
+        end
      | _ -> failwith "caml_sys_getenv")
 
 let builtin_primitives = [

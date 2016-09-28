@@ -110,9 +110,9 @@ module Win32 = struct
    (let s = String.sub name (String.length name - String.length suff)
                             (String.length suff) in
     String.lowercase_ascii s = String.lowercase_ascii suff)
-  (*let temp_dir_name =
-    try Sys.getenv "TEMP" with Not_found -> "."*)
-  (*let quote s =
+  let temp_dir_name =
+    try Sys.getenv "TEMP" with Not_found -> "."
+  let quote s =
     let l = String.length s in
     let b = Buffer.create (l + 20) in
     Buffer.add_char b '\"';
@@ -152,10 +152,9 @@ module Win32 = struct
     drive ^ dir
   let basename s =
     let (drive, path) = drive_and_path s in
-    generic_basename is_dir_sep current_dir_name path*)
+    generic_basename is_dir_sep current_dir_name path
 end
 
-(*
 module Cygwin = struct
   let current_dir_name = "."
   let parent_dir_name = ".."
@@ -211,9 +210,9 @@ let chop_extension name =
 external open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
 external close_desc: int -> unit = "caml_sys_close"
 
-let prng = lazy(Random.State.make_self_init ())
+(*let prng = lazy(Random.State.make_self_init ())*)
 
-let temp_file_name temp_dir prefix suffix =
+(*let temp_file_name temp_dir prefix suffix =
   let rnd = (Random.State.bits (Lazy.force prng)) land 0xFFFFFF in
   concat temp_dir (Printf.sprintf "%s%06x%s" prefix rnd suffix)
 
@@ -242,6 +241,5 @@ let open_temp_file ?(mode = [Open_text]) ?(perms = 0o600)
        open_out_gen (Open_wronly::Open_creat::Open_excl::mode) perms name)
     with Sys_error _ as e ->
       if counter >= 1000 then raise e else try_name (counter + 1)
-  in try_name 0
+  in try_name 0*)
 
-  *)

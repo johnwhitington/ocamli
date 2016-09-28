@@ -129,7 +129,7 @@ let prefix_bindings p (recflag, bs) =
 (* For "module B = Bytes" Find any binding beginning with 'Bytes', replace
 'Bytes' with 'B', and stick on to the front of the environment. *)
 let alias_module current alias env =
-  Printf.printf "Aliasing %s --> %s\n" current alias;
+  (*Printf.printf "Aliasing %s --> %s\n" current alias;*)
   let replaced =
     List.map
       (prefix_bindings alias)
