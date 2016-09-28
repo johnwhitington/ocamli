@@ -23,6 +23,15 @@ let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
            Fun (NoLabel, PatVar (star x4),
              CallBuiltIn (name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4)], f), []), []), []), []))
 
+let mk5 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") ?(x5="p") name f =
+   (name,
+     Fun (NoLabel, PatVar (star x1),
+       Fun (NoLabel, PatVar (star x2),
+         Fun (NoLabel, PatVar (star x3),
+           Fun (NoLabel, PatVar (star x4),
+             Fun (NoLabel, PatVar (star x5),
+               CallBuiltIn (name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4); Var (star x5)], f), []), []), []), []), []))
+
 let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
@@ -338,7 +347,65 @@ let caml_sys_getenv =
         end
      | _ -> failwith "caml_sys_getenv")
 
+external random_seed: unit -> int array = "caml_sys_random_seed"
+
+let caml_sys_random_seed =
+  mk "caml_sys_random_seed"
+    (function [Unit] ->
+        Array (Array.map (fun x -> Int x) (random_seed ()))
+     | _ -> failwith "caml_sys_random_seed")
+
+external percent_array_length: 'a array -> int = "%array_length"
+
+let percent_array_length =
+  mk "%array_length"
+    (function [Array x] -> Int (Array.length x)
+     | _ -> failwith "percent_array_length")
+
+external set: 'a array -> int -> 'a -> unit = "%array_safe_set"
+
+let percent_array_safe_set =
+  mk3 "%array_safe_set"
+    (function [Array x; Int i; v] -> set x i v; Unit
+     | _ -> failwith "percent_array_safe_set")
+
+external modint: int -> int -> int = "%modint"
+
+let percent_modint =
+  mk2 "%modint"
+    (function [Int x; Int y] -> Int (modint x y)
+     | _ -> failwith "percent_modint")
+
+external caml_blit_string : string -> int -> string -> int -> int -> unit =
+  "caml_blit_string"
+
+let caml_blit_string =
+  mk5 "caml_blit_string"
+    (function [String s; Int x; String s'; Int y; Int z] ->
+       caml_blit_string s x s' y z; Unit
+     | _ -> failwith "caml_blit_string")
+
+external caml_md5_string : string -> int -> int -> string = "caml_md5_string"
+
+let caml_md5_string =
+  mk3 "caml_md5_string"
+    (function [String s; Int i; Int j] ->
+       String (caml_md5_string s i j)
+     | _ -> failwith "caml_md5_string")
+
+let percent_xorint =
+  mk2 "%xorint"
+    (function [Int i; Int j] -> Int (i lxor j)
+     | _ -> failwith "percent_xorint")
+
 let builtin_primitives = [
+  percent_xorint;
+  caml_md5_string;
+  caml_blit_string;
+  percent_modint;
+  percent_array_safe_set;
+  percent_array_length;
+  caml_sys_random_seed;
   caml_sys_getenv;
   percent_string_safe_get;
   percent_string_safe_set;

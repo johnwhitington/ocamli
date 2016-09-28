@@ -34,16 +34,6 @@ let stdlib_dir =
 
 (* Read the definitions from a loaded module, so they can be put into the
 environment. *)
-let definitions_of_module = function
-  Struct (_, items) ->
-    Ocamliutil.option_map
-      (fun x ->
-        match x with
-          LetDef (recflag, bindings) -> Some (recflag, ref bindings)
-        | _ -> None) 
-      items
-| _ -> failwith "definitions_of_module"
-
 let rec add_prefix_to_pattern f = function
   PatVar v -> PatVar (f v)
 | PatTuple ps -> PatTuple (List.map (add_prefix_to_pattern f) ps)
@@ -56,12 +46,30 @@ let add_prefix_to_binding name (pattern, e) =
 let add_prefix_to_bindings name (recflag, bindings) =
   (recflag, ref (List.map (add_prefix_to_binding name) !bindings))
 
-let load_module (name : string) (env : env) (file : string) =
+let rec definitions_of_module env = function
+  Struct (_, items) ->
+    List.flatten 
+      (List.map
+        (fun x ->
+          match x with
+            LetDef (recflag, bindings) -> [(recflag, ref bindings)]
+          | ModuleBinding (name, (Struct (_, items) as themod)) ->
+              load_module_from_struct name env themod
+          | _ -> []) 
+        items)
+| s ->
+    failwith (Printf.sprintf "definitions_of_module: found a %s" (Tinyocaml.to_string s))
+
+and load_module_from_struct name env themod =
+  let themod = Eval.eval_until_value false env themod in (* <-- module initialisation  *)
+    List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module env themod))
+
+and load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
-  let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
-    let themod = Eval.eval_until_value false env themod in (* <-- module * initialisation *)
+    let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
+      let r = load_module_from_struct name env themod in
       if !debug then Printf.printf "done\n%!";
-      List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module themod))
+      r
 
 let otherlib_modules () =
   [(*("Unix",                    !otherlibs, "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
@@ -71,6 +79,9 @@ let otherlib_modules () =
    (*("Graphics",                !otherlibs, "graphics.ml");*) 
    (* ("Bigarray",                 !otherlibs, "bigarray.ml")*)] (* find Genarray in Bigarray *)
 
+(*let stdlib_modules () =
+  [("Example", "./stdlib", "example.ml")]*)
+
 let stdlib_modules () =
   [("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
@@ -79,7 +90,7 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   ("Filename",                 "./stdlib", "filename.ml");
+   ("Filename",                 stdlib_dir, "filename.ml");
    ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
@@ -90,7 +101,7 @@ let stdlib_modules () =
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                  stdlib_dir, "format.ml"); (* FIXME: hangs on * modinit *)*)
    ("Weak",                     stdlib_dir, "weak.ml");
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml");*) (* FIXME Not found on modinit *)
+   ("Hashtbl",                  "./stdlib", "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
