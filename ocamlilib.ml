@@ -3,6 +3,7 @@ open Ocamliutil
 
 let debug = ref false
 let otherlibs = ref ""
+let showstdlibinit = ref false
 
 (* Beginning of what was ocamilib.ml *)
 let load_stdlib = ref true

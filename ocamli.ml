@@ -63,6 +63,7 @@ let argspec =
    ("-upto", Arg.Set_int upto, " show n lines up to each result line");
    ("-show", Arg.Set show, " Print the final result of the program");
    ("-show-all", Arg.Set showall, " Print steps of evaluation");
+   ("-show-stdlib-init", Arg.Set Ocamlilib.showstdlibinit, " Show initialisation of standard library");
    ("-prompt", Arg.Set prompt, " Require enter after each step but last");
    ("-step", Arg.Set_float step, " Wait a number of seconds after each step but last");
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
