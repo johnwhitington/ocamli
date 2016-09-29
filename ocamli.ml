@@ -4,7 +4,8 @@ let setdebug () =
   Runeval.debug := true;
   Eval.debug := true;
   Ocamlilib.debug := true;
-  Pptinyocaml.debug := true
+  Pptinyocaml.debug := true;
+  Ocamliprim.debug := true
 
 let reverse_video = "\x1b[7m"
 let code_end = "\x1b[0m"

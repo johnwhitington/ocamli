@@ -1,2 +1,4 @@
-val lookup_primitive : string -> Tinyocaml.t
+val debug : bool ref
+
+val lookup_primitive : Parsetree.core_type -> string -> Tinyocaml.t
 

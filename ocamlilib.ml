@@ -90,19 +90,19 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   (*("Filename",                 stdlib_dir, "filename.ml");*)
+   (*("Filename",                 stdlib_dir, "filename.ml");*) (* FIXME Init too slow. Why? *)
    ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * * camlinternalOO *)
    (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); inside * module *)
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*("Scanf",                    stdlib_dir, "scanf.ml"); (* module inside *)*)
+   ("Scanf",                    stdlib_dir, "scanf.ml"); (* module inside *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                  stdlib_dir, "format.ml"); (* FIXME: hangs on * modinit *)*)
    ("Weak",                     stdlib_dir, "weak.ml");
-   (*("Hashtbl",                  "./stdlib", "hashtbl.ml");*)
-   ("Random",                   "./stdlib"(*stdlib_dir*), "random.ml");
+   (*("Hashtbl",                  "./stdlib", "hashtbl.ml"); *) (* Intialisation too slow! Why? Show modinit *)
+   ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
    ("Printexc",                 stdlib_dir, "printexc.ml");

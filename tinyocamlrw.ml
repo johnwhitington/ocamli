@@ -171,7 +171,7 @@ and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
 
 and of_real_ocaml_primitive p =
   let n = p.pval_name.txt in
-    (n, Ocamliprim.lookup_primitive (List.hd p.pval_prim))
+    (n, Ocamliprim.lookup_primitive p.pval_type (List.hd p.pval_prim))
 
 and of_real_ocaml_signature env s =
   Sig []

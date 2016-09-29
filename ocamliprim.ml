@@ -1,5 +1,8 @@
 open Tinyocaml
 open Ocamliutil
+open Parsetree
+
+let debug = ref false
 
 let mk name f =
   (name, Fun (NoLabel, PatVar "*x", CallBuiltIn (None, name, [Var "*x"], f), []))
@@ -398,7 +401,19 @@ let percent_xorint =
     (function [Int i; Int j] -> Int (i lxor j)
      | _ -> failwith "percent_xorint")
 
+let percent_lslint =
+  mk2 "%lslint"
+    (function [Int i; Int j] -> Int (i lsl j)
+     | _ -> failwith "percent_lslint")
+
+let percent_andint =
+  mk2 "%andint"
+    (function [Int i; Int j] -> Int (i land j)
+     | _ -> failwith "percent_andint")
+
 let builtin_primitives = [
+  percent_andint;
+  percent_lslint;
   percent_xorint;
   caml_md5_string;
   caml_blit_string;
@@ -948,8 +963,38 @@ let builtin_primitives = [
   "caml_weak_set";*)
 ]
 
-let lookup_primitive n =
-  try List.assoc n builtin_primitives with
+(* For %identity, we need to annotate the output type, so that eval.ml can do
+the coercion at runtime. *)
+
+(* e.g for x -> y -> z return z *)
+let rec final_type t =
+  match t.ptyp_desc with
+    Ptyp_arrow (_, _, next) -> final_type next
+  | _ -> t
+
+(* e.g convert Ptyp_constr Int to TypInt *)
+let our_type = function
+  {ptyp_desc = Ptyp_constr ({txt = Longident.Lident "char"}, _)} -> Some TypChar
+| {ptyp_desc = Ptyp_constr ({txt = Longident.Lident "int"}, _)} -> Some TypInt
+| {ptyp_desc = Ptyp_constr ({txt = Longident.Lident x}, _)} ->
+    if !debug then Printf.printf "missing our_type %s\n" x; None
+| _ ->
+    if !debug then Printf.printf "missing our_type2\n"; None
+
+(* insert the type into the CallBuiltIn *)
+let rec really_add_type typ = function
+  Fun (x, y, z, e) -> Fun (x, y, really_add_type typ z, e)
+| CallBuiltIn (_, a, b, c) -> CallBuiltIn (typ, a, b, c)
+| _ -> failwith "unexpecetd: really_add_type"
+
+let add_type typ (name, implementation) =
+  if name = "%identity" then
+    really_add_type (our_type (final_type typ)) implementation
+  else
+    implementation
+
+let lookup_primitive typ n =
+  try add_type typ (n, (List.assoc n builtin_primitives)) with
     Not_found ->
       snd
         (mk n
