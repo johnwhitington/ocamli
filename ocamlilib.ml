@@ -90,7 +90,7 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   ("Filename",                 stdlib_dir, "filename.ml");
+   (*("Filename",                 stdlib_dir, "filename.ml");*)
    ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
@@ -101,8 +101,8 @@ let stdlib_modules () =
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                  stdlib_dir, "format.ml"); (* FIXME: hangs on * modinit *)*)
    ("Weak",                     stdlib_dir, "weak.ml");
-   ("Hashtbl",                  "./stdlib", "hashtbl.ml");
-   ("Random",                   stdlib_dir, "random.ml");
+   (*("Hashtbl",                  "./stdlib", "hashtbl.ml");*)
+   ("Random",                   "./stdlib"(*stdlib_dir*), "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
    ("Printexc",                 stdlib_dir, "printexc.ml");

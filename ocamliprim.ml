@@ -2,18 +2,18 @@ open Tinyocaml
 open Ocamliutil
 
 let mk name f =
-  (name, Fun (NoLabel, PatVar "*x", CallBuiltIn (name, [Var "*x"], f), []))
+  (name, Fun (NoLabel, PatVar "*x", CallBuiltIn (None, name, [Var "*x"], f), []))
 
 let mk2 name f =
   (name,
    Fun (NoLabel, PatVar "*x",
-     Fun (NoLabel, PatVar "*y", CallBuiltIn (name, [Var "*x"; Var "*y"], f), []), []))
+     Fun (NoLabel, PatVar "*y", CallBuiltIn (None, name, [Var "*x"; Var "*y"], f), []), []))
 
 let mk3 name f =
   (name,
    Fun (NoLabel, PatVar "*x",
      Fun (NoLabel, PatVar "*y",
-       Fun (NoLabel, PatVar "*z", CallBuiltIn (name, [Var "*x"; Var "*y"; Var "*z"], f), []), []), []))
+       Fun (NoLabel, PatVar "*z", CallBuiltIn (None, name, [Var "*x"; Var "*y"; Var "*z"], f), []), []), []))
 
 let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
    (name,
@@ -21,7 +21,7 @@ let mk4 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") name f =
        Fun (NoLabel, PatVar (star x2),
          Fun (NoLabel, PatVar (star x3),
            Fun (NoLabel, PatVar (star x4),
-             CallBuiltIn (name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4)], f), []), []), []), []))
+             CallBuiltIn (None, name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4)], f), []), []), []), []))
 
 let mk5 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") ?(x5="p") name f =
    (name,
@@ -30,7 +30,7 @@ let mk5 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") ?(x5="p") name f =
          Fun (NoLabel, PatVar (star x3),
            Fun (NoLabel, PatVar (star x4),
              Fun (NoLabel, PatVar (star x5),
-               CallBuiltIn (name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4); Var (star x5)], f), []), []), []), []), []))
+               CallBuiltIn (None, name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4); Var (star x5)], f), []), []), []), []), []))
 
 let caml_register_named_value =
   mk2 "caml_register_named_value"

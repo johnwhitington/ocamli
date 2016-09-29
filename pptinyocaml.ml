@@ -214,7 +214,7 @@ let rec print_tiny_inner f isleft parent node =
   | Char c -> str (Printf.sprintf "%C" c)
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
-  | CallBuiltIn (name, args, fn) -> str "<<"; str name; str ">>"
+  | CallBuiltIn (typ, name, args, fn) -> str "<<"; str name; str ">>"
   | Var v -> str (Ocamliutil.unstar v)
   | Constr (s, None) -> str s
   | Constr (s, Some x) ->

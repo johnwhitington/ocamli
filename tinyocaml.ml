@@ -44,6 +44,11 @@ and modtype = (* not final *)
 
 and label = NoLabel | Labelled of string | Optional of string * t option
 
+(* types, for %identity coercions *)
+and typ =
+  TypChar
+| TypInt
+
 and t =
 (* values *)
   Unit                        (* () *)
@@ -86,7 +91,7 @@ and t =
 | TryWith of (t * case list) (* try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
-| CallBuiltIn of (string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
+| CallBuiltIn of (typ option * string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
 | Struct of (bool * t list)   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
 | ModuleBinding of (string * t) (* Module M = ... *)
@@ -166,7 +171,7 @@ let rec recurse f exp =
   | TryWith (a, s) -> TryWith (f a, s)
   | ExceptionDef e -> ExceptionDef e
   | TypeDef e -> TypeDef e
-  | CallBuiltIn (name, args, fn) -> CallBuiltIn (name, List.map f args, fn)
+  | CallBuiltIn (typ, name, args, fn) -> CallBuiltIn (typ, name, List.map f args, fn)
   | Struct (b, l) -> Struct (b, List.map f l)
   | Sig l -> Sig (List.map f l)
   | ModuleBinding (n, m) -> ModuleBinding (n, f m)
@@ -291,7 +296,7 @@ let rec to_string = function
       "TryWith (%s, %s)" (to_string e) (to_string_patmatch patmatch)
 | Control (c, t) ->
     Printf.sprintf "Control (%s, %s)" (to_string_control c) (to_string t)
-| CallBuiltIn (name, _, _) ->
+| CallBuiltIn (typ, name, _, _) ->
     Printf.sprintf "CallBuiltIn %s" name
 | Struct l ->
     to_string_struct l

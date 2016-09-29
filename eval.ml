@@ -60,7 +60,7 @@ let rec appears var = function
 | Field (e, n) -> appears var e
 | SetField (e, n, e') -> appears var e || appears var e'
 | TryWith (e, cases) -> appears var e || List.exists (appears_in_case var) cases
-| CallBuiltIn (_, args, _) -> List.exists (appears var) args
+| CallBuiltIn (_, _, args, _) -> List.exists (appears var) args
 | Struct (_, ls) -> List.exists (appears var) ls
 | Tuple ls -> List.exists (appears var) ls
 | Array items -> Array.exists (appears var) items
@@ -428,10 +428,23 @@ let rec eval peek (env : Tinyocaml.env) expr =
       (* FIXME: Need to include info about the last stage here, since it gets elided *)
       raise (ExceptionRaised (e, payload))
     end
-| CallBuiltIn (name, args, fn) ->
+| CallBuiltIn (typ, name, args, fn) ->
+    let really_coerce typ input =
+      match typ, input with
+        TypChar, Int x -> Char (Char.chr x)
+      | TypInt, Char x -> Int (Char.code x)
+      | _ -> failwith "really_coerce: unimplemented coercion"
+    in
+    let coerce typ result =
+      match typ with
+      | Some x -> really_coerce x result
+      | None -> result
+    in
     if List.for_all is_value args
-      then if not peek then fn args else Unit
-      else CallBuiltIn (name, eval_first_non_value_item peek env [] args, fn)
+      then if not peek then
+        coerce typ (fn args)
+      else Unit
+      else CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
     begin try lookup_value v env with
       Not_found ->
