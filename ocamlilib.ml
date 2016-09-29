@@ -96,9 +96,9 @@ let stdlib_modules () =
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * * camlinternalOO *)
-   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); inside * module *)
+   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); (* Functors!  * *)*)
    ("Callback",                 stdlib_dir, "callback.ml");
-   ("Scanf",                    stdlib_dir, "scanf.ml"); (* module inside *)
+   (*("Scanf",                    "./stdlib", "scanf.ml");*) (* malformed app *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                  stdlib_dir, "format.ml"); (* FIXME: hangs on * modinit *)*)
    ("Weak",                     stdlib_dir, "weak.ml");

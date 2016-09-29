@@ -582,6 +582,7 @@ and eval_first_non_value_item peek (env : env) r = function
   [] -> List.rev r
 | ModuleBinding (name, ModuleIdentifier original) as h::t ->
     eval_first_non_value_item peek (alias_module original name env) (h::r) t
+| ModuleBinding (name, ModuleConstraint (_, Struct (x, items)))
 | ModuleBinding (name, Struct (x, items)) as h::t ->
     if is_value (Struct (x, items)) then
       eval_first_non_value_item peek (open_struct_as_module name items env) (h::r) t
