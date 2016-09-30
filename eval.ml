@@ -501,7 +501,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Constr (_, None)
 | Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ | Open _ | Functor _
 | ModuleApply _ | Include _ ->
-    failwith ("already a value: " ^ (Pptinyocaml.to_string expr))
+    failwith ("already a value or unimplemented: " ^ (Pptinyocaml.to_string expr))
 
 (* e.g eval_match_exception [Failure] [Some (String "foo") [(pattern, guard, rhs)]] *)
 and eval_match_exception peek env exnname exnpayload cases =
@@ -578,6 +578,29 @@ and suitable_for_curry e =
     in
       all_funs (count_apps e)
 
+(* Substitute all instances of src for tgt in varname *)
+and substitute_name src tgt varname = varname
+
+(* Do the name substitution src -> target. Take care with shadowing. *)
+and substitute_module src tgt = function
+  | Var x -> Var (substitute_name src tgt x)
+  | Struct (x, items) -> Struct (x, substitute_module_list src tgt items)
+  | x -> Tinyocaml.recurse (substitute_module src tgt) x
+
+and substitute_module_list (src : string) (tgt : string) (code : Tinyocaml.t list) =
+  match code with
+  | ModuleBinding (n, x)::t when n = src -> ModuleBinding (n, x)::t (* shadows.  We're done *)
+  | h::t -> substitute_module src tgt h::substitute_module_list src tgt t
+  | [] -> []
+
+(* Do the functor application Modf(Modx), yielding a module *)
+and apply_functor modf modx =
+  match modf, modx with
+    ModuleBinding (fn, t), ModuleIdentifier xn ->
+      Printf.printf "Substituting %s -> %s\n" fn xn;
+      substitute_module fn xn t
+  | _ -> failwith "apply_functor: not a functor"
+
 and eval_first_non_value_item peek (env : env) r = function
   [] -> List.rev r
 | ModuleBinding (name, ModuleIdentifier original) as h::t ->
@@ -589,6 +612,8 @@ and eval_first_non_value_item peek (env : env) r = function
     else
       let newstruct = eval_first_non_value_item peek env [] [Struct (x, items)] in
         List.rev r @ [ModuleBinding (name, List.hd newstruct)] @ t
+| ModuleBinding (name, ModuleApply (modf, modx))::t ->
+    List.rev r @ [ModuleBinding (name, apply_functor modf modx)] @ t
 | Open name as h::t ->
     eval_first_non_value_item peek (open_module name env) (h::r) t
 | h::t ->

@@ -33,7 +33,7 @@ let rec is_value = function
 | LocalOpen (_, t) -> is_value t
 | Lazy t -> is_value t
 | Functor _ -> true
-| ModuleApply _ -> true
+| ModuleApply _ -> false (* functor application *)
 | Include _ -> true
 | _ -> false
 
