@@ -147,5 +147,8 @@ let bindings_of_struct_item p = function
 
 let open_struct_as_module name items env =
   let bindings = option_map (bindings_of_struct_item name) items in
-    bindings @ env
+    let top_level_binding =
+      (false, ref [(PatVar name, Struct (false, items))])
+    in
+      top_level_binding :: bindings @ env
 

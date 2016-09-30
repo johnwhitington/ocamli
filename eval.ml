@@ -594,17 +594,31 @@ and substitute_module_list (src : string) (tgt : string) (code : Tinyocaml.t lis
   | [] -> []
 
 (* Do the functor application Modf(Modx), yielding a module *)
-and apply_functor modf modx =
-  match modf, modx with
+and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
+  Printf.printf "We need to find module modf=%s\n" modf;
+  Printf.printf "ENV:%s\n" (Tinyocaml.to_string_env env);
+  match lookup_value modf env, modx with
     ModuleBinding (fn, t), ModuleIdentifier xn ->
       Printf.printf "Substituting %s -> %s\n" fn xn;
       substitute_module fn xn t
   | _ -> failwith "apply_functor: not a functor"
 
+(* Add a functor defintion to the environment as (name, ModuleBinding
+(input_module_name, thestruct). This is a bit of a hack to avoid special casing
+functor definitions in the Tinyocaml.env data type. *)
+and add_functor_definition name functr (env : Tinyocaml.env) =
+  match functr with
+    Functor (input_module_name, _, thestruct) ->
+      let binding = (PatVar name, ModuleBinding (input_module_name, thestruct)) in
+        (false, ref [binding])::env
+  | _ -> failwith "add_functor_definition"
+
 and eval_first_non_value_item peek (env : env) r = function
   [] -> List.rev r
 | ModuleBinding (name, ModuleIdentifier original) as h::t ->
     eval_first_non_value_item peek (alias_module original name env) (h::r) t
+| ModuleBinding (name, (Functor (_, _, _) as functr)) as h::t ->
+    eval_first_non_value_item peek (add_functor_definition name functr env) (h::r) t
 | ModuleBinding (name, ModuleConstraint (_, Struct (x, items)))
 | ModuleBinding (name, Struct (x, items)) as h::t ->
     if is_value (Struct (x, items)) then
@@ -612,8 +626,9 @@ and eval_first_non_value_item peek (env : env) r = function
     else
       let newstruct = eval_first_non_value_item peek env [] [Struct (x, items)] in
         List.rev r @ [ModuleBinding (name, List.hd newstruct)] @ t
-| ModuleBinding (name, ModuleApply (modf, modx))::t ->
-    List.rev r @ [ModuleBinding (name, apply_functor modf modx)] @ t
+| ModuleBinding (name, ModuleApply (ModuleIdentifier modf, modx))::t ->
+    Printf.printf "Found a FUNCTOR application\n";
+    List.rev r @ [ModuleBinding (name, apply_functor env modf modx)] @ t
 | Open name as h::t ->
     eval_first_non_value_item peek (open_module name env) (h::r) t
 | h::t ->
