@@ -56,6 +56,10 @@ let rec definitions_of_module env = function
             LetDef (recflag, bindings) -> [(recflag, ref bindings)]
           | ModuleBinding (name, (Struct (_, items) as themod)) ->
               load_module_from_struct name env themod
+          | ModuleBinding (name, Functor (fname, ftype, fcontents)) ->
+              (* Make a binding from the functor. Hack as per
+               * Eval.add_functor_definition *)
+              [(false, ref [(PatVar name, ModuleBinding (fname, fcontents))])]
           | _ -> []) 
         items)
 | s ->
@@ -96,7 +100,7 @@ let stdlib_modules () =
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * * camlinternalOO *)
-   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml"); (* Functors!  * *)*)
+   ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
    ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    "./stdlib", "scanf.ml");*) (* malformed app *)
    ("Uchar",                    stdlib_dir, "uchar.ml");

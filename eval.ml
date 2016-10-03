@@ -135,7 +135,7 @@ and lookup_value_in_bindings v = function
        Not_found -> lookup_value_in_bindings v bs
 
 let rec really_lookup_value v = function
-  [] -> (*if !debug then Printf.printf "*C%s" v;*) raise Not_found
+  [] -> if !debug then Printf.printf "*C%s\n" v; raise Not_found
 | (_, bs)::t ->
     try lookup_value_in_bindings v !bs with
       Not_found -> really_lookup_value v t
@@ -579,7 +579,21 @@ and suitable_for_curry e =
       all_funs (count_apps e)
 
 (* Substitute all instances of src for tgt in varname *)
-and substitute_name src tgt varname = varname
+and substitute_name src tgt varname =
+  let split_on_char sep s =
+    let r = ref [] in
+    let j = ref (String.length s) in
+    for i = String.length s - 1 downto 0 do
+      if s.[i] = sep then begin
+        r := String.sub s (i + 1) (!j - i - 1) :: !r;
+        j := i
+      end
+    done;
+    String.sub s 0 !j :: !r
+  in
+    let bits = split_on_char '.' varname in
+      let newbits = List.map (fun x -> if x = src then tgt else x) bits in
+        String.concat "." newbits
 
 (* Do the name substitution src -> target. Take care with shadowing. *)
 and substitute_module src tgt = function
@@ -595,11 +609,11 @@ and substitute_module_list (src : string) (tgt : string) (code : Tinyocaml.t lis
 
 (* Do the functor application Modf(Modx), yielding a module *)
 and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
-  Printf.printf "We need to find module modf=%s\n" modf;
-  Printf.printf "ENV:%s\n" (Tinyocaml.to_string_env env);
+  (*Printf.printf "We need to find module modf=%s\n" modf;
+  Printf.printf "ENV:%s\n" (Tinyocaml.to_string_env env);*)
   match lookup_value modf env, modx with
     ModuleBinding (fn, t), ModuleIdentifier xn ->
-      Printf.printf "Substituting %s -> %s\n" fn xn;
+      (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn t
   | _ -> failwith "apply_functor: not a functor"
 
@@ -684,8 +698,10 @@ let next e =
 let rec eval_until_value peek env e =
   if is_value e then e else
     let e = collect_unused_lets e in
-      try eval_until_value peek env (eval peek env e) with
-        x -> Printf.printf "Failed: %s\n" (Pptinyocaml.to_string e); reraise x
+      eval_until_value peek env (eval peek env e)
+      (*try eval_until_value peek env (eval peek env e) with*)
+        (*x -> Printf.printf "Failed: %s\n" (Pptinyocaml.to_string e); reraise
+         * x*)
 
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
