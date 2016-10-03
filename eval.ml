@@ -615,7 +615,10 @@ and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
     ModuleBinding (fn, t), ModuleIdentifier xn ->
       (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn t
-  | _ -> failwith "apply_functor: not a functor"
+  | f, x ->
+      Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
+      Printf.printf "modx is %s\n" (Tinyocaml.to_string x);
+      failwith "apply_functor: not a functor"
 
 (* Add a functor defintion to the environment as (name, ModuleBinding
 (input_module_name, thestruct). This is a bit of a hack to avoid special casing

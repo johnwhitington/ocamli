@@ -55,6 +55,7 @@ type counter =
   | Token_counter    (*  %N, %L  *)
 
 (***)
+
 (* Padding of strings and numbers. *)
 type ('a, 'b) padding =
   (* No padding (ex: "%d") *)
@@ -106,11 +107,11 @@ position in the format tail (('u, .., 'f) fmt). This means that the
 type of the expected format parameter depends of where the %(...%)
 are in the format string:
 
-  # Printf.printf "%(%)";;
+  # Printf.printf "%(%)"
   - : (unit, out_channel, unit, '_a, '_a, unit)
       CamlinternalFormatBasics.format6 -> unit
   = <fun>
-  # Printf.printf "%(%)%d";;
+  # Printf.printf "%(%)%d"
   - : (int -> unit, out_channel, unit, '_a, '_a, int -> unit)
       CamlinternalFormatBasics.format6 -> int -> unit
   = <fun>
@@ -539,7 +540,7 @@ let rec erase_rel : type a b c d e f g h i j k l .
     Bool_ty (erase_rel rest)
   | Format_arg_ty (ty, rest) ->
     Format_arg_ty (ty, erase_rel rest)
-  | Format_subst_ty (ty1, _ty2, rest) ->
+  | Format_subst_ty (ty1, ty2, rest) ->
     Format_subst_ty (ty1, ty1, erase_rel rest)
   | Alpha_ty rest ->
     Alpha_ty (erase_rel rest)
@@ -552,7 +553,6 @@ let rec erase_rel : type a b c d e f g h i j k l .
   | Ignored_reader_ty rest ->
     Ignored_reader_ty (erase_rel rest)
   | End_of_fmtty -> End_of_fmtty
-
 
 (******************************************************************************)
                          (* Format type concatenation *)

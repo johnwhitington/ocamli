@@ -100,7 +100,7 @@ let stdlib_modules () =
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    (*("Oo",                       stdlib_dir, "oo.ml"); FIXME Depends on * * camlinternalOO *)
-   ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
+   (*("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");*)
    ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    "./stdlib", "scanf.ml");*) (* malformed app *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
@@ -120,7 +120,7 @@ let stdlib_modules () =
    ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
    ("Queue",                    stdlib_dir, "queue.ml");
    ("Stack",                    stdlib_dir, "stack.ml");
-   ("Map",                      stdlib_dir, "map.ml");
+   ("Map",                      "./stdlib", "map.ml");
    ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");

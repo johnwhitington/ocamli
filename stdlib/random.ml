@@ -66,7 +66,7 @@ module State = struct
 
   let make_self_init () = make (random_seed ())
 
-  (*let copy s =
+  let copy s =
     let result = new_state () in
     assign result s;
     result
@@ -141,13 +141,13 @@ module State = struct
 
   let float s bound = rawfloat s *. bound
 
-  let bool s = (bits s land 1 = 0)*)
+  let bool s = (bits s land 1 = 0)
 
 end
 
 (* This is the state you get with [init 27182818] and then applying
    the "land 0x3FFFFFFF" filter to them.  See #5575, #5793, #5977. *)
-(*let default = {
+let default = {
   State.st = [|
       0x3ae2522b; 0x1d8d4634; 0x15b4fad0; 0x18b14ace; 0x12f8a3c4; 0x3b086c47;
       0x16d467d6; 0x101d91c7; 0x321df177; 0x0176c193; 0x1ff72bf1; 0x1e889109;
@@ -274,4 +274,4 @@ let diff2 r =
   (x3 - x2 - x2 + x1 + 2*r) mod r
 
 
-********************)*)
+********************)

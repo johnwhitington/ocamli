@@ -103,6 +103,7 @@ let max_int = (-1) lsr 1
 let min_int = max_int + 1
 
 (* Floating-point operations *)
+
 external ( ~-. ) : float -> float = "%negfloat"
 external ( ~+. ) : float -> float = "%identity"
 external ( +. ) : float -> float -> float = "%addfloat"
@@ -159,7 +160,6 @@ external float_of_int : int -> float = "%floatofint"
 external truncate : float -> int = "%intoffloat"
 external int_of_float : float -> int = "%intoffloat"
 external float_of_bits : int64 -> float = "caml_int64_float_of_bits"
-
 let infinity =
   float_of_bits 0x7F_F0_00_00_00_00_00_00L
 let neg_infinity =
@@ -181,6 +181,7 @@ type fpclass =
   | FP_nan
 external classify_float : (float [@unboxed]) -> fpclass =
   "caml_classify_float" "caml_classify_float_unboxed" [@@noalloc]
+
 (* String and byte sequence operations -- more in modules String and Bytes *)
 
 external string_length : string -> int = "%string_length"
@@ -191,6 +192,7 @@ external string_blit : string -> int -> bytes -> int -> int -> unit
 external bytes_blit : bytes -> int -> bytes -> int -> int -> unit
                         = "caml_blit_string" [@@noalloc]
 external bytes_unsafe_to_string : bytes -> string = "%identity"
+
 let ( ^ ) s1 s2 =
   let l1 = string_length s1 and l2 = string_length s2 in
   let s = bytes_create (l1 + l2) in
@@ -222,17 +224,18 @@ external ( ! ) : 'a ref -> 'a = "%field0"
 external ( := ) : 'a ref -> 'a -> unit = "%setfield0"
 external incr : int ref -> unit = "%incr"
 external decr : int ref -> unit = "%decr"
+
 (* Result type *)
 
 type ('a,'b) result = Ok of 'a | Error of 'b
 
 (* String conversion functions *)
+
 external format_int : string -> int -> string = "caml_format_int"
 external format_float : string -> float -> string = "caml_format_float"
 
 let string_of_bool b =
   if b then "true" else "false"
-
 let bool_of_string = function
   | "true" -> true
   | "false" -> false
@@ -253,9 +256,9 @@ let valid_float_lexem s =
     | _ -> s
   in
   loop 0
-;;
 
-let string_of_float f = valid_float_lexem (format_float "%.12g" f);;
+
+let string_of_float f = valid_float_lexem (format_float "%.12g" f)
 
 external float_of_string : string -> float = "caml_float_of_string"
 
@@ -265,6 +268,7 @@ let rec ( @ ) l1 l2 =
   match l1 with
     [] -> l2
   | hd :: tl -> hd :: (tl @ l2)
+
 (* I/O operations *)
 
 type in_channel
@@ -294,7 +298,6 @@ let open_out_gen mode perm name =
   let c = open_descriptor_out(open_desc name mode perm) in
   set_out_channel_name c name;
   c
-
 
 let open_out name =
   open_out_gen [Open_wronly; Open_creat; Open_trunc; Open_text] 0o666 name
@@ -353,6 +356,7 @@ let close_out_noerr oc =
   (try close_out_channel oc with _ -> ())
 external set_binary_mode_out : out_channel -> bool -> unit
                              = "caml_ml_set_binary_mode"
+
 (* General input functions *)
 
 external set_in_channel_name: in_channel -> string -> unit =
@@ -434,7 +438,7 @@ external seek_in : in_channel -> int -> unit = "caml_ml_seek_in"
 external pos_in : in_channel -> int = "caml_ml_pos_in"
 external in_channel_length : in_channel -> int = "caml_ml_channel_size"
 external close_in : in_channel -> unit = "caml_ml_close_channel"
-let close_in_noerr ic = (try close_in ic with _ -> ());;
+let close_in_noerr ic = (try close_in ic with _ -> ())
 external set_binary_mode_in : in_channel -> bool -> unit
                             = "caml_ml_set_binary_mode"
 
@@ -490,7 +494,7 @@ type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6
 
 type ('a, 'b, 'c) format = ('a, 'b, 'c, 'c) format4
 
-let string_of_format (Format (_fmt, str)) = str
+let string_of_format (Format (fmt, str)) = str
 
 external format_of_string :
  ('a, 'b, 'c, 'd, 'e, 'f) format6 ->

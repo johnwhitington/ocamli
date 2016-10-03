@@ -24,6 +24,7 @@ let generic_quote quotequote s =
   done;
   Buffer.add_char b '\'';
   Buffer.contents b
+
 (* This function implements the Open Group specification found here:
   [[1]] http://pubs.opengroup.org/onlinepubs/9699919799/utilities/basename.html
   In step 1 of [[1]], we choose to return "." for empty input.
@@ -67,7 +68,6 @@ let generic_dirname is_dir_sep current_dir_name name =
   if name = ""
   then current_dir_name
   else trailing_sep (String.length name - 1)
-
 
 module Unix = struct
   let current_dir_name = "."
@@ -210,9 +210,9 @@ let chop_extension name =
 external open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
 external close_desc: int -> unit = "caml_sys_close"
 
-(*let prng = lazy(Random.State.make_self_init ())*)
+let prng = lazy(Random.State.make_self_init ())
 
-(*let temp_file_name temp_dir prefix suffix =
+let temp_file_name temp_dir prefix suffix =
   let rnd = (Random.State.bits (Lazy.force prng)) land 0xFFFFFF in
   concat temp_dir (Printf.sprintf "%s%06x%s" prefix rnd suffix)
 
@@ -241,5 +241,4 @@ let open_temp_file ?(mode = [Open_text]) ?(perms = 0o600)
        open_out_gen (Open_wronly::Open_creat::Open_excl::mode) perms name)
     with Sys_error _ as e ->
       if counter >= 1000 then raise e else try_name (counter + 1)
-  in try_name 0*)
-
+  in try_name 0
