@@ -120,7 +120,7 @@ let stdlib_modules () =
    ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
    ("Queue",                    stdlib_dir, "queue.ml");
    ("Stack",                    stdlib_dir, "stack.ml");
-   ("Map",                      "./stdlib", "map.ml");
+   ("Map",                      stdlib_dir, "map.ml");
    ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
