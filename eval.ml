@@ -615,6 +615,9 @@ and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
     ModuleBinding (fn, t), ModuleIdentifier xn ->
       (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn t
+  | ModuleBinding (fn, t), Struct s ->
+      Printf.printf "We have found s DIRECT functor application\n";
+      failwith "not implemented"
   | f, x ->
       Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
       Printf.printf "modx is %s\n" (Tinyocaml.to_string x);
