@@ -607,6 +607,14 @@ and substitute_module_list (src : string) (tgt : string) (code : Tinyocaml.t lis
   | h::t -> substitute_module src tgt h::substitute_module_list src tgt t
   | [] -> []
 
+(* Add an anonymous struct [module_to_include] to the beginning of the given
+ * module [m] as a new module under the name "FIXME" *)
+and add_as_fixme struct_to_include m =
+  let themod = ModuleBinding ("FIXME", m) in
+    match m with
+      Struct (x, items) -> Struct (x, themod::items)
+    | _ -> failwith "add_as_fixme: not a struct"
+
 (* Do the functor application Modf(Modx), yielding a module *)
 and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
   (*Printf.printf "We need to find module modf=%s\n" modf;
@@ -616,11 +624,11 @@ and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
       (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn t
   | ModuleBinding (fn, t), Struct s ->
-      Printf.printf "We have found s DIRECT functor application\n";
-      failwith "not implemented"
+      (*Printf.printf "We have found s DIRECT functor application\n";*)
+      substitute_module fn "FIXME" (add_as_fixme (Struct s) t)
   | f, x ->
-      Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
-      Printf.printf "modx is %s\n" (Tinyocaml.to_string x);
+      (*Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
+      Printf.printf "modx is %s\n" (Tinyocaml.to_string x);*)
       failwith "apply_functor: not a functor"
 
 (* Add a functor defintion to the environment as (name, ModuleBinding
@@ -647,7 +655,7 @@ and eval_first_non_value_item peek (env : env) r = function
       let newstruct = eval_first_non_value_item peek env [] [Struct (x, items)] in
         List.rev r @ [ModuleBinding (name, List.hd newstruct)] @ t
 | ModuleBinding (name, ModuleApply (ModuleIdentifier modf, modx))::t ->
-    Printf.printf "Found a FUNCTOR application\n";
+    (*Printf.printf "Found a FUNCTOR application\n";*)
     List.rev r @ [ModuleBinding (name, apply_functor env modf modx)] @ t
 | Open name as h::t ->
     eval_first_non_value_item peek (open_module name env) (h::r) t
