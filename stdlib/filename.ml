@@ -90,7 +90,7 @@ module Unix = struct
   let dirname = generic_dirname is_dir_sep current_dir_name
 end
 
-module Win32 = struct
+(*module Win32 = struct
   let current_dir_name = "."
   let parent_dir_name = ".."
   let dir_sep = "\\"
@@ -241,4 +241,4 @@ let open_temp_file ?(mode = [Open_text]) ?(perms = 0o600)
        open_out_gen (Open_wronly::Open_creat::Open_excl::mode) perms name)
     with Sys_error _ as e ->
       if counter >= 1000 then raise e else try_name (counter + 1)
-  in try_name 0
+  in try_name 0*)

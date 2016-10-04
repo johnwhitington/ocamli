@@ -411,7 +411,19 @@ let percent_andint =
     (function [Int i; Int j] -> Int (i land j)
      | _ -> failwith "percent_andint")
 
+(* FIXME *)
+let thread_initialize =
+  mk "thread_initialize"
+    (function _ -> Unit)
+
+let unix_gettimeofday =
+  mk "unix_gettimeofday"
+    (function [Unit] -> Float (Unix.gettimeofday ())
+     | _ -> failwith "unix_gettimeofday")
+
 let builtin_primitives = [
+  unix_gettimeofday;
+  thread_initialize;
   percent_andint;
   percent_lslint;
   percent_xorint;

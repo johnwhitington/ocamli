@@ -51,7 +51,7 @@ let randomized = ref randomized_default
 let randomize () = randomized := true
 let is_randomized () = !randomized
 
-let prng = Random.State.make_self_init ()
+let prng = lazy (Random.State.make_self_init ())
 
 (* Creating a fresh, empty table *)
 

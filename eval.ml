@@ -70,10 +70,10 @@ let rec appears var = function
 | Lazy x -> appears var x
 | Include x -> appears var x
 | Functor (_, _, me) -> appears var me
+| ModuleApply (_, x) -> appears var x
 | Int _ | Bool _ | Float _ | Unit
 | Int32 _ | Int64 _ | NativeInt _ | Char _ | TypeDef _ | Sig _
 | ModuleBinding _ | ModuleConstraint _ | ModuleIdentifier _
-| ModuleApply _
 | OutChannel _ | InChannel _ | String _ | Nil | ExceptionDef _ -> false
 
 (* True if a) appears unoccluded in the 'when' expression b) appears unoccluded
@@ -497,6 +497,8 @@ let rec eval peek (env : Tinyocaml.env) expr =
       end
 | ModuleBinding (n, x) ->
     ModuleBinding (n, eval peek env x)
+| ModuleApply (n, Struct x) ->
+    ModuleApply (n, eval peek env (Struct x))
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
 | Int32 _ | Int64 _ | NativeInt _ | Char _
 | InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _

@@ -31,9 +31,9 @@ let rec is_value = function
 | ExceptionDef _ | TypeDef _ | ModuleConstraint _ | ModuleIdentifier _ -> true
 | Open _ -> true
 | LocalOpen (_, t) -> is_value t
-| Lazy t -> is_value t
+| Lazy t -> true
 | Functor _ -> true
-| ModuleApply _ -> false (* functor application *)
+| ModuleApply (_, x) -> is_value x
 | Include _ -> true
 | _ -> false
 

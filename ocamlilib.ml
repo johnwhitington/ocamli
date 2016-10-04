@@ -77,12 +77,12 @@ and load_module (name : string) (env : env) (file : string) =
       r
 
 let otherlib_modules () =
-  [(*("Unix",                    !otherlibs, "unix.ml");*) (* Needs hashtbl for full module initialisation  *)
-   (*("Num",                     !otherlibs, "num.ml");*)
-   (*("Str",                     !otherlibs, "str.ml"); mod init fails *)
-   (*("Threads",                 !otherlibs, "threads.ml");*) 
-   (*("Graphics",                !otherlibs, "graphics.ml");*) 
-   (* ("Bigarray",                 !otherlibs, "bigarray.ml")*)] (* find Genarray in Bigarray *)
+  [("Unix",                    !otherlibs, "unix.ml");
+   (*("Num",                     !otherlibs, "num.ml");*) (* Not_found *)
+   (*("Str",                     !otherlibs, "str.ml");*) (* modinit fails *)
+   (*("Threads",                 !otherlibs, "thread.ml");*) (* not clear what files to use *)
+   (*("Graphics",                !otherlibs, "graphics.ml");*) (* slow... *)
+   ("Bigarray",                 !otherlibs, "bigarray.ml")]
 
 (*let stdlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
@@ -96,17 +96,17 @@ let stdlib_modules () =
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
    ("Filename",                 stdlib_dir, "filename.ml");
-   ("Emphemeron",               stdlib_dir, "ephemeron.ml");
+   (*("Emphemeron",               stdlib_dir, "ephemeron.ml");*) (* Var H.hash *)
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    ("Oo",                       stdlib_dir, "oo.ml");
    ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*"Scanf",                    stdlib_dir, "scanf.ml");*) (* too slow *)
+   (*("Scanf",                    stdlib_dir, "scanf.ml");*) (* malformed app *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                   stdlib_dir, "format.ml");*) (* too slow *)
+   (*"Format",                   stdlib_dir, "format.ml");*) (* stack overflow!  *)
    ("Weak",                     stdlib_dir, "weak.ml");
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); *) (* too slow!*)
+   ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
