@@ -51,11 +51,11 @@ let randomized = ref randomized_default
 let randomize () = randomized := true
 let is_randomized () = !randomized
 
-let prng = lazy (Random.State.make_self_init())
+let prng = Random.State.make_self_init ()
 
 (* Creating a fresh, empty table *)
 
-let rec power_2_above x n =
+(*let rec power_2_above x n =
   if x >= n then x
   else if x * 2 > Sys.max_array_length then x
   else power_2_above (x * 2) n
@@ -406,4 +406,4 @@ module Make(H: HashedType): (S with type key = H.t) =
         let hash (seed: int) x = H.hash x
       end)
     let create sz = create ~random:false sz
-  end
+  end*)

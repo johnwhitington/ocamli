@@ -495,13 +495,16 @@ let rec eval peek (env : Tinyocaml.env) expr =
           | EvaluatedGuardStep case -> failwith "guards on exception matching not supported yet"
           | Matched e' -> e'
       end
+| ModuleBinding (n, x) ->
+    ModuleBinding (n, eval peek env x)
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
 | Int32 _ | Int64 _ | NativeInt _ | Char _
-| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _ | ModuleBinding _
+| InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _
 | Constr (_, None)
 | Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ | Open _ | Functor _
 | ModuleApply _ | Include _ ->
-    failwith ("already a value or unimplemented: " ^ (Pptinyocaml.to_string expr))
+    failwith ("already a value or unimplemented: " ^ (Pptinyocaml.to_string
+    expr) ^ "\n\n" ^ (Tinyocaml.to_string expr))
 
 (* e.g eval_match_exception [Failure] [Some (String "foo") [(pattern, guard, rhs)]] *)
 and eval_match_exception peek env exnname exnpayload cases =

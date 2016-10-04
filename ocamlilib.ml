@@ -95,18 +95,18 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   (*("Filename",                 stdlib_dir, "filename.ml");*) (* modinit fails*)
+   ("Filename",                 stdlib_dir, "filename.ml");
    ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    ("Oo",                       stdlib_dir, "oo.ml");
    ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*("Scanf",                    stdlib_dir, "scanf.ml");*) (* modinit fails *)
+   (*"Scanf",                    stdlib_dir, "scanf.ml");*) (* too slow *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                  stdlib_dir, "format.ml");*) (* modinit fails *)
+   (*("Format",                   stdlib_dir, "format.ml");*) (* too slow *)
    ("Weak",                     stdlib_dir, "weak.ml");
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml");*)
+   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml"); *) (* too slow!*)
    ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
