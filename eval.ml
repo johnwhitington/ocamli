@@ -113,7 +113,7 @@ let rec collect_unused_lets = function
  * binding found for the name, or raise Not_found *)
 let rec lookup_value_in_binding v b =
   match b with
-    PatVar v', x when v = v' -> x
+    PatVar v', x when v = v' -> Some x
   | PatTuple ps, Tuple vs ->
       lookup_value_in_bindings v
         (List.map2 (fun p v -> (p, v)) ps vs)
@@ -126,33 +126,38 @@ let rec lookup_value_in_binding v b =
   | PatOr (p, p'), v ->
   | PatConstr (n, None) ->
   | PatConstr (n, Some p) -> *)
-  | _ -> (*if !debug then Printf.printf "*A%s" v;*) raise Not_found
+  | _ -> (*if !debug then Printf.printf "*A%s" v;*) None
 
 and lookup_value_in_bindings v = function
-   [] -> (*if !debug then Printf.printf "*B%s" v;*) raise Not_found
+   [] -> (*if !debug then Printf.printf "*B%s" v;*) None
  | b::bs ->
-     try lookup_value_in_binding v b with
-       Not_found -> lookup_value_in_bindings v bs
+     match lookup_value_in_binding v b with
+       Some x -> Some x
+     | None -> lookup_value_in_bindings v bs
 
 let rec really_lookup_value v = function
-  [] -> if !debug then Printf.printf "*C%s\n" v; raise Not_found
+  [] -> if !debug then Printf.printf "*C%s\n" v; None
 | (_, bs)::t ->
-    try lookup_value_in_bindings v !bs with
-      Not_found -> really_lookup_value v t
+    match lookup_value_in_bindings v !bs with
+      Some x -> Some x
+    | None -> really_lookup_value v t
 
 (* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
 let lookup_value v env =
   (*Printf.printf "looking up %s\n" v; print_string (to_string_env env);*)
-  try really_lookup_value v env with
-    Not_found -> really_lookup_value ("Pervasives." ^ v) env
+  match really_lookup_value v env with
+  | Some x -> Some x
+  | None -> really_lookup_value ("Pervasives." ^ v) env
 
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
   match lookup_value v env with
-    Int i -> i
-  | e ->
+    Some (Int i) -> i
+  | Some e ->
       Printf.printf "It is %s\n" (Tinyocaml.to_string e);
       failwith "comparison not an integer"
+  | None ->
+      failwith "lookup_int_var None"
 
 (* The last operation to have been done *)
 let last = ref []
@@ -365,21 +370,22 @@ let rec eval peek (env : Tinyocaml.env) expr =
       App (Function ((p::ps), fenv), eval peek env x) (* 2 *)
 | App (Var v, x) ->
     begin match lookup_value v env with
-      Fun (flabel, fname, fexp, fenv) ->
+      Some (Fun (flabel, fname, fexp, fenv)) ->
         if is_value x then
           (* We must use fenv to build lets here. This will go away when we have
           implicit-lets in the Tinyocaml.t data type *)
           build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
         else
           App (Var v, eval peek env x)
-    | Function cases ->
+    | Some (Function cases) ->
         eval peek env (App (Function cases, x)) (* FIXME this is substitution *)
-    | Var v' ->
+    | Some (Var v') ->
         App (Var v', x)
-    | got ->
+    | Some got ->
         Printf.printf "Malformed app applying %s\n to %s\n - got %s\n"
         v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
         failwith "malformed app"
+    | None -> failwith "malformed app None"
     end
 | App (App _, _) when !fastcurry && suitable_for_curry expr ->
     (* 3. FIXME: closure-env-fastcurry *)
@@ -448,8 +454,9 @@ let rec eval peek (env : Tinyocaml.env) expr =
       else Unit
       else CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
-    begin try lookup_value v env with
-      Not_found ->
+    begin match lookup_value v env with
+      Some x -> x
+    | None ->
         print_string (to_string_env env);
         failwith (Printf.sprintf "Var %s not found" v)
     end
@@ -627,16 +634,18 @@ and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
   (*Printf.printf "We need to find module modf=%s\n" modf;
   Printf.printf "ENV:%s\n" (Tinyocaml.to_string_env env);*)
   match lookup_value modf env, modx with
-    ModuleBinding (fn, t), ModuleIdentifier xn ->
+    Some (ModuleBinding (fn, t)), ModuleIdentifier xn ->
       (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn t
-  | ModuleBinding (fn, t), Struct s ->
+  | Some (ModuleBinding (fn, t)), Struct s ->
       (*Printf.printf "We have found s DIRECT functor application\n";*)
       substitute_module fn "FIXME" (add_as_fixme (Struct s) t)
-  | f, x ->
+  | Some f, x ->
       (*Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
       Printf.printf "modx is %s\n" (Tinyocaml.to_string x);*)
       failwith "apply_functor: not a functor"
+  | _ ->
+      failwith "apply_functor: not found"
 
 (* Add a functor defintion to the environment as (name, ModuleBinding
 (input_module_name, thestruct). This is a bit of a hack to avoid special casing

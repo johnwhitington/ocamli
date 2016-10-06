@@ -72,6 +72,7 @@ and load_module_from_struct name env themod =
 and load_module (name : string) (env : env) (file : string) =
   if !debug then Printf.printf "Loading module %s...%!" name;
     let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
+      if !debug then Printf.printf "read...%!";
       let r = load_module_from_struct name env themod in
       if !debug then Printf.printf "done\n%!";
       r
@@ -95,16 +96,16 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   ("Filename",                 stdlib_dir, "filename.ml");
-   (*("Emphemeron",               stdlib_dir, "ephemeron.ml");*) (* Var H.hash *)
+   (*("Filename",                 stdlib_dir, "filename.ml"); Fails if empheron * loaded. A let-refactoring problem *)
+   ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    ("Oo",                       stdlib_dir, "oo.ml");
    ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*("Scanf",                    stdlib_dir, "scanf.ml");*) (* malformed app *)
+   (*("Scanf",                    "./stdlib", "scanf.ml");*) (* let-refactoring will fix. See programs/scanf_fail.ml *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   ("Format",                   stdlib_dir, "format.ml"); (* stack overflow!  *)
+   (*("Format",                   stdlib_dir, "format.ml"); (* stack overflow!  * *)*)
    ("Weak",                     stdlib_dir, "weak.ml");
    ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
