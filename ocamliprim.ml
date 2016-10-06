@@ -436,7 +436,13 @@ let percent_string_unsafe_get =
     (function [String s; Int i] -> Char s.[i]
      | _ -> failwith "percent_string_unsafe_get")
 
+let unix_fork =
+  mk "unix_fork"
+    (function [Unit] -> Int (Unix.fork ())
+     | _ -> failwith "unix_fork")
+
 let builtin_primitives = [
+  unix_fork;
   percent_string_unsafe_get;
   percent_string_safe_get;
   unix_gettimeofday;
