@@ -421,7 +421,24 @@ let unix_gettimeofday =
     (function [Unit] -> Float (Unix.gettimeofday ())
      | _ -> failwith "unix_gettimeofday")
 
+external percent_string_safe_get : string -> int -> char = "%string_safe_get"
+
+let percent_string_safe_get =
+  mk2 "%string_safe_get"
+    (function [String s; Int i] ->
+      begin try Char s.[i] with _ ->
+         Raise ("Invalid_argument", Some (String "index out of bounds"))
+      end
+     | _ -> failwith "percent_string_safe_get")
+
+let percent_string_unsafe_get =
+  mk2 "%string_unsafe_get"
+    (function [String s; Int i] -> Char s.[i]
+     | _ -> failwith "percent_string_unsafe_get")
+
 let builtin_primitives = [
+  percent_string_unsafe_get;
+  percent_string_safe_get;
   unix_gettimeofday;
   thread_initialize;
   percent_andint;

@@ -104,7 +104,7 @@ let stdlib_modules () =
    ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    stdlib_dir, "scanf.ml");*) (* malformed app *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*"Format",                   stdlib_dir, "format.ml");*) (* stack overflow!  *)
+   ("Format",                   stdlib_dir, "format.ml"); (* stack overflow!  *)
    ("Weak",                     stdlib_dir, "weak.ml");
    ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");

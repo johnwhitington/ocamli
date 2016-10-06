@@ -1,6 +1,6 @@
 val calc : Tinyocaml.op -> (int -> int -> int)
 
-val comp : Tinyocaml.cmp -> (int -> int -> bool)
+val comp : Tinyocaml.cmp -> ('a -> 'a -> bool)
 
 val is_value : Tinyocaml.t -> bool
 
