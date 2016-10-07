@@ -1,5 +1,6 @@
 open Parsetree
 open Asttypes
+open Slist
 
 type op = Add | Sub | Mul | Div
 

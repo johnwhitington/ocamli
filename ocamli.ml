@@ -227,7 +227,7 @@ let go () =
   Tinyocamlutil.fastcurry := !fastcurry;
   Pptinyocaml.fastcurry := !fastcurry;
   Ocamlilib.load_library ();
-  Ocamlilib.showlib ();
+  (*Ocamlilib.showlib ();*)
   (*if !searchfor <> "" || !searchuntil <> "" || !searchafter <> "" then showall
    * := true;*)
   let rec really_run first state =

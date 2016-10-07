@@ -1,4 +1,5 @@
 (* Uses the tiny-ocaml simple AST *)
+open Slist
 open Tinyocaml
 open Ocamliutil
 open Tinyocamlutil
@@ -240,6 +241,8 @@ let build_lets_from_fenv fenv e =
   List.fold_left (fun e (rf, bs) -> Let (rf, !bs, e)) e fenv
   
 let rec eval peek (env : Tinyocaml.env) expr =
+  (*Printf.printf "env %i\n%!" (List.length env);*)
+  (*Printf.printf "EVAL: %s\n\n" (Tinyocaml.to_string expr);*)
   match expr with
 | Lazy e -> Lazy (eval peek env e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
@@ -722,7 +725,7 @@ let next e =
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
   | x ->
       Printf.printf "Error in Eval.next %s\n" (Printexc.to_string x);
-      if !debug then raise x;
+      if !debug then reraise x;
       Malformed "environment"
 
 let rec eval_until_value peek env e =
