@@ -129,7 +129,8 @@ let tokens_of_lexbuf l =
   let toks = ref [] in
     try
       while true do
-        toks := Lexer.token l :: !toks
+        let tok = Lexer.token l in
+          if tok = EOF then raise Exit else toks := tok :: !toks;
       done;
       []
     with
@@ -148,9 +149,8 @@ let whitespace =
 
 let regexp_of_lexbuf l =
   let terms =
-    List.map
-      special_case
-      (List.map string_of_token (tokens_of_lexbuf l))
+    let tokens = List.map string_of_token (tokens_of_lexbuf l) in
+      List.map special_case tokens
   in
     String.concat whitespace terms
 
