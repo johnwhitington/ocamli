@@ -121,14 +121,14 @@ let stdlib_modules () =
    ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
    ("Queue",                    stdlib_dir, "queue.ml");
    ("Stack",                    stdlib_dir, "stack.ml");
-   ("Map",                      stdlib_dir, "map.ml");
+   ("Map",                      stdlib_dir, "map.ml");*)
    ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
-   ("Nativeint",                stdlib_dir, "nativeint.ml");*)
-   (*("Int64",                    stdlib_dir, "int64.ml");
-   ("Int32",                    stdlib_dir, "int32.ml");*)
-   (*("Array",                    stdlib_dir, "array.ml");*)
+   ("Nativeint",                stdlib_dir, "nativeint.ml");
+   ("Int64",                    stdlib_dir, "int64.ml");
+   ("Int32",                    stdlib_dir, "int32.ml");
+   ("Array",                    stdlib_dir, "array.ml");
    ("Obj",                      stdlib_dir, "obj.ml");
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
