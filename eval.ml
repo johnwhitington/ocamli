@@ -93,28 +93,38 @@ and appears_in_label var = function
 | _ -> false
 
 (* Algorithm for pruning unused lets. This will go once new-lets is in. *)
+let removals = ref 0
 
-let rec collect_unused_lets = function
+(* FIXME Count removals instead! *)
+let rec collect_unused_lets_iter = function
   Let (recflag, bindings, e) ->
     if
-      List.for_all (fun (_, v) -> is_value v) bindings &&
-      not
+      let a =
+      List.for_all (fun (_, v) -> is_value v) bindings
+      and b =
         (let all_names_bound =
           List.flatten (List.map bound_in_pattern (List.map fst bindings))
         in
-          List.exists (fun n -> appears n e) all_names_bound)
+          List.exists
+            (fun n -> appears n e ) all_names_bound)
+      in
+       a && not b
     then
-      collect_unused_lets e
+        begin
+          removals := !removals + 1;
+          collect_unused_lets_iter e
+        end
     else
       Let
         (recflag,
-         List.map (fun (n, e) -> (n, collect_unused_lets e)) bindings,
-         collect_unused_lets e)
-| x -> Tinyocaml.recurse collect_unused_lets x
+         List.map (fun (n, e) -> (n, collect_unused_lets_iter e)) bindings,
+         collect_unused_lets_iter e)
+| x -> Tinyocaml.recurse collect_unused_lets_iter x
 
-let collect_unused_lets x =
-  let x' = collect_unused_lets x in
-    if Tinyocaml.to_string x = Tinyocaml.to_string x' then x else collect_unused_lets x'
+let rec collect_unused_lets x =
+  removals := 0;
+  let x' = collect_unused_lets_iter x in
+    if !removals > 0 then collect_unused_lets x' else x'
 
 (* The environment has type (bool * binding list) list. We return the first
  * binding found for the name, or raise Not_found *)

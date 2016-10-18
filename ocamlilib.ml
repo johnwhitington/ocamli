@@ -106,8 +106,8 @@ let stdlib_modules () =
    (*("Scanf",                    "./stdlib", "scanf.ml");*) (* let-refactoring will fix. See programs/scanf_fail.ml *)
    ("Uchar",                    stdlib_dir, "uchar.ml");
    (*("Format",                   stdlib_dir, "format.ml"); (* stack overflow.  * something to do with camlinternalformat. Again, probably lets.  * *)*)
-   ("Weak",                     stdlib_dir, "weak.ml");
-   ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
+   ("Weak",                     stdlib_dir, "weak.ml");*)
+   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
@@ -125,20 +125,20 @@ let stdlib_modules () =
    ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
-   ("Nativeint",                stdlib_dir, "nativeint.ml");
-   ("Int64",                    stdlib_dir, "int64.ml");
-   ("Int32",                    stdlib_dir, "int32.ml");
-   ("Array",                    stdlib_dir, "array.ml");
+   ("Nativeint",                stdlib_dir, "nativeint.ml");*)
+   (*("Int64",                    stdlib_dir, "int64.ml");
+   ("Int32",                    stdlib_dir, "int32.ml");*)
+   (*("Array",                    stdlib_dir, "array.ml");*)
    ("Obj",                      stdlib_dir, "obj.ml");
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
    ("Sys",                      stdlib_dir, "sys.ml");
-   ("String",                   stdlib_dir, "string.ml");*)
+   ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
-   (*("List",                     stdlib_dir, "list.ml");
+   ("List",                     stdlib_dir, "list.ml");
    ("Pervasives",               stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 
 let loadlib () =
   List.fold_right
