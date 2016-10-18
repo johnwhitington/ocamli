@@ -89,7 +89,7 @@ let otherlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
 
 let stdlib_modules () =
-  [("StdLabels",                stdlib_dir, "stdLabels.ml");
+  [(*("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
    ("StringLabels",             stdlib_dir, "stringLabels.ml");
    ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
@@ -133,12 +133,12 @@ let stdlib_modules () =
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
    ("Sys",                      stdlib_dir, "sys.ml");
-   ("String",                   stdlib_dir, "string.ml");
+   ("String",                   stdlib_dir, "string.ml");*)
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
-   ("List",                     stdlib_dir, "list.ml");
+   (*("List",                     stdlib_dir, "list.ml");
    ("Pervasives",               stdlib_dir, "pervasives.ml");
-   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
+   ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")*)]
 
 let loadlib () =
   List.fold_right

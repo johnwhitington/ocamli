@@ -92,6 +92,8 @@ and appears_in_label var = function
   Optional (_, Some e) -> appears var e
 | _ -> false
 
+(* Algorithm for pruning unused lets. This will go once new-lets is in. *)
+
 let rec collect_unused_lets = function
   Let (recflag, bindings, e) ->
     if
@@ -109,6 +111,10 @@ let rec collect_unused_lets = function
          List.map (fun (n, e) -> (n, collect_unused_lets e)) bindings,
          collect_unused_lets e)
 | x -> Tinyocaml.recurse collect_unused_lets x
+
+let collect_unused_lets x =
+  let x' = collect_unused_lets x in
+    if Tinyocaml.to_string x = Tinyocaml.to_string x' then x else collect_unused_lets x'
 
 (* The environment has type (bool * binding list) list. We return the first
  * binding found for the name, or raise Not_found *)
