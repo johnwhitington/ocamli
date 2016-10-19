@@ -160,10 +160,15 @@ and lookup_value_in_bindings v = function
 
 let rec really_lookup_value v = function
   [] -> if !debug then Printf.printf "*C%s\n" v; None
-| (_, bs)::t ->
-    match lookup_value_in_bindings v !bs with
+| EnvBinding (_, bs)::t ->
+    begin match lookup_value_in_bindings v !bs with
       Some x -> Some x
     | None -> really_lookup_value v t
+    end
+| EnvFunctor (n, modtype, e, env)::t ->
+    if n = v
+      then Some (Functor (n, modtype, e)) (* FIXME env *)
+      else really_lookup_value v t
 
 (* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
 let lookup_value v env =
@@ -319,7 +324,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
-      let env' = (recflag, ref bindings)::env in
+      let env' = EnvBinding (recflag, ref bindings)::env in
         (* If e is a function closure, move this Let inside the function (unless
         it is occluded. FIXME: Mutually-recursive bindings with a name clash may
         break this. See commentary in programs/and.ml *)

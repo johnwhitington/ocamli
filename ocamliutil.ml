@@ -95,10 +95,16 @@ let binding_begins_with n (p, e) =
 
 let bindings_beginning_with n env =
   option_map
-    (fun (recflag, bindings) ->
-      if List.for_all (binding_begins_with n) !bindings
-        then Some (recflag, bindings)
-        else None)
+    (function envitem ->
+      match envitem with
+        EnvFunctor (func_name, modtype, e, env) ->
+          if begins_with n func_name
+            then Some envitem
+            else None
+      | EnvBinding (recflag, bindings) ->
+          if List.for_all (binding_begins_with n) !bindings
+            then Some envitem
+            else None)
     env
 
 let cut n s =
@@ -111,10 +117,13 @@ let rec strip_pattern n = function
 
 let strip_binding n (p, e) = (strip_pattern n p, e)
 
-let strip_bindings n (recflag, bs) =
-  (recflag, ref (List.map (strip_binding n) !bs))
+let strip_bindings n = function
+  EnvFunctor (s, modtype, e, env) ->
+    EnvFunctor (cut n s, modtype, e, env)
+| EnvBinding (recflag, bs) ->
+    EnvBinding (recflag, ref (List.map (strip_binding n) !bs))
 
-let open_module n env =
+let open_module n (env : Tinyocaml.env) =
   List.map (strip_bindings n) (bindings_beginning_with n env) @ env
 
 let rec prefix_pattern prefix = function
@@ -124,12 +133,15 @@ let rec prefix_pattern prefix = function
 
 let prefix_binding prefix (p, e) = (prefix_pattern prefix p, e)
 
-let prefix_bindings p (recflag, bs) =
-  (recflag, ref (List.map (prefix_binding p) !bs))
+let prefix_bindings p = function
+  EnvBinding (recflag, bs) ->
+    EnvBinding (recflag, ref (List.map (prefix_binding p) !bs))
+| EnvFunctor (n, modtype, e, env) ->
+    EnvFunctor (p ^ n, modtype, e, env)
 
 (* For "module B = Bytes" Find any binding beginning with 'Bytes', replace
 'Bytes' with 'B', and stick on to the front of the environment. *)
-let alias_module current alias env =
+let alias_module current alias (env : Tinyocaml.env) =
   (*Printf.printf "Aliasing %s --> %s\n" current alias;*)
   let replaced =
     List.map
@@ -143,13 +155,14 @@ let alias_module current alias env =
 (* Assuming all the bindings are values already, add them to the environment as
 Name.x, Name.y etc. *)
 let bindings_of_struct_item p = function
-  | LetDef (b, ld) -> Some (prefix_bindings p (b, ref ld))
+  | LetDef (b, ld) -> Some (prefix_bindings p (EnvBinding (b, ref ld)))
+  (*FIXME Add creation of EnvFunctor here, from a functor found in the struct. *)
   | _ -> None
 
-let open_struct_as_module name items env =
+let open_struct_as_module name items (env : Tinyocaml.env) =
   let bindings = option_map (bindings_of_struct_item name) items in
     let top_level_binding =
-      (false, ref [(PatVar name, Struct (false, items))])
+      EnvBinding (false, ref [(PatVar name, Struct (false, items))])
     in
       top_level_binding :: bindings @ env
 

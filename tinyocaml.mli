@@ -36,7 +36,11 @@ and case = pattern * t option * t (* pattern, guard, rhs *)
 
 and binding = pattern * t
 
-and env = (bool * binding list ref) list
+and envitem = (* Environment items *)
+  EnvBinding of bool * binding list ref
+| EnvFunctor of string * modtype option * t * env
+
+and env = envitem list
 
 and modtype = (* not final *)
   ModTypeSignature of t
