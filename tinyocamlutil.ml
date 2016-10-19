@@ -36,7 +36,7 @@ let rec is_value = function
 | Functor _ -> true
 | ModuleApply (_, x) -> is_value x
 | Include _ -> true
-| _ -> false
+| x -> (*Printf.printf "IS_VALUE FALSE: %s\n" (Tinyocaml.to_string x);*) false
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 

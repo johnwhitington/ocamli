@@ -122,7 +122,7 @@ let stdlib_modules () =
    ("Queue",                    stdlib_dir, "queue.ml");
    ("Stack",                    stdlib_dir, "stack.ml");
    ("Map",                      stdlib_dir, "map.ml");*)
-   ("Set",                      stdlib_dir, "set.ml");
+   (*("Set",                      stdlib_dir, "set.ml");*)
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
    ("Nativeint",                stdlib_dir, "nativeint.ml");

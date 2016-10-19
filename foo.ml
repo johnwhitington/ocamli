@@ -1,4 +1,5 @@
-module B = struct let x = 1 end
+let min_elt x = x + 1
 
-let _ = B.x
+let choose = min_elt
 
+let _ = choose 1

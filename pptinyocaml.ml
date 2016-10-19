@@ -93,13 +93,15 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       boldtxt "functor (";
       str n;
-      (*FIXME print mt *)
       begin match mt with
         None -> ()
-      | Some _ -> ()
+      | Some mt ->
+          str ": ";
+          print_modtype f isleft (Some node) mt;
+          str ")"
       end;
-      str "->";
-      (*FIXME print me *)
+      txt " -> ";
+      print_tiny_inner f isleft (Some node) me;
       str rp
   | Lazy e ->
       str lp;
@@ -394,6 +396,13 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       print_type_declaration f isleft parent type_declaration;
       str rp
+
+and print_modtype f isleft parent modtype =
+  let str = Format.fprintf f "%s" in
+  match modtype with
+    ModTypeSignature e -> str "ModTypeSignature"
+  | ModTypeIdent s -> str s
+  | ModTypeWith _ -> str "ModTypeWith"
 
 (* Print the list of type declarations type t = ... [and t' = ...] *) 
 and print_type_declaration f isleft parent tds =

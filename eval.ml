@@ -95,9 +95,10 @@ and appears_in_label var = function
 (* Algorithm for pruning unused lets. This will go once new-lets is in. *)
 let removals = ref 0
 
-(* FIXME Count removals instead! *)
 let rec collect_unused_lets_iter = function
   Let (recflag, bindings, e) ->
+    (*Printf.printf "Considering removing %s\n" (Tinyocaml.to_string_bindings
+     * bindings);*)
     if
       let a =
       List.for_all (fun (_, v) -> is_value v) bindings
@@ -108,17 +109,22 @@ let rec collect_unused_lets_iter = function
           List.exists
             (fun n -> appears n e ) all_names_bound)
       in
+       (*Printf.printf "a = %b, b = %b\n" a b;*)
        a && not b
     then
         begin
+          (*Printf.printf "Removed\n";*)
           removals := !removals + 1;
           collect_unused_lets_iter e
         end
     else
-      Let
-        (recflag,
-         List.map (fun (n, e) -> (n, collect_unused_lets_iter e)) bindings,
-         collect_unused_lets_iter e)
+      begin
+        (*Printf.printf "kept\n";*)
+        Let
+          (recflag,
+           List.map (fun (n, e) -> (n, collect_unused_lets_iter e)) bindings,
+           collect_unused_lets_iter e)
+      end
 | x -> Tinyocaml.recurse collect_unused_lets_iter x
 
 let rec collect_unused_lets x =
