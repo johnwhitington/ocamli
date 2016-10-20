@@ -43,9 +43,9 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_let (r, bindings, e') ->
     let theref = ref [] in 
     let recflag = r = Recursive in
-    let bindings' = List.map (of_real_ocaml_binding ((recflag, theref)::env)) bindings in
+    let bindings' = List.map (of_real_ocaml_binding (EnvBinding (recflag, theref)::env)) bindings in
       theref := bindings';
-      let env' = (recflag, ref bindings')::env in (* FIXME [ref bindings'] or [theref] here? *)
+      let env' = EnvBinding (recflag, ref bindings')::env in (* FIXME [ref bindings'] or [theref] here? *)
         Let (recflag, bindings', of_real_ocaml env' e')
 | Pexp_apply
     ({pexp_desc = Pexp_ident {txt = Longident.Lident "raise"}},
@@ -233,9 +233,9 @@ and of_real_ocaml_structure_item env = function
 | {pstr_desc = Pstr_value (recflag, bindings)} ->
      let theref = ref [] in
      let recflag' = recflag = Recursive in
-     let bindings' = List.map (of_real_ocaml_binding ((recflag', theref)::env)) bindings in
+     let bindings' = List.map (of_real_ocaml_binding (EnvBinding (recflag', theref)::env)) bindings in
        theref := bindings';
-       let env' = (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
+       let env' = EnvBinding (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
          (* Do any module initialization required *)
          let evalled = (*Eval.eval_until_value false (if recflag' then env' else env)*) (LetDef (recflag', bindings')) in 
            (Some evalled, env')
@@ -251,7 +251,7 @@ and of_real_ocaml_structure_item env = function
 | {pstr_desc = Pstr_primitive value_description} ->
     let n, primitive = of_real_ocaml_primitive value_description in
     let bindings = [(PatVar n, primitive)] in
-    let env' = (false, ref bindings)::env in
+    let env' = EnvBinding (false, ref bindings)::env in
       (Some (LetDef (false, bindings)), env')
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->

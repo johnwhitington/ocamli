@@ -264,8 +264,15 @@ let filter_bindings (pat : pattern) (bs : binding list) : binding list =
     bs
 
 (* Put all the items in fenv as lets around the expression [e] *)
-let build_lets_from_fenv fenv e =
-  List.fold_left (fun e (rf, bs) -> Let (rf, !bs, e)) e fenv
+let build_lets_from_fenv (fenv : Tinyocaml.env) e =
+  List.fold_left
+    (fun e envitem ->
+      match envitem with
+        EnvBinding (rf, bs) -> Let (rf, !bs, e)
+      | EnvFunctor (n, modtype, e', env) ->
+          failwith "build_lets_from_fenv: EnvFunctor\n")
+    e
+    fenv
   
 let rec eval peek (env : Tinyocaml.env) expr =
   (*Printf.printf "env %i\n%!" (List.length env);*)
@@ -381,10 +388,15 @@ let rec eval peek (env : Tinyocaml.env) expr =
         let (pat, guard, rhs) = p in
           let fenv' =
             Ocamliutil.option_map
-              (fun (recflag, bindings) ->
-                 match filter_bindings pat !bindings with
-                   [] -> None
-                 | bs -> Some (recflag, bindings))
+              (fun envitem ->
+                 match envitem with
+                   EnvBinding (recflag, bindings) ->
+                     begin match filter_bindings pat !bindings with
+                       [] -> None
+                     | bs -> Some (EnvBinding (recflag, bindings))
+                     end
+                 | EnvFunctor (n, modtype, e, env) -> None (*FIXME EnvFunctor*)
+              )
               fenv
           in
             (pat,
@@ -440,7 +452,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | For (v, Int x, ud, e', e'', copy) when is_value e'' ->
     For (v, Int (x + 1), ud, e', copy, copy)
 | For (v, x, ud, e', e'', copy) ->
-    For (v, x, ud, e', eval peek ((false, ref [(PatVar v, x)])::env) e'', copy)
+    For (v, x, ud, e', eval peek (EnvBinding (false, ref [(PatVar v, x)])::env) e'', copy)
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
@@ -684,7 +696,7 @@ and add_functor_definition name functr (env : Tinyocaml.env) =
   match functr with
     Functor (input_module_name, _, thestruct) ->
       let binding = (PatVar name, ModuleBinding (input_module_name, thestruct)) in
-        (false, ref [binding])::env
+        EnvBinding (false, ref [binding])::env
   | _ -> failwith "add_functor_definition"
 
 and eval_first_non_value_item peek (env : env) r = function
@@ -708,7 +720,7 @@ and eval_first_non_value_item peek (env : env) r = function
 | h::t ->
     if is_value h then
       let env' =
-        match h with LetDef (rf, bs) -> (rf, ref bs)::env | _ -> env
+        match h with LetDef (rf, bs) -> EnvBinding (rf, ref bs)::env | _ -> env
       in
         eval_first_non_value_item peek env' (h::r) t
     else
@@ -721,7 +733,7 @@ and eval_first_non_value_binding
     [] -> List.rev r
   | (v, e)::t ->
       let env' =
-        if recflag then (false, ref [(v, e)])::env else env
+        if recflag then EnvBinding (false, ref [(v, e)])::env else env
       in
         if is_value e then
           eval_first_non_value_binding peek recflag env' ((v, e)::r) t

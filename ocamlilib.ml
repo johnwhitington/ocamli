@@ -44,32 +44,36 @@ let rec add_prefix_to_pattern f = function
 let add_prefix_to_binding name (pattern, e) =
   (add_prefix_to_pattern (fun x -> name ^ "." ^ x) pattern, e)
 
-let add_prefix_to_bindings name (recflag, bindings) =
-  (recflag, ref (List.map (add_prefix_to_binding name) !bindings))
+let add_prefix_to_bindings name envitem =
+  match envitem with
+    EnvBinding (recflag, bindings) ->
+      EnvBinding(recflag, ref (List.map (add_prefix_to_binding name) !bindings))
+  | EnvFunctor (n, a, b, c) ->
+      EnvFunctor (name ^ "." ^ n, a, b, c)
 
-let rec definitions_of_module env = function
+let rec definitions_of_module (env : Tinyocaml.env) = function
   Struct (_, items) ->
     List.flatten 
       (List.map
         (fun x ->
           match x with
-            LetDef (recflag, bindings) -> [(recflag, ref bindings)]
+            LetDef (recflag, bindings) -> [EnvBinding (recflag, ref bindings)]
           | ModuleBinding (name, (Struct (_, items) as themod)) ->
               load_module_from_struct name env themod
           | ModuleBinding (name, Functor (fname, ftype, fcontents)) ->
               (* Make a binding from the functor. Hack as per
                * Eval.add_functor_definition *)
-              [(false, ref [(PatVar name, ModuleBinding (fname, fcontents))])]
+              [EnvBinding (false, ref [(PatVar name, ModuleBinding (fname, fcontents))])]
           | _ -> []) 
         items)
 | s ->
     failwith (Printf.sprintf "definitions_of_module: found a %s" (Tinyocaml.to_string s))
 
-and load_module_from_struct name env themod =
+and load_module_from_struct name (env : Tinyocaml.env) themod : Tinyocaml.env =
   let themod = Eval.eval_until_value false env themod in (* <-- module initialisation  *)
     List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module env themod))
 
-and load_module (name : string) (env : env) (file : string) =
+and load_module (name : string) (env : Tinyocaml.env) (file : string) : Tinyocaml.env =
   if !debug then Printf.printf "Loading module %s...%!" name;
     let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
       if !debug then Printf.printf "read...%!";
@@ -159,7 +163,11 @@ let print_binding (pat, e) =
 let showlib () =
   if !debug then
     List.iter
-      (fun (recflag, bindings) ->
-        print_string (if recflag then "let rec:\n" else "let:\n");
-        List.iter print_binding !bindings)
+      (fun envitem ->
+        match envitem with
+          EnvBinding (recflag, bindings) ->
+            print_string (if recflag then "let rec:\n" else "let:\n");
+            List.iter print_binding !bindings
+        | EnvFunctor (n, a, b, c) ->
+            print_string "EnvFunctor: "; print_string n; print_string "\n")
       !Eval.lib
