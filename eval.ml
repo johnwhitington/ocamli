@@ -270,7 +270,11 @@ let build_lets_from_fenv (fenv : Tinyocaml.env) e =
       match envitem with
         EnvBinding (rf, bs) -> Let (rf, !bs, e)
       | EnvFunctor (n, input_module_name, modtype, e', env) ->
-          failwith "build_lets_from_fenv: EnvFunctor\n")
+          (* Make a let with the functor. *)
+          let binding =
+            (PatVar n, Functor (input_module_name, modtype, e')) (* FIXME env?  *)
+          in
+            Let (false, [binding], e))
     e
     fenv
   
