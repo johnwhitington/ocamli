@@ -95,25 +95,25 @@ let otherlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
 
 let stdlib_modules () =
-  [(*("StdLabels",                stdlib_dir, "stdLabels.ml");
+  [("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
    ("StringLabels",             stdlib_dir, "stringLabels.ml");
    ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   (*("Filename",                 stdlib_dir, "filename.ml"); Fails if empheron * loaded. A let-refactoring problem *)
-   (*("Emphemeron",               stdlib_dir, "ephemeron.ml");*)
+   (*("Filename",                 stdlib_dir, "filename.ml"); a bit slow *)
+   ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    ("Oo",                       stdlib_dir, "oo.ml");
    ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
    ("Callback",                 stdlib_dir, "callback.ml");
-   (*("Scanf",                    "./stdlib", "scanf.ml");*) (* let-refactoring will fix. See programs/scanf_fail.ml *)
+   (*("Scanf",                    "./stdlib", "scanf.ml"); (* let-refactoring will fix. See programs/scanf_fail.ml *)*)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                   stdlib_dir, "format.ml"); (* stack overflow.  * something to do with camlinternalformat. Again, probably lets.  * *)*)
-   ("Weak",                     stdlib_dir, "weak.ml");*)
-   (*("Hashtbl",                  stdlib_dir, "hashtbl.ml");
+   (*("Format",                   stdlib_dir, "format.ml"); (* stack overflow.  * * * something to do with camlinternalformat. Again, probably lets.  *)*)
+   ("Weak",                     stdlib_dir, "weak.ml");
+   ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
    ("Gc",                       stdlib_dir, "gc.ml");
@@ -127,7 +127,7 @@ let stdlib_modules () =
    ("CamlinternalLazy",         stdlib_dir, "camlinternalLazy.ml");
    ("Queue",                    stdlib_dir, "queue.ml");
    ("Stack",                    stdlib_dir, "stack.ml");
-   ("Map",                      stdlib_dir, "map.ml");*)
+   ("Map",                      stdlib_dir, "map.ml");
    ("Set",                      stdlib_dir, "set.ml");
    ("Parsing",                  stdlib_dir, "parsing.ml");
    ("Lexing",                   stdlib_dir, "lexing.ml");
