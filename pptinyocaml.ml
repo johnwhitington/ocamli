@@ -69,6 +69,7 @@ let pp_constructor_arg pp = function
        ptyp_attributes = []}
 | _ -> failwith "unimplemented record type"
 
+
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
@@ -89,6 +90,22 @@ let rec print_tiny_inner f isleft parent node =
       print_tiny_inner f isleft (Some node) m2;
       txt ")";
       str rp
+  | Functor (n, mt, ModuleConstraint (mtc, me)) ->
+      str lp;
+      boldtxt "functor (";
+      str n;
+      begin match mt with
+        None -> ()
+      | Some mt ->
+          str " : ";
+          print_modtype f isleft (Some node) mt;
+          str ")"
+      end;
+      txt " : ";
+      print_modtype f isleft (Some node) mtc;
+      txt " -> ";
+      print_tiny_inner f isleft (Some node) me;
+      str rp
   | Functor (n, mt, me) ->
       str lp;
       boldtxt "functor (";
@@ -96,7 +113,7 @@ let rec print_tiny_inner f isleft parent node =
       begin match mt with
         None -> ()
       | Some mt ->
-          str ": ";
+          str " : ";
           print_modtype f isleft (Some node) mt;
           str ")"
       end;
@@ -161,14 +178,20 @@ let rec print_tiny_inner f isleft parent node =
           sig_items;
       txt "\n";
       boldtxt "end"
+  | ModuleBinding (n, ModuleConstraint (t, e)) ->
+      boldtxt "module ";
+      txt n;
+      txt " : ";
+      print_modtype f false (Some node) t;
+      txt " = \n";
+      print_tiny_inner f false (Some node) e
   | ModuleBinding (n, e) ->
       boldtxt "module ";
       txt n;
       txt " = \n";
       print_tiny_inner f false (Some node) e
   | ModuleConstraint (t, e) ->
-      txt "mc*";
-      print_tiny_inner f false (Some node) e
+      ()
   | ModuleIdentifier x ->
       txt x
   | Tuple xs ->
