@@ -111,7 +111,8 @@ let stdlib_modules () =
    ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    "./stdlib", "scanf.ml"); (* let-refactoring will fix. See programs/scanf_fail.ml *)*)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                   stdlib_dir, "format.ml"); (* stack overflow.  * * * something to do with camlinternalformat. Again, probably lets.  *)*)
+   (*("Format",                   "./stdlib", "format.ml"); (* stack overflow.
+    * * * * something to do with camlinternalformat. Again, probably lets.  *)*)
    ("Weak",                     stdlib_dir, "weak.ml");
    ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
