@@ -38,7 +38,7 @@ and binding = pattern * t
 
 and envitem = (* Environment items *)
   EnvBinding of bool * binding list ref
-| EnvFunctor of string * modtype option * t * env
+| EnvFunctor of string * string * modtype option * t * env
 
 and env = envitem list
 

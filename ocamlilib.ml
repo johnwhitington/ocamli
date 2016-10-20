@@ -48,8 +48,8 @@ let add_prefix_to_bindings name envitem =
   match envitem with
     EnvBinding (recflag, bindings) ->
       EnvBinding(recflag, ref (List.map (add_prefix_to_binding name) !bindings))
-  | EnvFunctor (n, a, b, c) ->
-      EnvFunctor (name ^ "." ^ n, a, b, c)
+  | EnvFunctor (n, i, a, b, c) ->
+      EnvFunctor (name ^ "." ^ n, i, a, b, c)
 
 let rec definitions_of_module (env : Tinyocaml.env) = function
   Struct (_, items) ->
@@ -61,9 +61,11 @@ let rec definitions_of_module (env : Tinyocaml.env) = function
           | ModuleBinding (name, (Struct (_, items) as themod)) ->
               load_module_from_struct name env themod
           | ModuleBinding (name, Functor (fname, ftype, fcontents)) ->
-              (* Make a binding from the functor. Hack as per
-               * Eval.add_functor_definition *)
-              [EnvBinding (false, ref [(PatVar name, ModuleBinding (fname, fcontents))])]
+              (*Printf.printf "Ocamlimod.definitions_of_module: adding Functor
+               * %s\n" fname;*)
+              (* Make a binding from the functor. Hack as per * Eval.add_functor_definition *)
+              [EnvFunctor (name, fname, ftype, fcontents, [])] (* FIXME env?*)
+              (*[EnvBinding (false, ref [(PatVar name, ModuleBinding (fname, * fcontents))])]*)
           | _ -> []) 
         items)
 | s ->
@@ -168,6 +170,6 @@ let showlib () =
           EnvBinding (recflag, bindings) ->
             print_string (if recflag then "let rec:\n" else "let:\n");
             List.iter print_binding !bindings
-        | EnvFunctor (n, a, b, c) ->
+        | EnvFunctor (n, i, a, b, c) ->
             print_string "EnvFunctor: "; print_string n; print_string "\n")
       !Eval.lib

@@ -165,9 +165,9 @@ let rec really_lookup_value v = function
       Some x -> Some x
     | None -> really_lookup_value v t
     end
-| EnvFunctor (n, modtype, e, env)::t ->
+| EnvFunctor (n, input_module_name, modtype, e, env)::t ->
     if n = v
-      then Some (Functor (n, modtype, e)) (* FIXME env *)
+      then Some (Functor (input_module_name, modtype, e)) (* FIXME env *)
       else really_lookup_value v t
 
 (* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
@@ -269,7 +269,7 @@ let build_lets_from_fenv (fenv : Tinyocaml.env) e =
     (fun e envitem ->
       match envitem with
         EnvBinding (rf, bs) -> Let (rf, !bs, e)
-      | EnvFunctor (n, modtype, e', env) ->
+      | EnvFunctor (n, input_module_name, modtype, e', env) ->
           failwith "build_lets_from_fenv: EnvFunctor\n")
     e
     fenv
@@ -395,7 +395,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
                        [] -> None
                      | bs -> Some (EnvBinding (recflag, bindings))
                      end
-                 | EnvFunctor (n, modtype, e, env) -> None (*FIXME EnvFunctor*)
+                 | EnvFunctor (n, input_module_name, modtype, e, env) -> None (*FIXME EnvFunctor*)
               )
               fenv
           in
@@ -676,12 +676,18 @@ and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
   (*Printf.printf "We need to find module modf=%s\n" modf;
   Printf.printf "ENV:%s\n" (Tinyocaml.to_string_env env);*)
   match lookup_value modf env, modx with
-    Some (ModuleBinding (fn, t)), ModuleIdentifier xn ->
+  (*  Some (ModuleBinding (fn, t)), ModuleIdentifier xn ->
       (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn t
   | Some (ModuleBinding (fn, t)), Struct s ->
       (*Printf.printf "We have found s DIRECT functor application\n";*)
-      substitute_module fn "FIXME" (add_as_fixme (Struct s) t)
+      substitute_module fn "FIXME" (add_as_fixme (Struct s) t)*)
+  | Some (Functor (fn, _, e)), ModuleIdentifier xn ->
+      (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
+      substitute_module fn xn e
+  | Some (Functor (fn, _, e)), Struct s ->
+      (*Printf.printf "We have found s DIRECT functor application\n";*)
+      substitute_module fn "FIXME" (add_as_fixme (Struct s) e)
   | Some f, x ->
       (*Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
       Printf.printf "modx is %s\n" (Tinyocaml.to_string x);*)
@@ -694,9 +700,12 @@ and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
 functor definitions in the Tinyocaml.env data type. *)
 and add_functor_definition name functr (env : Tinyocaml.env) =
   match functr with
-    Functor (input_module_name, _, thestruct) ->
-      let binding = (PatVar name, ModuleBinding (input_module_name, thestruct)) in
-        EnvBinding (false, ref [binding])::env
+    Functor (input_module_name, modtype, thestruct) ->
+      (*Printf.printf "Eval.add_functor_definition: Adding functor %s\n to
+       * environment\n" input_module_name;*)
+      EnvFunctor (name, input_module_name, modtype, thestruct, [])::env (*FIXME env*)
+      (*let binding = (PatVar name, ModuleBinding (input_module_name, thestruct)) in
+        EnvBinding (false, ref [binding])::env*)
   | _ -> failwith "add_functor_definition"
 
 and eval_first_non_value_item peek (env : env) r = function

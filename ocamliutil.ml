@@ -97,7 +97,7 @@ let bindings_beginning_with n env =
   option_map
     (function envitem ->
       match envitem with
-        EnvFunctor (func_name, modtype, e, env) ->
+        EnvFunctor (func_name, input_module_name, modtype, e, env) ->
           if begins_with n func_name
             then Some envitem
             else None
@@ -118,8 +118,8 @@ let rec strip_pattern n = function
 let strip_binding n (p, e) = (strip_pattern n p, e)
 
 let strip_bindings n = function
-  EnvFunctor (s, modtype, e, env) ->
-    EnvFunctor (cut n s, modtype, e, env)
+  EnvFunctor (s, input_module_name, modtype, e, env) ->
+    EnvFunctor (cut n s, input_module_name, modtype, e, env)
 | EnvBinding (recflag, bs) ->
     EnvBinding (recflag, ref (List.map (strip_binding n) !bs))
 
@@ -136,8 +136,8 @@ let prefix_binding prefix (p, e) = (prefix_pattern prefix p, e)
 let prefix_bindings p = function
   EnvBinding (recflag, bs) ->
     EnvBinding (recflag, ref (List.map (prefix_binding p) !bs))
-| EnvFunctor (n, modtype, e, env) ->
-    EnvFunctor (p ^ n, modtype, e, env)
+| EnvFunctor (n, input_module_name, modtype, e, env) ->
+    EnvFunctor (p ^ n, input_module_name, modtype, e, env)
 
 (* For "module B = Bytes" Find any binding beginning with 'Bytes', replace
 'Bytes' with 'B', and stick on to the front of the environment. *)
