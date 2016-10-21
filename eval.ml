@@ -466,27 +466,21 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Field (Record items, n) -> !(List.assoc n items)
 | Field (e, n) -> Field (eval peek env e, n)
 | SetField (Record items, n, e) ->
-    Printf.printf "SetField: record has %i items, set item %s\n" (List.length items) n;
     if is_value e
       then
         begin
-          Printf.printf "Is value\n";
           if not peek then
             begin
               let item = List.assoc n items in
-               Printf.printf "Found item\n";
                item := e
             end;
-          Printf.printf "Returning Unit\n";
           Unit
         end
       else
         begin
-          Printf.printf "Is not value\n";
           SetField (Record items, n, eval peek env e)
         end
 | SetField (e, n, e') ->
-    Printf.printf "SetField2\n";
     SetField (eval peek env e, n, e')
 | Raise (e, payload) ->
     begin match payload with
@@ -779,14 +773,8 @@ let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
 
 let rec eval_until_value show peek env e =
-  Printf.printf "eval_until_value\n";
-  if begin Printf.printf "is_value\n"; is_value e end then
-    begin Printf.printf "is_value_done\n"; e end
-  else
-    begin
-      Printf.printf "collect_unused_lets\n";
+  if is_value e then e else
     let e = collect_unused_lets e in
-      Printf.printf "about to go\n";
       if show then
         begin
           print_string "BEGINNING OF STAGE\n";
@@ -794,7 +782,6 @@ let rec eval_until_value show peek env e =
           print_string "\n"
         end;
       eval_until_value show peek env (eval peek env e)
-    end
 
 let tiny x = Tinyocamlutil.underline_redex x
 

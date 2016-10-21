@@ -221,7 +221,6 @@ let print_line newline preamble tiny =
 external reraise : exn -> 'a = "%reraise"
 
 let go () =
-  Printf.printf "Go\n";
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>\n";
   Eval.fastcurry := !fastcurry;
