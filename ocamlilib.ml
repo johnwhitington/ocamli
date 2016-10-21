@@ -100,7 +100,7 @@ let stdlib_modules () =
    ("ListLabels",               stdlib_dir, "listLabels.ml");
    ("ArrayLabels",              stdlib_dir, "arrayLabels.ml");
    ("Complex",                  stdlib_dir, "complex.ml");
-   (*("Filename",                 stdlib_dir, "filename.ml"); a bit slow *)
+   ("Filename",                 stdlib_dir, "filename.ml");
    ("Emphemeron",               stdlib_dir, "ephemeron.ml");
    ("Genlex",                   stdlib_dir, "genlex.ml");
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
@@ -109,8 +109,7 @@ let stdlib_modules () =
    ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    "./stdlib", "scanf.ml"); (* let-refactoring will fix. See programs/scanf_fail.ml *)*)
    ("Uchar",                    stdlib_dir, "uchar.ml");
-   (*("Format",                   "./stdlib", "format.ml"); (* stack overflow.
-    * * * * something to do with camlinternalformat. Again, probably lets.  *)*)
+   ("Format",                   "./stdlib", "format.ml");
    ("Weak",                     stdlib_dir, "weak.ml");
    ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
