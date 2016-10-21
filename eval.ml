@@ -100,11 +100,9 @@ let removals = ref 0
 
 let rec collect_unused_lets_iter = function
   Let (recflag, bindings, e) ->
-    (*Printf.printf "Considering removing %s\n" (Tinyocaml.to_string_bindings
-     * bindings);*)
     if
       let a =
-      List.for_all (fun (_, v) -> is_value v) bindings
+        List.for_all (fun (_, v) -> is_value v) bindings
       and b =
         (let all_names_bound =
           List.flatten (List.map bound_in_pattern (List.map fst bindings))
@@ -112,17 +110,14 @@ let rec collect_unused_lets_iter = function
           List.exists
             (fun n -> appears n e ) all_names_bound)
       in
-       (*Printf.printf "a = %b, b = %b\n" a b;*)
        a && not b
     then
         begin
-          (*Printf.printf "Removed\n";*)
           removals := !removals + 1;
           collect_unused_lets_iter e
         end
     else
       begin
-        (*Printf.printf "kept\n";*)
         Let
           (recflag,
            List.map (fun (n, e) -> (n, collect_unused_lets_iter e)) bindings,
@@ -471,10 +466,27 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Field (Record items, n) -> !(List.assoc n items)
 | Field (e, n) -> Field (eval peek env e, n)
 | SetField (Record items, n, e) ->
+    Printf.printf "SetField: record has %i items, set item %s\n" (List.length items) n;
     if is_value e
-      then (if not peek then (List.assoc n items) := e; Unit)
-      else SetField (Record items, n, eval peek env e)
+      then
+        begin
+          Printf.printf "Is value\n";
+          if not peek then
+            begin
+              let item = List.assoc n items in
+               Printf.printf "Found item\n";
+               item := e
+            end;
+          Printf.printf "Returning Unit\n";
+          Unit
+        end
+      else
+        begin
+          Printf.printf "Is not value\n";
+          SetField (Record items, n, eval peek env e)
+        end
 | SetField (e, n, e') ->
+    Printf.printf "SetField2\n";
     SetField (eval peek env e, n, e')
 | Raise (e, payload) ->
     begin match payload with
@@ -679,27 +691,13 @@ and add_as_fixme struct_to_include m =
 
 (* Do the functor application Modf(Modx), yielding a module *)
 and apply_functor (env : Tinyocaml.env) (modf : string) (modx : Tinyocaml.t) =
-  (*Printf.printf "We need to find module modf=%s\n" modf;
-  Printf.printf "ENV:%s\n" (Tinyocaml.to_string_env env);*)
   match lookup_value modf env, modx with
-  (*  Some (ModuleBinding (fn, t)), ModuleIdentifier xn ->
-      (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
-      substitute_module fn xn t
-  | Some (ModuleBinding (fn, t)), Struct s ->
-      (*Printf.printf "We have found s DIRECT functor application\n";*)
-      substitute_module fn "FIXME" (add_as_fixme (Struct s) t)*)
   | Some (Functor (fn, _, e)), ModuleIdentifier xn ->
-      (*Printf.printf "Substituting %s -> %s\n" fn xn;*)
       substitute_module fn xn e
   | Some (Functor (fn, _, e)), Struct s ->
-      (*Printf.printf "We have found s DIRECT functor application\n";*)
       substitute_module fn "FIXME" (add_as_fixme (Struct s) e)
-  | Some f, x ->
-      (*Printf.printf "modf in the env is %s\n" (Tinyocaml.to_string f);
-      Printf.printf "modx is %s\n" (Tinyocaml.to_string x);*)
-      failwith "apply_functor: not a functor"
-  | _ ->
-      failwith "apply_functor: not found"
+  | Some f, x -> failwith "apply_functor: not a functor"
+  | _ -> failwith "apply_functor: not found"
 
 (* Add a functor defintion to the environment as (name, ModuleBinding
 (input_module_name, thestruct). This is a bit of a hack to avoid special casing
@@ -707,11 +705,7 @@ functor definitions in the Tinyocaml.env data type. *)
 and add_functor_definition name functr (env : Tinyocaml.env) =
   match functr with
     Functor (input_module_name, modtype, thestruct) ->
-      (*Printf.printf "Eval.add_functor_definition: Adding functor %s\n to
-       * environment\n" input_module_name;*)
       EnvFunctor (name, input_module_name, modtype, thestruct, [])::env (*FIXME env*)
-      (*let binding = (PatVar name, ModuleBinding (input_module_name, thestruct)) in
-        EnvBinding (false, ref [binding])::env*)
   | _ -> failwith "add_functor_definition"
 
 and eval_first_non_value_item peek (env : env) r = function
@@ -728,7 +722,6 @@ and eval_first_non_value_item peek (env : env) r = function
       let newstruct = eval_first_non_value_item peek env [] [Struct (x, items)] in
         List.rev r @ [ModuleBinding (name, List.hd newstruct)] @ t
 | ModuleBinding (name, ModuleApply (ModuleIdentifier modf, modx))::t ->
-    (*Printf.printf "Found a FUNCTOR application\n";*)
     List.rev r @ [ModuleBinding (name, apply_functor env modf modx)] @ t
 | Open name as h::t ->
     eval_first_non_value_item peek (open_module name env) (h::r) t
@@ -786,8 +779,14 @@ let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
 
 let rec eval_until_value show peek env e =
-  if is_value e then e else
+  Printf.printf "eval_until_value\n";
+  if begin Printf.printf "is_value\n"; is_value e end then
+    begin Printf.printf "is_value_done\n"; e end
+  else
+    begin
+      Printf.printf "collect_unused_lets\n";
     let e = collect_unused_lets e in
+      Printf.printf "about to go\n";
       if show then
         begin
           print_string "BEGINNING OF STAGE\n";
@@ -795,6 +794,7 @@ let rec eval_until_value show peek env e =
           print_string "\n"
         end;
       eval_until_value show peek env (eval peek env e)
+    end
 
 let tiny x = Tinyocamlutil.underline_redex x
 

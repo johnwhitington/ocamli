@@ -221,6 +221,7 @@ let print_line newline preamble tiny =
 external reraise : exn -> 'a = "%reraise"
 
 let go () =
+  Printf.printf "Go\n";
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program>\n";
   Eval.fastcurry := !fastcurry;
@@ -235,6 +236,7 @@ let go () =
     Unix.sleepf !step;
     match Eval.next state with
       Next state' ->
+        Printf.printf "NEXT\n";
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
@@ -256,6 +258,7 @@ let go () =
         end;
         really_run false state'
     | IsValue ->
+        Printf.printf "ISVALUE\n";
         (* Only print if !quiet. On Silent we don't want it, on normal, we have already printed *)
         if !show && not !showall then print_line true "" (Eval.tiny state)
     | Malformed s ->

@@ -8,7 +8,9 @@ let comp = function
   LT -> (<) | EQ -> (=) | GT -> (>) | EQLT -> (<=) | EQGT -> (>=) | NEQ -> (<>)
 
 (* Predicate on value-ness of expressions. *)
-let rec is_value = function
+let rec is_value e =
+  Printf.printf "is_value %s\n" (to_string e);
+  match e with
   Unit | Int _ | Bool _ | Fun _ | Function _
 | Int32 _ | Int64 _ | NativeInt _ 
 | OutChannel _ | InChannel _ | Char _ | String _ | Float _ | Nil -> true

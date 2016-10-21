@@ -1,23 +1,18 @@
-type formatter = {
-  mutable pp_out_string : string -> int -> int -> unit;
-  mutable pp_out_newline : unit -> unit;
-}
+type f = { mutable s : string -> int -> int -> unit; mutable n : unit -> unit; }
 
-let display_newline state () =
-  state.pp_out_string "\n" 0  1
+let d state () = state.s "\n" 0  1 (*removing this fixes the problem *)
 
-let pp_make_formatter f h =
-  {
-    pp_out_string = f;
-    pp_out_newline = h;
-  }
+let f1 f h = { s = f; n = h; }
 
-let make_formatter output flush =
-  let ppf = pp_make_formatter output ignore in
-  ppf.pp_out_newline <- display_newline ppf;
+let output a b c d = ()
+
+let osubstring a b c d = ()
+
+let mf output flush =
+  let ppf = f1 output ignore in
+  ppf.n <- d ppf;
   ppf
 
-let formatter_of_out_channel oc =
-  make_formatter (output_substring oc) (fun () -> flush oc)
+let foc oc = mf (osubstring oc) (fun () -> ())
 
-let std_formatter = formatter_of_out_channel Pervasives.stdout
+let sf = foc stdout
