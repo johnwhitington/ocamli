@@ -42,6 +42,7 @@ let rec add_prefix_to_pattern f = function
 | x -> x (* FIXME: Fill in the rest *)
 
 let add_prefix_to_binding name (pattern, e) =
+  if name = "" then (pattern, e) else (* pervasives *)
   (add_prefix_to_pattern (fun x -> name ^ "." ^ x) pattern, e)
 
 let add_prefix_to_bindings name envitem =
@@ -49,6 +50,7 @@ let add_prefix_to_bindings name envitem =
     EnvBinding (recflag, bindings) ->
       EnvBinding(recflag, ref (List.map (add_prefix_to_binding name) !bindings))
   | EnvFunctor (n, i, a, b, c) ->
+      if name = "" then EnvFunctor (n, i, a, b, c) else (* pervasives *)
       EnvFunctor (name ^ "." ^ n, i, a, b, c)
 
 let rec definitions_of_module (env : Tinyocaml.env) = function
@@ -61,11 +63,7 @@ let rec definitions_of_module (env : Tinyocaml.env) = function
           | ModuleBinding (name, (Struct (_, items) as themod)) ->
               load_module_from_struct name env themod
           | ModuleBinding (name, Functor (fname, ftype, fcontents)) ->
-              (*Printf.printf "Ocamlimod.definitions_of_module: adding Functor
-               * %s\n" fname;*)
-              (* Make a binding from the functor. Hack as per * Eval.add_functor_definition *)
               [EnvFunctor (name, fname, ftype, fcontents, [])] (* FIXME env?*)
-              (*[EnvBinding (false, ref [(PatVar name, ModuleBinding (fname, * fcontents))])]*)
           | _ -> []) 
         items)
 | s ->
@@ -144,6 +142,7 @@ let stdlib_modules () =
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
+   ("",                         stdlib_dir, "pervasives.ml"); (* The special empty strng *)
    ("Pervasives",               stdlib_dir, "pervasives.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 

@@ -92,6 +92,9 @@ and appears_in_label var = function
   Optional (_, Some e) -> appears var e
 | _ -> false
 
+let any_appears vars e =
+  List.exists (fun v -> appears v e) vars
+
 (* Algorithm for pruning unused lets. This will go once new-lets is in. *)
 let removals = ref 0
 
@@ -158,24 +161,17 @@ and lookup_value_in_bindings v = function
        Some x -> Some x
      | None -> lookup_value_in_bindings v bs
 
-let rec really_lookup_value v = function
+let rec lookup_value v = function
   [] -> if !debug then Printf.printf "*C%s\n" v; None
 | EnvBinding (_, bs)::t ->
     begin match lookup_value_in_bindings v !bs with
       Some x -> Some x
-    | None -> really_lookup_value v t
+    | None -> lookup_value v t
     end
 | EnvFunctor (n, input_module_name, modtype, e, env)::t ->
     if n = v
       then Some (Functor (input_module_name, modtype, e)) (* FIXME env *)
-      else really_lookup_value v t
-
-(* FIXME Eventually, we just execute "open Pervasives" and this goes away *)
-let lookup_value v env =
-  (*Printf.printf "looking up %s\n" v; print_string (to_string_env env);*)
-  match really_lookup_value v env with
-  | Some x -> Some x
-  | None -> really_lookup_value ("Pervasives." ^ v) env
+      else lookup_value v t
 
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
@@ -268,13 +264,19 @@ let build_lets_from_fenv (fenv : Tinyocaml.env) e =
   List.fold_left
     (fun e envitem ->
       match envitem with
-        EnvBinding (rf, bs) -> Let (rf, !bs, e)
+        EnvBinding (rf, bs) ->
+          if any_appears (bound_in_bindings !bs) e then
+            Let (rf, !bs, e)
+          else
+            e
       | EnvFunctor (n, input_module_name, modtype, e', env) ->
-          (* Make a let with the functor. *)
-          let binding =
-            (PatVar n, Functor (input_module_name, modtype, e')) (* FIXME env?  *)
-          in
-            Let (false, [binding], e))
+          if appears n e then 
+            (* Make a let with the functor. *)
+            let binding =
+              (PatVar n, Functor (input_module_name, modtype, e')) (* FIXME env?  *)
+            in
+              Let (false, [binding], e)
+          else e)
     e
     fenv
   

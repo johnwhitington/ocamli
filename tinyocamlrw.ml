@@ -217,8 +217,6 @@ and of_real_ocaml_module_binding env mb =
       ModuleIdentifier original ->
         (Some (ModuleBinding (name, ModuleIdentifier original)), alias_module original name env)
     | x ->
-        (* e.g LargeFile in Pervasives *)
-        (*Printf.eprintf "Unknown module binding type: %s\n" (to_string x);*)
         (Some (ModuleBinding (name, x)), env)
 
 and of_real_ocaml_open_description o =
@@ -236,8 +234,7 @@ and of_real_ocaml_structure_item env = function
      let bindings' = List.map (of_real_ocaml_binding (EnvBinding (recflag', theref)::env)) bindings in
        theref := bindings';
        let env' = EnvBinding (recflag', ref bindings')::env in (* FIXME [ref bindings'] or [theref]? *)
-         (* Do any module initialization required *)
-         let evalled = (*Eval.eval_until_value false (if recflag' then env' else env)*) (LetDef (recflag', bindings')) in 
+         let evalled = (LetDef (recflag', bindings')) in 
            (Some evalled, env')
   (* exception E of ... *)
 | {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
@@ -262,8 +259,7 @@ and of_real_ocaml_structure_item env = function
   (* open M *)
 | {pstr_desc = Pstr_open open_description} ->
      let n = of_real_ocaml_open_description open_description in
-       (*Printf.printf "Opening module %s. Len was %i\n" n (List.length env);*)
-       (Some (Open n), let x = open_module n env in (*Printf.printf "len now %i\n" (List.length x);*) x)
+       (Some (Open n), open_module n env)
   (* module type *)
 | {pstr_desc = Pstr_modtype _} ->
       (None, env)
