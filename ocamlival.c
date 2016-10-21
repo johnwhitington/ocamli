@@ -108,7 +108,8 @@ CAMLprim value untyped_of_ocaml_value(value t)
     Store_field(out, 0, Tag_val(t));
     arr = caml_alloc_tuple(Wosize_val(t));
     Store_field(out, 1, arr);
-    for(int p = 0; p < Wosize_val(t); p++)
+    int p;
+    for(p = 0; p < Wosize_val(t); p++)
       Store_field(arr, p, untyped_of_ocaml_value (Field(t, p)));
   }
   if (Is_block(t) && Tag_val(t) == String_tag)

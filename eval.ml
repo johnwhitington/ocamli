@@ -782,16 +782,18 @@ let next e =
       if !debug then reraise x;
       Malformed "environment"
 
-let rec eval_until_value peek env e =
-  if is_value e then e else
-    let e = collect_unused_lets e in
-      eval_until_value peek env (eval peek env e)
-      (*try eval_until_value peek env (eval peek env e) with*)
-        (*x -> Printf.printf "Failed: %s\n" (Pptinyocaml.to_string e); reraise
-         * x*)
-
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
+
+let rec eval_until_value show peek env e =
+  if is_value e then e else
+    let e = collect_unused_lets e in
+      if show then
+        begin
+          print_string (to_string e);
+          print_string "\n"
+        end;
+      eval_until_value show peek env (eval peek env e)
 
 let tiny x = Tinyocamlutil.underline_redex x
 

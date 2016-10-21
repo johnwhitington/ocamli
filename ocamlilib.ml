@@ -70,7 +70,7 @@ let rec definitions_of_module (env : Tinyocaml.env) = function
     failwith (Printf.sprintf "definitions_of_module: found a %s" (Tinyocaml.to_string s))
 
 and load_module_from_struct name (env : Tinyocaml.env) themod : Tinyocaml.env =
-  let themod = Eval.eval_until_value false env themod in (* <-- module initialisation  *)
+  let themod = Eval.eval_until_value !showstdlibinit false env themod in (* <-- module initialisation  *)
     List.rev (List.map (add_prefix_to_bindings name) (definitions_of_module env themod))
 
 and load_module (name : string) (env : Tinyocaml.env) (file : string) : Tinyocaml.env =
