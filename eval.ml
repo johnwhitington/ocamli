@@ -108,7 +108,7 @@ let rec collect_unused_lets_iter = function
           List.flatten (List.map bound_in_pattern (List.map fst bindings))
         in
           List.exists
-            (fun n -> appears n e ) all_names_bound)
+            (fun n -> appears n e) all_names_bound)
       in
        a && not b
     then
