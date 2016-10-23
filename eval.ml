@@ -1,5 +1,5 @@
 (* Uses the tiny-ocaml simple AST *)
-open Slist
+(*open Slist*)
 open Tinyocaml
 open Ocamliutil
 open Tinyocamlutil

@@ -1,5 +1,5 @@
 open Tinyocaml
-open Slist
+(*open Slist*)
 
 let calc = function
   Add -> (+) | Sub -> (-) | Mul -> ( * ) | Div -> (/)

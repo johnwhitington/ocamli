@@ -2,7 +2,7 @@
 open Parsetree
 open Asttypes
 open Tinyocaml
-open Slist
+(*open Slist*)
 
 let typecheck = ref true
 

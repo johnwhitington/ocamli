@@ -1,7 +1,7 @@
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 
-MODS = slist ocamliutil ocamlipat tinyocaml tinyocamlutil pptinyocaml ocamliprim eval tinyocamlrw ocamlilib runeval ocamli
+MODS = ocamliutil ocamlipat tinyocaml tinyocamlutil pptinyocaml ocamliprim eval tinyocamlrw ocamlilib runeval ocamli
 
 SOURCES = ocamlival.h ocamlival.c $(foreach x,$(MODS),$(x).ml $(x).mli)
 

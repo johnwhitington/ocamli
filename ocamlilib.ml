@@ -93,7 +93,7 @@ let otherlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
 
 let stdlib_modules () =
-  [(*("StdLabels",                stdlib_dir, "stdLabels.ml");
+  [("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
    ("StringLabels",             stdlib_dir, "stringLabels.ml");
    ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
@@ -106,11 +106,11 @@ let stdlib_modules () =
    ("CamlinternalMod",          stdlib_dir, "camlinternalMod.ml");
    ("Oo",                       stdlib_dir, "oo.ml");
    ("CamlinternalOO",           stdlib_dir, "camlinternalOO.ml");
-   ("Callback",                 stdlib_dir, "callback.ml");*)
+   ("Callback",                 stdlib_dir, "callback.ml");
    (*("Scanf",                    "./stdlib", "scanf.ml"); (* let-refactoring will fix. See programs/scanf_fail.ml *)*)
-   (*("Uchar",                    stdlib_dir, "uchar.ml");*)
-   ("Format",                   "./stdlib", "format.ml");
-   (*("Weak",                     stdlib_dir, "weak.ml");
+   ("Uchar",                    stdlib_dir, "uchar.ml");
+   (*("Format",                   "./stdlib", "format.ml");*)
+   ("Weak",                     stdlib_dir, "weak.ml");
    ("Hashtbl",                  stdlib_dir, "hashtbl.ml");
    ("Random",                   stdlib_dir, "random.ml");
    ("Digest",                   stdlib_dir, "digest.ml");
@@ -140,7 +140,7 @@ let stdlib_modules () =
    ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
    ("Char",                     stdlib_dir, "char.ml");
-   ("List",                     stdlib_dir, "list.ml");*)
+   ("List",                     stdlib_dir, "list.ml");
    ("",                         stdlib_dir, "pervasives.ml"); (* The special empty strng *)
    ("Pervasives",               stdlib_dir, "pervasives.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
