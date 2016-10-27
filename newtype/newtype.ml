@@ -32,12 +32,23 @@ and is_value x = is_value_t' x.t
 (* FIXME Add environments to make closures *)
 let mkt x = {t = x; lets = []}
 
+let string_of_t e = "None"
+
+let print_env_item (n, e) =
+  Printf.printf "%s: %s\n" n (string_of_t e)
+
+let print_env env =
+  List.iter print_env_item env
+
 (* Eval-in-one-go. Implicit lets not really relevant here, because we just put
 them in the env. *)
 let rec eval env e =
   match e.t with
     Int _ | Bool _ | Function (_, _) -> e
-  | Var v -> eval env (List.assoc v env)
+  | Var v ->
+      (*Printf.printf "Looking for %s\n" v;
+      print_env env;*)
+      eval env (List.assoc v env)
   | IfThenElse ({t = Bool b}, x, y) -> eval env (if b then x else y)
   | IfThenElse (c, x, y) -> eval env {e with t = IfThenElse (eval env c, x, y)}
   | Times (x, y) ->
@@ -77,9 +88,13 @@ let rec eval env e =
 let factorial =
   mkt (Let (true,
        [("factorial",
-         mkt (IfThenElse (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
+         mkt (Function ("x", mkt (IfThenElse (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
                      mkt (Int 1),
                      mkt (Times (mkt (Var "x"),
-                                 mkt (Apply (mkt (Var "factorial"), mkt (Minus (mkt (Var "x"), mkt (Int 1))))))))))],
+                                 mkt (Apply (mkt (Var "factorial"), mkt (Minus
+                                 (mkt (Var "x"), mkt (Int 1))))))))))))],
        (mkt (Apply (mkt (Var "factorial"), mkt (Int 4))))))
+
+let _ =
+  if not !Sys.interactive then ignore (eval [] factorial)
 
