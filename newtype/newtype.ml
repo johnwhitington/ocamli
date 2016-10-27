@@ -16,12 +16,14 @@ and t' =
 | Equals of t * t
 | Let of bool * binding list * t
 | Apply of t * t
-| Function of string * t 
+| Function of string * t
+| Struct of t list
 
 let rec is_value_t' = function
   IfThenElse (a, b, c) -> is_value a && is_value b && is_value c
 | Times (a, b) | Minus (a, b) | Equals (a, b) | Apply (a, b) -> is_value a && is_value b
 | Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
+| Struct xs -> List.for_all is_value xs
 | Var _ -> false
 | Int _ | Bool _ | Function _ -> true
 
@@ -46,8 +48,7 @@ let rec eval env e =
   match e.t with
     Int _ | Bool _ | Function (_, _) -> e
   | Var v ->
-      (*Printf.printf "Looking for %s\n" v;
-      print_env env;*)
+      (*Printf.printf "Looking for %s\n" v; print_env env;*)
       eval env (List.assoc v env)
   | IfThenElse ({t = Bool b}, x, y) -> eval env (if b then x else y)
   | IfThenElse (c, x, y) -> eval env {e with t = IfThenElse (eval env c, x, y)}
@@ -83,17 +84,21 @@ let rec eval env e =
           bindings
       in
         eval env' e
+  | Struct es ->
+      mkt (Struct (List.map (eval env) es))
 
 (* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
 let factorial =
-  mkt (Let (true,
-       [("factorial",
-         mkt (Function ("x", mkt (IfThenElse (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
-                     mkt (Int 1),
-                     mkt (Times (mkt (Var "x"),
-                                 mkt (Apply (mkt (Var "factorial"), mkt (Minus
-                                 (mkt (Var "x"), mkt (Int 1))))))))))))],
-       (mkt (Apply (mkt (Var "factorial"), mkt (Int 4))))))
+  mkt (Struct [
+    mkt (Let (true,
+         [("factorial",
+           mkt (Function ("x", mkt (IfThenElse (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
+                       mkt (Int 1),
+                       mkt (Times (mkt (Var "x"),
+                                   mkt (Apply (mkt (Var "factorial"), mkt (Minus
+                                   (mkt (Var "x"), mkt (Int 1))))))))))))],
+         (mkt (Apply (mkt (Var "factorial"), mkt (Int 4))))))
+      ])
 
 let _ =
   if not !Sys.interactive then ignore (eval [] factorial)

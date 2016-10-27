@@ -17,6 +17,7 @@ and t' =
 | Let of bool * binding list * t
 | Apply of t * t
 | Function of string * t 
+| Struct of t list
 
 val mkt : t' -> t
 
