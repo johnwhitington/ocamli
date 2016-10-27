@@ -29,32 +29,57 @@ and is_value_binding (_, x) = is_value x
 
 and is_value x = is_value_t' x.t
 
-let eval env e =
-  match e.t with
-    Int i -> e
-  | Bool b -> e
-  | Var v -> eval env (lookup env v)
-  | IfThenElse ({t = Bool b}, x, y) -> eval env (if b then x else y)
-  | IfThenElse (c, x, y) -> eval env (IfThenElse (eval env c, x, y))
-  | Times (x, y) -> mkt (Int (eval env x * eval env y))
-  | Minus (x, y) -> mkt (Int (eval env x - eval env y))
-  | Equals (x, y) -> mkt (Int (eval env x = eval env y))
-  | Apply ({t = Function (v, b)}, y) -> eval ((v, eval env y)::env) b
-  | Apply (f, y) -> eval env (Apply (eval env f, eval env y))
-  | Let (recflag, bindings, e) ->
-      (* If bindings not values, evaluate, put as implicit let around 'e' and
-       evaluate e with new things in the env. *)
-
+(* FIXME Add environments to make closures *)
 let mkt x = {t = x; lets = []}
+
+(* Eval-in-one-go. Implicit lets not really relevant here, because we just put
+them in the env. *)
+let rec eval env e =
+  match e.t with
+    Int _ | Bool _ | Function (_, _) -> e
+  | Var v -> eval env (List.assoc v env)
+  | IfThenElse ({t = Bool b}, x, y) -> eval env (if b then x else y)
+  | IfThenElse (c, x, y) -> eval env {e with t = IfThenElse (eval env c, x, y)}
+  | Times (x, y) ->
+      begin match (eval env x).t, (eval env y).t with
+        Int x, Int y -> mkt (Int (x * y))
+      | _ -> failwith "eval-times"
+      end
+  | Minus (x, y) ->
+      begin match (eval env x).t, (eval env y).t with
+        Int x, Int y -> mkt (Int (x - y))
+      | _ -> failwith "eval-minus"
+      end
+  | Equals (x, y) ->
+      begin match (eval env x).t, (eval env y).t with
+        Int x, Int y -> mkt (Bool (x = y))
+      | _ -> failwith "eval-equals"
+      end
+  | Apply ({t = Function (v, b)}, y) ->
+      eval ((v, eval env y)::env) b
+  | Apply (f, y) ->
+      eval env {e with t = Apply (eval env f, eval env y)}
+  | Let (recflag, bindings, e) ->
+      let env' =
+        List.map
+          (fun (n, be) ->
+             let benv =
+               if recflag
+                 then bindings @ env
+                 else env
+             in
+               (n, eval benv be))
+          bindings
+      in
+        eval env' e
 
 (* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
 let factorial =
-  Let (true,
+  mkt (Let (true,
        [("factorial",
          mkt (IfThenElse (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
                      mkt (Int 1),
-                     mkt (Times (mkt (Var "x"), mkt (Apply (mkt (Var "factorial"), mkt (Minus (mkt (Var "x"), mkt (Int 1))))))))))],
-       (mkt (Apply (mkt (Var "factorial"), mkt (Int 4)))))
-
-let _ = "foo"
+                     mkt (Times (mkt (Var "x"),
+                                 mkt (Apply (mkt (Var "factorial"), mkt (Minus (mkt (Var "x"), mkt (Int 1))))))))))],
+       (mkt (Apply (mkt (Var "factorial"), mkt (Int 4))))))
 
