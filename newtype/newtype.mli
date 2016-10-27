@@ -15,6 +15,7 @@ and t' =
 | Minus of t * t
 | Equals of t * t
 | Let of bool * binding list * t
+| LetDef of bool * binding list
 | Apply of t * t
 | Function of string * t 
 | Struct of t list

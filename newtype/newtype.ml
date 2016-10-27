@@ -15,6 +15,7 @@ and t' =
 | Minus of t * t
 | Equals of t * t
 | Let of bool * binding list * t
+| LetDef of bool * binding list
 | Apply of t * t
 | Function of string * t
 | Struct of t list
@@ -48,8 +49,12 @@ let rec eval env e =
   match e.t with
     Int _ | Bool _ | Function (_, _) -> e
   | Var v ->
-      (*Printf.printf "Looking for %s\n" v; print_env env;*)
-      eval env (List.assoc v env)
+      begin try eval env (List.assoc v env) with
+        _ ->
+         Printf.printf "Looking for %s\n" v;
+         print_env env;
+         raise Exit
+      end
   | IfThenElse ({t = Bool b}, x, y) -> eval env (if b then x else y)
   | IfThenElse (c, x, y) -> eval env {e with t = IfThenElse (eval env c, x, y)}
   | Times (x, y) ->
@@ -100,6 +105,15 @@ let factorial =
          (mkt (Apply (mkt (Var "factorial"), mkt (Int 4))))))
       ])
 
+(* let a = 6
+ * let f x = a
+ * let a = 7
+ * let y = f 0 *)
+let closures =
+  Struct [mkt (LetDef (false, [("a", mkt (Int 6))]));
+          mkt (LetDef (false, [("f", mkt (Function ("x", mkt (Var "a"))))]));
+          mkt (LetDef (false, [("a", mkt (Int 7))]));
+          mkt (LetDef (false, [("y", mkt (Apply (mkt (Var "f"), mkt (Int 0))))]))]
 let _ =
   if not !Sys.interactive then ignore (eval [] factorial)
 

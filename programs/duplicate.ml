@@ -5,13 +5,13 @@
       let a = 7 in
         f ()*)
 
-(*let a = 6
+let a = 6
 
 let f () = a
 
 let a = 7
 
-let _ = f ()*)
+let _ = f ()
 
 (* Now, a recursive example *)
 (*let f x = x + 1
@@ -20,6 +20,4 @@ let _ = f ()*)
   if x = 0 then f 0 else 1 + sum (x - 1)*)
 
 let f x = x - 1*)
-
-let _ = List.sum 2
 
