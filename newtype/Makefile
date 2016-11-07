@@ -5,7 +5,7 @@ MODS = newtype
 
 SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli)
 
-PACKS = compiler-libs.common
+PACKS = ocamli compiler-libs.common
 
 RESULT = newtype
 

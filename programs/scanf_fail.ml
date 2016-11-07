@@ -1,5 +1,5 @@
 let g =
-  let _ = 1 in (fun _ _ -> 2)
+  let x = 1 in (fun _ _ -> x)
 
 let i = g 0
 

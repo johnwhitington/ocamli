@@ -10,20 +10,53 @@ and t' =
   Int of int
 | Bool of bool
 | Var of string
-| IfThenElse of t * t * t
+| If of t * t * t
 | Times of t * t
 | Minus of t * t
 | Equals of t * t
 | Let of bool * binding list * t
 | LetDef of bool * binding list
 | Apply of t * t
-| Function of string * t
+| Function of string * binding list * t
 | Struct of t list
 
+let mkt x = {t = x; lets = []}
+
+let rec of_tinyocaml = function
+  Tinyocaml.Int i -> mkt (Int i)
+| Tinyocaml.Bool b -> mkt (Bool b)
+| Tinyocaml.Var v -> mkt (Var v)
+| Tinyocaml.If (a, b, None) -> failwith "no single-arm ifs please"
+| Tinyocaml.If (a, b, Some c) ->
+    mkt (If (of_tinyocaml a, of_tinyocaml b, of_tinyocaml c))
+| Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
+    mkt (Times (of_tinyocaml a, of_tinyocaml b))
+| Tinyocaml.Op (Tinyocaml.Sub, a, b) ->
+    mkt (Minus (of_tinyocaml a, of_tinyocaml b))
+| Tinyocaml.Cmp (Tinyocaml.EQ, a, b) ->
+    mkt (Equals (of_tinyocaml a, of_tinyocaml b))
+| Tinyocaml.Let (recflag, bindings, e) ->
+    mkt (Let (recflag, of_tinyocaml_bindings bindings, of_tinyocaml e))
+| Tinyocaml.LetDef (recflag, bindings) ->
+    mkt (LetDef (recflag, of_tinyocaml_bindings bindings))
+| Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml a, of_tinyocaml b))
+| Tinyocaml.Function (cases, fenv) ->
+    mkt (Function ("", [], mkt (Int 0)))
+| Tinyocaml.Struct (_, es) -> mkt (Struct (List.map of_tinyocaml es))
+
+and of_tinyocaml_fenv = function
+  _ -> []
+
+and of_tinyocaml_bindings = function
+  _ -> []
+
+(*let to_tinyocaml = function*)
+
 let rec is_value_t' = function
-  IfThenElse (a, b, c) -> is_value a && is_value b && is_value c
+  If (a, b, c) -> is_value a && is_value b && is_value c
 | Times (a, b) | Minus (a, b) | Equals (a, b) | Apply (a, b) -> is_value a && is_value b
 | Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
+| LetDef (_, bs) -> List.for_all is_value_binding bs
 | Struct xs -> List.for_all is_value xs
 | Var _ -> false
 | Int _ | Bool _ | Function _ -> true
@@ -31,9 +64,6 @@ let rec is_value_t' = function
 and is_value_binding (_, x) = is_value x
 
 and is_value x = is_value_t' x.t
-
-(* FIXME Add environments to make closures *)
-let mkt x = {t = x; lets = []}
 
 let string_of_t e = "None"
 
@@ -47,7 +77,7 @@ let print_env env =
 them in the env. *)
 let rec eval env e =
   match e.t with
-    Int _ | Bool _ | Function (_, _) -> e
+    Int _ | Bool _ | Function (_, _, _) -> e
   | Var v ->
       begin try eval env (List.assoc v env) with
         _ ->
@@ -55,8 +85,8 @@ let rec eval env e =
          print_env env;
          raise Exit
       end
-  | IfThenElse ({t = Bool b}, x, y) -> eval env (if b then x else y)
-  | IfThenElse (c, x, y) -> eval env {e with t = IfThenElse (eval env c, x, y)}
+  | If ({t = Bool b}, x, y) -> eval env (if b then x else y)
+  | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}
   | Times (x, y) ->
       begin match (eval env x).t, (eval env y).t with
         Int x, Int y -> mkt (Int (x * y))
@@ -72,7 +102,7 @@ let rec eval env e =
         Int x, Int y -> mkt (Bool (x = y))
       | _ -> failwith "eval-equals"
       end
-  | Apply ({t = Function (v, b)}, y) ->
+  | Apply ({t = Function (v, fenv, b)}, y) ->
       eval ((v, eval env y)::env) b
   | Apply (f, y) ->
       eval env {e with t = Apply (eval env f, eval env y)}
@@ -89,15 +119,29 @@ let rec eval env e =
           bindings
       in
         eval env' e
+  | LetDef (recflag, bindings) ->
+      let benv =
+        if recflag then bindings @ env else env
+      in
+        {e with t =
+          LetDef (recflag, List.map (fun (n, be) -> (n, eval benv be)) bindings)}
   | Struct es ->
-      mkt (Struct (List.map (eval env) es))
+      {e with t = Struct (eval_many env es)}
+
+and eval_many env = function
+  [] -> []
+| [e] -> [eval env e]
+| {t = LetDef (recflag, bindings)} as e::es ->
+    let benv = bindings @ env in
+      eval (if recflag then benv else env) e :: eval_many benv es
+| _ -> failwith "malformed struct: first not a letdef"
 
 (* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
 let factorial =
   mkt (Struct [
     mkt (Let (true,
          [("factorial",
-           mkt (Function ("x", mkt (IfThenElse (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
+           mkt (Function ("x", [], mkt (If (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
                        mkt (Int 1),
                        mkt (Times (mkt (Var "x"),
                                    mkt (Apply (mkt (Var "factorial"), mkt (Minus
@@ -110,10 +154,11 @@ let factorial =
  * let a = 7
  * let y = f 0 *)
 let closures =
-  Struct [mkt (LetDef (false, [("a", mkt (Int 6))]));
-          mkt (LetDef (false, [("f", mkt (Function ("x", mkt (Var "a"))))]));
-          mkt (LetDef (false, [("a", mkt (Int 7))]));
-          mkt (LetDef (false, [("y", mkt (Apply (mkt (Var "f"), mkt (Int 0))))]))]
+  mkt (Struct [mkt (LetDef (false, [("a", mkt (Int 6))]));
+               mkt (LetDef (false, [("f", mkt (Function ("x", [], mkt (Var "a"))))]));
+               mkt (LetDef (false, [("a", mkt (Int 7))]));
+               mkt (LetDef (false, [("y", mkt (Apply (mkt (Var "f"), mkt (Int 0))))]))])
+
 let _ =
-  if not !Sys.interactive then ignore (eval [] factorial)
+  if not !Sys.interactive then ignore (eval [] closures)
 

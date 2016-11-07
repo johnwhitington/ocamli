@@ -102,8 +102,8 @@ let string_of_token = function
   | RPAREN -> ")"
   | SEMI -> ";"
   | SEMISEMI -> ";;"
-  | SHARP -> "#"
-  | SHARPOP s -> s
+  | HASH -> "#"
+  | HASHOP s -> s
   | SIG -> "sig"
   | STAR -> "*"
   | STRING (s, _) -> s
