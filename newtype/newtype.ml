@@ -36,21 +36,56 @@ let rec of_tinyocaml = function
 | Tinyocaml.Cmp (Tinyocaml.EQ, a, b) ->
     mkt (Equals (of_tinyocaml a, of_tinyocaml b))
 | Tinyocaml.Let (recflag, bindings, e) ->
-    mkt (Let (recflag, of_tinyocaml_bindings bindings, of_tinyocaml e))
+    mkt (Let (recflag, List.map of_tinyocaml_binding bindings, of_tinyocaml e))
 | Tinyocaml.LetDef (recflag, bindings) ->
-    mkt (LetDef (recflag, of_tinyocaml_bindings bindings))
+    mkt (LetDef (recflag, List.map of_tinyocaml_binding bindings))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml a, of_tinyocaml b))
-| Tinyocaml.Function (cases, fenv) ->
-    mkt (Function ("", [], mkt (Int 0)))
+| Tinyocaml.Function ([(Tinyocaml.PatVar v, None, rhs)], fenv) ->
+    mkt (Function (v, of_tinyocaml_fenv fenv, of_tinyocaml rhs))
 | Tinyocaml.Struct (_, es) -> mkt (Struct (List.map of_tinyocaml es))
+| _ -> failwith "of_tinyocaml: unknown structure"
 
 and of_tinyocaml_fenv = function
-  _ -> []
+  EnvBinding (_, bs)::t -> List.map of_tinyocaml_binding !bs @ of_tinyocaml_fenv t
+| h::t -> failwith "of_tinyocaml_fenv"
+| [] -> []
 
-and of_tinyocaml_bindings = function
-  _ -> []
+and of_tinyocaml_binding = function
+  (PatVar v, t) -> (v, of_tinyocaml t)
+| _ -> failwith "unknown pattern in of_tinyocaml_binding"
 
-(*let to_tinyocaml = function*)
+let rec to_tinyocaml e =
+  match e.t with
+    Int i -> Tinyocaml.Int i
+  | Bool b -> Tinyocaml.Bool b
+  | Var v -> Tinyocaml.Var v
+  | If (a, b, c) ->
+      Tinyocaml.If (to_tinyocaml a, to_tinyocaml b, Some (to_tinyocaml c))
+  | Times (a, b) ->
+      Tinyocaml.Op (Tinyocaml.Mul, to_tinyocaml a, to_tinyocaml b)
+  | Minus (a, b) ->
+      Tinyocaml.Op (Tinyocaml.Sub, to_tinyocaml a, to_tinyocaml b)
+  | Equals (a, b) ->
+      Tinyocaml.Cmp (Tinyocaml.EQ, to_tinyocaml a, to_tinyocaml b)
+  | Let (recflag, bindings, e) ->
+      Tinyocaml.Let (recflag, List.map to_tinyocaml_binding bindings, to_tinyocaml e)
+  | LetDef (recflag, bindings) ->
+      Tinyocaml.LetDef (recflag, List.map to_tinyocaml_binding bindings)
+  | Apply (a, b) ->
+      Tinyocaml.App (to_tinyocaml a, to_tinyocaml b)
+  | Function (v, fenv, e) ->
+      Tinyocaml.Function
+        ([(Tinyocaml.PatVar v, None, to_tinyocaml e)], to_tinyocaml_fenv fenv)
+  | Struct es -> Tinyocaml.Struct (true, List.map to_tinyocaml es)
+
+and to_tinyocaml_binding (v, t) =
+  (PatVar v, to_tinyocaml t)
+
+and to_tinyocaml_fenv envitems =
+  List.map
+    (fun (v, t) ->
+      Tinyocaml.EnvBinding (true, ref [(Tinyocaml.PatVar v, to_tinyocaml t)]))
+    envitems
 
 let rec is_value_t' = function
   If (a, b, c) -> is_value a && is_value b && is_value c
