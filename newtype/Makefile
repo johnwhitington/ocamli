@@ -5,7 +5,7 @@ MODS = newtype
 
 SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli)
 
-PACKS = ocamli compiler-libs.common
+PACKS = bigarray ocamli compiler-libs.common
 
 RESULT = newtype
 

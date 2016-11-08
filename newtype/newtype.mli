@@ -27,6 +27,5 @@ val of_tinyocaml : Tinyocaml.t -> t
 val eval : binding list -> t -> t
 
 val factorial : t
-
 val closures : t
 

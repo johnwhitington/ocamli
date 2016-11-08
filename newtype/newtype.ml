@@ -40,15 +40,18 @@ let rec of_tinyocaml = function
 | Tinyocaml.LetDef (recflag, bindings) ->
     mkt (LetDef (recflag, List.map of_tinyocaml_binding bindings))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml a, of_tinyocaml b))
+| Tinyocaml.Fun (_, PatVar v, e, fenv) ->
+    mkt (Function (v, of_tinyocaml_fenv fenv, of_tinyocaml e))
 | Tinyocaml.Function ([(Tinyocaml.PatVar v, None, rhs)], fenv) ->
     mkt (Function (v, of_tinyocaml_fenv fenv, of_tinyocaml rhs))
 | Tinyocaml.Struct (_, es) -> mkt (Struct (List.map of_tinyocaml es))
-| _ -> failwith "of_tinyocaml: unknown structure"
+| e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s"
+(Tinyocaml.to_string e))
 
-and of_tinyocaml_fenv = function
-  EnvBinding (_, bs)::t -> List.map of_tinyocaml_binding !bs @ of_tinyocaml_fenv t
+and of_tinyocaml_fenv _ = []
+(*  EnvBinding (_, bs)::t -> List.map of_tinyocaml_binding !bs @ of_tinyocaml_fenv t
 | h::t -> failwith "of_tinyocaml_fenv"
-| [] -> []
+| [] -> []*)
 
 and of_tinyocaml_binding = function
   (PatVar v, t) -> (v, of_tinyocaml t)
@@ -74,18 +77,14 @@ let rec to_tinyocaml e =
   | Apply (a, b) ->
       Tinyocaml.App (to_tinyocaml a, to_tinyocaml b)
   | Function (v, fenv, e) ->
-      Tinyocaml.Function
-        ([(Tinyocaml.PatVar v, None, to_tinyocaml e)], to_tinyocaml_fenv fenv)
+      Tinyocaml.Fun
+        (Tinyocaml.NoLabel, Tinyocaml.PatVar v, to_tinyocaml e, to_tinyocaml_fenv fenv)
   | Struct es -> Tinyocaml.Struct (true, List.map to_tinyocaml es)
 
 and to_tinyocaml_binding (v, t) =
   (PatVar v, to_tinyocaml t)
 
-and to_tinyocaml_fenv envitems =
-  List.map
-    (fun (v, t) ->
-      Tinyocaml.EnvBinding (true, ref [(Tinyocaml.PatVar v, to_tinyocaml t)]))
-    envitems
+and to_tinyocaml_fenv envitems = [] (* Just used for printing. fenv doesn't matter *)
 
 let rec is_value_t' = function
   If (a, b, c) -> is_value a && is_value b && is_value c
@@ -171,7 +170,41 @@ and eval_many env = function
       eval (if recflag then benv else env) e :: eval_many benv es
 | _ -> failwith "malformed struct: first not a letdef"
 
-(* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
+(* string -> ocaml ast -> tinyocaml ast -> newtype ast *)
+let of_program_text s =
+  of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
+
+(* newtype ast -> tinyocaml ast -> pptinyocaml -> string *)
+let to_program_text x =
+  Pptinyocaml.to_string (to_tinyocaml x)
+
+let factorial =
+  of_program_text
+    "let rec factorial x =
+       if x = 0 then 1 else x * factorial (x - 1)
+     in
+       factorial 4"
+
+let closures =
+  of_program_text
+    "let a = 6
+     let f x = a
+     let a = 7
+     let y = f 0"
+
+let _ =
+  print_string (to_program_text factorial);
+  print_string "\n";
+  print_string (to_program_text (eval [] factorial));
+  print_string "\n\n"
+
+let _ =
+  print_string (to_program_text closures);
+  print_string "\n";
+  print_string (to_program_text (eval [] closures));
+  print_string "\n\n"
+
+(*(* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
 let factorial =
   mkt (Struct [
     mkt (Let (true,
@@ -192,8 +225,9 @@ let closures =
   mkt (Struct [mkt (LetDef (false, [("a", mkt (Int 6))]));
                mkt (LetDef (false, [("f", mkt (Function ("x", [], mkt (Var "a"))))]));
                mkt (LetDef (false, [("a", mkt (Int 7))]));
-               mkt (LetDef (false, [("y", mkt (Apply (mkt (Var "f"), mkt (Int 0))))]))])
+               mkt (LetDef (false, [("y", mkt (Apply (mkt (Var "f"), mkt (Int
+               0))))]))])*)
 
-let _ =
-  if not !Sys.interactive then ignore (eval [] closures)
+(*let _ =
+  if not !Sys.interactive then ignore (eval [] closures)*)
 
