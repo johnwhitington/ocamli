@@ -22,40 +22,43 @@ and t' =
 
 let mkt x = {t = x; lets = []}
 
-let rec of_tinyocaml = function
+(* Convert from tinyocaml, building our own fenvs *)
+let rec of_tinyocaml env = function
   Tinyocaml.Int i -> mkt (Int i)
 | Tinyocaml.Bool b -> mkt (Bool b)
 | Tinyocaml.Var v -> mkt (Var v)
 | Tinyocaml.If (a, b, None) -> failwith "no single-arm ifs please"
 | Tinyocaml.If (a, b, Some c) ->
-    mkt (If (of_tinyocaml a, of_tinyocaml b, of_tinyocaml c))
+    mkt (If (of_tinyocaml env a, of_tinyocaml env b, of_tinyocaml env c))
 | Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
-    mkt (Times (of_tinyocaml a, of_tinyocaml b))
+    mkt (Times (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Op (Tinyocaml.Sub, a, b) ->
-    mkt (Minus (of_tinyocaml a, of_tinyocaml b))
+    mkt (Minus (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Cmp (Tinyocaml.EQ, a, b) ->
-    mkt (Equals (of_tinyocaml a, of_tinyocaml b))
+    mkt (Equals (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Let (recflag, bindings, e) ->
-    mkt (Let (recflag, List.map of_tinyocaml_binding bindings, of_tinyocaml e))
+    (* FIXME extend env when calling of_tinyocaml_binding and of_tinyocaml. *)
+    mkt (Let (recflag, List.map (of_tinyocaml_binding env) bindings, of_tinyocaml env e))
 | Tinyocaml.LetDef (recflag, bindings) ->
-    mkt (LetDef (recflag, List.map of_tinyocaml_binding bindings))
-| Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml a, of_tinyocaml b))
+    let env' =
+
+    in
+      mkt (LetDef (recflag, List.map (of_tinyocaml_binding env') bindings))
+| Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Fun (_, PatVar v, e, fenv) ->
-    mkt (Function (v, of_tinyocaml_fenv fenv, of_tinyocaml e))
+    mkt (Function (v, env, of_tinyocaml env e))
 | Tinyocaml.Function ([(Tinyocaml.PatVar v, None, rhs)], fenv) ->
-    mkt (Function (v, of_tinyocaml_fenv fenv, of_tinyocaml rhs))
-| Tinyocaml.Struct (_, es) -> mkt (Struct (List.map of_tinyocaml es))
-| e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s"
-(Tinyocaml.to_string e))
+    mkt (Function (v, env, of_tinyocaml env rhs))
+| Tinyocaml.Struct (_, es) ->
+    (* FIXME: Add each item to the env as we proceed downward *)
+    mkt (Struct (List.map (of_tinyocaml env) es))
+| e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
-and of_tinyocaml_fenv _ = []
-(*  EnvBinding (_, bs)::t -> List.map of_tinyocaml_binding !bs @ of_tinyocaml_fenv t
-| h::t -> failwith "of_tinyocaml_fenv"
-| [] -> []*)
-
-and of_tinyocaml_binding = function
-  (PatVar v, t) -> (v, of_tinyocaml t)
+and of_tinyocaml_binding env = function
+  (PatVar v, t) -> (v, of_tinyocaml env t)
 | _ -> failwith "unknown pattern in of_tinyocaml_binding"
+
+let of_tinyocaml x = of_tinyocaml [] x
 
 let rec to_tinyocaml e =
   match e.t with
