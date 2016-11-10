@@ -7,11 +7,11 @@
 
 let a = 6
 
-let f () = a
+let f x = a
 
 let a = 7
 
-let _ = f ()
+let x = f 0
 
 (* Now, a recursive example *)
 (*let f x = x + 1
