@@ -41,7 +41,7 @@ let rec of_tinyocaml env = function
     mkt (Let (recflag, List.map (of_tinyocaml_binding env) bindings, of_tinyocaml env e))
 | Tinyocaml.LetDef (recflag, bindings) ->
     let env' =
-
+      env
     in
       mkt (LetDef (recflag, List.map (of_tinyocaml_binding env') bindings))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml env a, of_tinyocaml env b))
@@ -181,6 +181,24 @@ let of_program_text s =
 let to_program_text x =
   Pptinyocaml.to_string (to_tinyocaml x)
 
+(* Run the program p *)
+let run p = eval [] p
+
+let show p =
+  print_string (to_program_text p);
+  print_string "\n"
+
+let _ =
+  match Sys.argv with
+    [|_; filename|] ->
+      let p = of_program_text (Ocamliutil.load_file filename) in
+        show p;
+        print_string "\n";
+        show (run p)
+  | _ ->
+      prerr_string "Syntax: newtype <filename>\n";
+      exit 2
+
 let factorial =
   of_program_text
     "let rec factorial x =
@@ -195,7 +213,7 @@ let closures =
      let a = 7
      let y = f 0"
 
-let _ =
+(*let _ =
   print_string (to_program_text factorial);
   print_string "\n";
   print_string (to_program_text (eval [] factorial));
@@ -205,7 +223,7 @@ let _ =
   print_string (to_program_text closures);
   print_string "\n";
   print_string (to_program_text (eval [] closures));
-  print_string "\n\n"
+  print_string "\n\n"*)
 
 (*(* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
 let factorial =
