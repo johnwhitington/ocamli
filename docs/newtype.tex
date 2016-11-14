@@ -16,15 +16,39 @@
 \title{An \textit{Efficient} Interpreter}
 \maketitle
 
-(problem statement)
+\noindent Our step-by-step interpreter works, but is very slow. There are two kinds of slowness:
 
-\section{Existing implementation}
+\begin{enumerate}
+\item Intrinsic slowness: put an $O(n)$ program in, get an $O(n^2)$ execution time.
+\item Incidental slowness: interpreters are just slow.
+\end{enumerate}
 
-\section{New type, for lets}
+\noindent This document concerns the first.
 
-\section{Can it be solved simplistically?}
+\section{Sources of intrinsic slowness in our existing interpreter}
 
-\section{Qualities of existing abstract machines}
+\noindent At least:
+
+\begin{itemize}
+\item Finding the redex each time
+\item Looking up things in the environment
+\item Removing redundant let-bindings
+\item Printing out the current step
+\end{itemize}
+
+\section{Possible solutions}
+
+\begin{itemize}
+
+\item Finding the redex: we need to adapt the techniques used for abstract machines where the next redex is known (use of evaluation holes etc). We must retain the ability to print out the each step, and evaluate step-by-step, but can we gain the ability to find the next redex in $O(1)$
+
+\item Looking things up in the environment: standard techniques, presumably. Hash table or something. But we must keep the environment along with each node, so we don't need to keep making it up on every step. Can this be done easily?
+
+\item Removing redundant let-bindings: We have introduced a new type, which keeps implicit let-bindings around each expression. This is useful to simplify pattern matching when finding the redex, but it may also allow us to automatically remove let-bindings when they are no longer required. For example, when \texttt{let x = 1 in let y = 2 in x + y} is transformed to \texttt{let x = 1 in let y = 2 in 1 + y} we can automatically go to \texttt{let y = 2 in 1 + y}. Is this possible in general? To keep track of the number of uses of a variable, and know when it goes to zero? This is a bit like reference counting\ldots
+
+\item Printing out the current step: If we don't print out each step of the evaluation, the three techniques above will suffice. However, if we print out some or all steps of the evaluation, it's clear that the complexity increases (not least because the amount of characters output to the screen is probably $O(n^2)$ for an $O(n)$ program. However, adjacent steps of evaluation have similar printings: only the redex (plus maybe some dropped lets) differ. Can we exploit this?
+
+\end{itemize}
 
 \end{document}
 
