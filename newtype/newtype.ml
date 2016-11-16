@@ -27,7 +27,7 @@ and t' =
 let mkt x = {t = x; lets = []}
 
 (* Convert from tinyocaml, building our own fenvs *)
-let rec of_tinyocaml (env : environment) = function
+let rec of_tinyocaml env = function
   Tinyocaml.Int i -> mkt (Int i)
 | Tinyocaml.Bool b -> mkt (Bool b)
 | Tinyocaml.Var v -> mkt (Var v)
@@ -41,8 +41,10 @@ let rec of_tinyocaml (env : environment) = function
 | Tinyocaml.Cmp (Tinyocaml.EQ, a, b) ->
     mkt (Equals (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Let (recflag, bindings, e) ->
-    (* FIXME extend env when calling of_tinyocaml_binding and of_tinyocaml. *)
-    mkt (Let (recflag, List.map (of_tinyocaml_binding env) bindings, of_tinyocaml env e))
+    let theref = ref [] in
+    let env' = (recflag, theref)::env in
+    theref := List.map (of_tinyocaml_binding env') bindings;
+    mkt (Let (recflag, !theref, of_tinyocaml env' e))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Fun (_, PatVar v, e, fenv) ->
     mkt (Function (v, env, of_tinyocaml env e))
@@ -52,7 +54,7 @@ let rec of_tinyocaml (env : environment) = function
     mkt (Struct (of_tinyocaml_many env es))
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
-and of_tinyocaml_many (env : environment) = function
+and of_tinyocaml_many env = function
   [] -> []
 | Tinyocaml.LetDef (recflag, bindings)::es ->
     let theref = ref [] in
@@ -62,7 +64,7 @@ and of_tinyocaml_many (env : environment) = function
 | e::es ->
     of_tinyocaml env e::of_tinyocaml_many env es
 
-and of_tinyocaml_binding (env : environment) = function
+and of_tinyocaml_binding env = function
     (PatVar v, t) -> (v, of_tinyocaml env t)
   | _ -> failwith "unknown pattern in of_tinyocaml_binding"
 
@@ -110,21 +112,39 @@ and is_value_binding (_, x) = is_value x
 
 and is_value x = is_value_t' x.t
 
-let string_of_t e = "None"
+(* FIXME: Implement *)
+let string_of_t e = "UNIMP"
 
-let print_env_item (n, e) =
-  Printf.printf "%s: %s\n" n (string_of_t e)
+(* FIXME: Implement *)
+let string_of_bindings bs = "UNIMP"
 
-let print_env env =
+let print_env_item (n, bs) =
+  Printf.printf "%b, %s\n" n (string_of_bindings !bs)
+
+let print_env (env : environment) =
   List.iter print_env_item env
+
+let rec lookup_in_bindings v (bs : bindings) =
+  match bs with
+    [] -> None
+  | (v', e)::_ when v = v' -> Some e
+  | _::bs -> lookup_in_bindings v bs
+
+let rec lookup_in_environment v (env : environment) =
+  match env with
+    [] -> failwith "lookup_in_environment"
+  | (_, {contents = bindings})::more ->
+    match lookup_in_bindings v bindings with
+      None -> lookup_in_environment v more
+    | Some x -> x
 
 (* Eval-in-one-go. Implicit lets not really relevant here, because we just put
 them in the env. *)
-let rec eval env e =
+let rec eval (env : environment) e =
   match e.t with
     Int _ | Bool _ | Function (_, _, _) -> e
   | Var v ->
-      begin try eval env (List.assoc v env) with
+      begin try eval env (lookup_in_environment v env) with
         _ ->
          Printf.printf "Looking for %s\n" v;
          print_env env;
@@ -148,23 +168,26 @@ let rec eval env e =
       | _ -> failwith "eval-equals"
       end
   | Apply ({t = Function (v, fenv, b)}, y) ->
-      eval ((v, eval env y)::env) b
+      let new_envitem = (false, ref [(v, eval env y)]) in
+        eval (new_envitem :: fenv @ env) b
   | Apply (f, y) ->
       eval env {e with t = Apply (eval env f, eval env y)}
   | Let (recflag, bindings, e) ->
+      (* FIXME: Appending bindings to env *)
       let env' =
-        List.map
-          (fun (n, be) ->
-             let benv =
-               if recflag
-                 then bindings @ env
-                 else env
-             in
-               (n, eval benv be))
-          bindings
+         (List.map
+           (fun (n, be) ->
+              let benv =
+                if recflag
+                  then (recflag, ref bindings)::env
+                  else env
+              in
+                (n, eval benv be))
+           bindings)
       in
         eval env' e
   | LetDef (recflag, bindings) ->
+      (* FIXME: Appending bindings to env *)
       let benv =
         if recflag then bindings @ env else env
       in
