@@ -2,6 +2,10 @@ type binding = string * t
 
 and bindings = binding list
 
+and envitem = bool * binding list ref
+
+and environment = envitem list
+
 and t =
   {t : t';
    lets : (bool * bindings) list} (* The implicit value-lets around any expression *)
@@ -14,16 +18,16 @@ and t' =
 | Times of t * t
 | Minus of t * t
 | Equals of t * t
-| Let of bool * binding list * t
-| LetDef of bool * binding list
+| Let of bool * bindings * t
+| LetDef of bool * bindings
 | Apply of t * t
-| Function of string * binding list * t
+| Function of string * environment * t
 | Struct of t list
 
 let mkt x = {t = x; lets = []}
 
 (* Convert from tinyocaml, building our own fenvs *)
-let rec of_tinyocaml env = function
+let rec of_tinyocaml (env : environment) = function
   Tinyocaml.Int i -> mkt (Int i)
 | Tinyocaml.Bool b -> mkt (Bool b)
 | Tinyocaml.Var v -> mkt (Var v)
@@ -48,19 +52,17 @@ let rec of_tinyocaml env = function
     mkt (Struct (of_tinyocaml_many env es))
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
-and of_tinyocaml_many env = function
+and of_tinyocaml_many (env : environment) = function
   [] -> []
 | Tinyocaml.LetDef (recflag, bindings)::es ->
-    (* FIXME extend env when calling of_tinyocaml_binding and of_tinyocaml_many *)
-    let env' = env in
-    let e' =
-      mkt (LetDef (recflag, List.map (of_tinyocaml_binding env') bindings))
-    in
-      e'::of_tinyocaml_many env' es
+    let theref = ref [] in
+    let env' = (recflag, theref)::env in
+    theref := List.map (of_tinyocaml_binding env') bindings;
+    mkt (LetDef (recflag, !theref))::of_tinyocaml_many env' es
 | e::es ->
     of_tinyocaml env e::of_tinyocaml_many env es
 
-and of_tinyocaml_binding env = function
+and of_tinyocaml_binding (env : environment) = function
     (PatVar v, t) -> (v, of_tinyocaml env t)
   | _ -> failwith "unknown pattern in of_tinyocaml_binding"
 

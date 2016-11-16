@@ -2,6 +2,10 @@ type binding = string * t
 
 and bindings = binding list
 
+and envitem = bool * binding list ref
+
+and environment = envitem list
+
 and t =
   {t : t';
    lets : (bool * bindings) list} (* The implicit value-lets around any expression *)
@@ -17,7 +21,7 @@ and t' =
 | Let of bool * binding list * t
 | LetDef of bool * binding list
 | Apply of t * t
-| Function of string * binding list * t 
+| Function of string * environment * t 
 | Struct of t list
 
 val mkt : t' -> t
