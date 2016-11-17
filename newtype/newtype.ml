@@ -1,14 +1,12 @@
 type binding = string * t
 
-and bindings = binding list
-
 and envitem = bool * binding list ref
 
 and environment = envitem list
 
 and t =
   {t : t';
-   lets : (bool * bindings) list} (* The implicit value-lets around any expression *)
+   lets : (bool * binding list) list} (* The implicit value-lets around any expression *)
 
 and t' =
   Int of int
@@ -18,8 +16,8 @@ and t' =
 | Times of t * t
 | Minus of t * t
 | Equals of t * t
-| Let of bool * bindings * t
-| LetDef of bool * bindings
+| Let of bool * binding list * t
+| LetDef of bool * binding list
 | Apply of t * t
 | Function of string * environment * t
 | Struct of t list
@@ -124,7 +122,7 @@ let print_env_item (n, bs) =
 let print_env (env : environment) =
   List.iter print_env_item env
 
-let rec lookup_in_bindings v (bs : bindings) =
+let rec lookup_in_bindings v bs =
   match bs with
     [] -> None
   | (v', e)::_ when v = v' -> Some e
@@ -222,67 +220,37 @@ let show p =
   print_string (to_program_text p);
   print_string "\n"
 
+
+type mode =
+  FromFile of string
+| FromText of string
+
+let source = ref None
+
+let setfile s =
+  source := Some (FromFile s)
+
+let settext s =
+  source := Some (FromText s)
+
+let load_code () =
+  match !source with
+    Some (FromFile s) -> Some (Ocamliutil.load_file s)
+  | Some (FromText s) -> Some s
+  | None -> None
+
+let argspec =
+  [("-e", Arg.String settext, " Evaluate the program text given")]
+
 let _ =
-  match Sys.argv with
-    [|_; filename|] ->
-      let p = of_program_text (Ocamliutil.load_file filename) in
+  Arg.parse argspec setfile "Syntax: newtype <filename | -e program>\n";
+  match load_code () with
+    Some code ->
+      let p = of_program_text code in
         show p;
         print_string "\n";
         show (run p)
-  | _ ->
-      prerr_string "Syntax: newtype <filename>\n";
+  | None ->
+      Printf.eprintf "No source code provided.\n";
       exit 2
-
-let factorial =
-  of_program_text
-    "let rec factorial x =
-       if x = 0 then 1 else x * factorial (x - 1)
-     in
-       factorial 4"
-
-let closures =
-  of_program_text
-    "let a = 6
-     let f x = a
-     let a = 7
-     let y = f 0"
-
-(*let _ =
-  print_string (to_program_text factorial);
-  print_string "\n";
-  print_string (to_program_text (eval [] factorial));
-  print_string "\n\n"
-
-let _ =
-  print_string (to_program_text closures);
-  print_string "\n";
-  print_string (to_program_text (eval [] closures));
-  print_string "\n\n"*)
-
-(*(* let rec factorial x = if x = 0 then 1 else x * factorial (x - 1) in factorial 4 *)
-let factorial =
-  mkt (Struct [
-    mkt (Let (true,
-         [("factorial",
-           mkt (Function ("x", [], mkt (If (mkt (Equals (mkt (Var "x"), mkt (Int 0))),
-                       mkt (Int 1),
-                       mkt (Times (mkt (Var "x"),
-                                   mkt (Apply (mkt (Var "factorial"), mkt (Minus
-                                   (mkt (Var "x"), mkt (Int 1))))))))))))],
-         (mkt (Apply (mkt (Var "factorial"), mkt (Int 4))))))
-      ])
-
-(* let a = 6
- * let f x = a
- * let a = 7
- * let y = f 0 *)
-let closures =
-  mkt (Struct [mkt (LetDef (false, [("a", mkt (Int 6))]));
-               mkt (LetDef (false, [("f", mkt (Function ("x", [], mkt (Var "a"))))]));
-               mkt (LetDef (false, [("a", mkt (Int 7))]));
-               mkt (LetDef (false, [("y", mkt (Apply (mkt (Var "f"), mkt (Int
-               0))))]))])*)
-
-(*let _ =
-  if not !Sys.interactive then ignore (eval [] closures)*)
 

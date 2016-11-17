@@ -1,14 +1,12 @@
 type binding = string * t
 
-and bindings = binding list
-
 and envitem = bool * binding list ref
 
 and environment = envitem list
 
 and t =
   {t : t';
-   lets : (bool * bindings) list} (* The implicit value-lets around any expression *)
+   lets : (bool * binding list) list} (* The implicit value-lets around any expression *)
 
 and t' =
   Int of int
@@ -29,7 +27,4 @@ val mkt : t' -> t
 val of_tinyocaml : Tinyocaml.t -> t
 
 val eval : environment -> t -> t
-
-val factorial : t
-val closures : t
 
