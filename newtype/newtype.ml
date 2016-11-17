@@ -205,6 +205,53 @@ and eval_many env = function
       eval (if recflag then benv else env) e :: eval_many benv es
 | _ -> failwith "malformed struct: first not a letdef"
 
+(* Eval one step, assuming not already a value *)
+let rec seval (env : environment) e =
+  match e.t with
+  | Var v ->
+      begin try lookup_in_environment v env with
+        _ ->
+         Printf.printf "Looking for %s\n" v;
+         print_env env;
+         raise Exit
+      end
+  | If ({t = Bool true}, x, _) | If ({t = Bool false}, _, x) -> x
+  | If (c, x, y) -> {e with t = If (seval env c, x, y)}
+  | Times ({t = Int a}, {t = Int b}) -> {e with t = Int (a * b)}
+  | Times ({t = Int _} as a, b) -> {e with t = Times (seval env a, b)}
+  | Times (a, b) -> {e with t = Times (a, seval env b)}
+  | Minus ({t = Int a}, {t = Int b}) -> {e with t = Int (a - b)}
+  | Minus ({t = Int _} as a, b) -> {e with t = Minus (seval env a, b)}
+  | Minus (a, b) -> {e with t = Minus (a, seval env b)}
+  | Equals ({t = Int a}, {t = Int b}) -> {e with t = Bool (a = b)}
+  | Equals ({t = Bool a}, {t = Bool b}) -> {e with t = Bool (a = b)}
+  | Equals ({t = Int _ | Bool _} as a, b) -> {e with t = Equals (a, seval env b)}
+  | Equals (a, b) -> {e with t = Equals (seval env a, b)}
+  | Let (recflag, bindings, e) ->
+      (* There must be a non-value binding, because if there was not, this would
+       * be in the implicit lets. So 'e' never needs to be touched. But, we may
+       * have to move this let, if *)
+      let new_bindings = seval_first_non_value_binding env bindings in
+        if bindings_are_values new_bindings then
+          (* put implicit lets in, new expression is 'e' *)
+        else
+          {e with t = Let (recflag, new_bindings, e)}
+  | LetDef (recflag, bindings) ->
+      {e with t = LetDef (recflag, seval_first_non_value_binding env bindings)}
+  | Apply ({t = Function (v, fenv, b)} as f, x) ->
+      if is_value x then
+        let new_envitem = envitem_of_bindings false [(v, x)] in
+          seval (new_envitem :: fenv @ env) b
+      else
+        {e with t = Apply (f, seval env x)}
+  | Struct items -> {e with t = Struct (seval_first_non_value env items)}
+  | Int _ | Bool _ | Function _ -> failwith "already a value"
+
+and seval_first_non_value env = function
+  [] -> failwith "empty program"
+| h::t when is_value h -> h::seval_first_non_value env t
+| h::t -> seval env h::t
+
 (* string -> ocaml ast -> tinyocaml ast -> newtype ast *)
 let of_program_text s =
   of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
@@ -219,7 +266,6 @@ let run p = eval [] p
 let show p =
   print_string (to_program_text p);
   print_string "\n"
-
 
 type mode =
   FromFile of string
