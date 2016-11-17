@@ -28,7 +28,7 @@ val mkt : t' -> t
 
 val of_tinyocaml : Tinyocaml.t -> t
 
-val eval : binding list -> t -> t
+val eval : environment -> t -> t
 
 val factorial : t
 val closures : t

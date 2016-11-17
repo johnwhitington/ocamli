@@ -138,6 +138,9 @@ let rec lookup_in_environment v (env : environment) =
       None -> lookup_in_environment v more
     | Some x -> x
 
+let envitem_of_bindings recflag bindings =
+  (recflag, ref bindings)
+
 (* Eval-in-one-go. Implicit lets not really relevant here, because we just put
 them in the env. *)
 let rec eval (env : environment) e =
@@ -168,28 +171,28 @@ let rec eval (env : environment) e =
       | _ -> failwith "eval-equals"
       end
   | Apply ({t = Function (v, fenv, b)}, y) ->
-      let new_envitem = (false, ref [(v, eval env y)]) in
+      let new_envitem = envitem_of_bindings false [(v, eval env y)] in
         eval (new_envitem :: fenv @ env) b
   | Apply (f, y) ->
       eval env {e with t = Apply (eval env f, eval env y)}
   | Let (recflag, bindings, e) ->
-      (* FIXME: Appending bindings to env *)
       let env' =
-         (List.map
-           (fun (n, be) ->
-              let benv =
-                if recflag
-                  then (recflag, ref bindings)::env
-                  else env
-              in
-                (n, eval benv be))
-           bindings)
+         envitem_of_bindings recflag
+           (List.map
+             (fun (n, be) ->
+                let benv =
+                  if recflag
+                    then envitem_of_bindings recflag bindings :: env
+                    else env
+                in
+                  (n, eval benv be))
+             bindings)
+         :: env
       in
         eval env' e
   | LetDef (recflag, bindings) ->
-      (* FIXME: Appending bindings to env *)
       let benv =
-        if recflag then bindings @ env else env
+        if recflag then envitem_of_bindings recflag bindings :: env else env
       in
         {e with t =
           LetDef (recflag, List.map (fun (n, be) -> (n, eval benv be)) bindings)}
@@ -200,7 +203,7 @@ and eval_many env = function
   [] -> []
 | [e] -> [eval env e]
 | {t = LetDef (recflag, bindings)} as e::es ->
-    let benv = bindings @ env in
+    let benv = envitem_of_bindings recflag bindings :: env in
       eval (if recflag then benv else env) e :: eval_many benv es
 | _ -> failwith "malformed struct: first not a letdef"
 
