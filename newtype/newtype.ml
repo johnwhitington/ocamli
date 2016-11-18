@@ -24,12 +24,24 @@ and t' =
 
 let mkt x = {t = x; lets = []}
 
+let rec is_value_t' = function
+  If (a, b, c) -> is_value a && is_value b && is_value c
+| Times (a, b) | Minus (a, b) | Equals (a, b) | Apply (a, b) -> is_value a && is_value b
+| Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
+| LetDef (_, bs) -> List.for_all is_value_binding bs
+| Struct xs -> List.for_all is_value xs
+| Var _ -> false
+| Int _ | Bool _ | Function _ -> true
+
+and is_value_binding (_, x) = is_value x
+
+and is_value x = is_value_t' x.t
+
 (* Convert from tinyocaml, building our own fenvs *)
 let rec of_tinyocaml env = function
   Tinyocaml.Int i -> mkt (Int i)
 | Tinyocaml.Bool b -> mkt (Bool b)
 | Tinyocaml.Var v -> mkt (Var v)
-| Tinyocaml.If (a, b, None) -> failwith "no single-arm ifs please"
 | Tinyocaml.If (a, b, Some c) ->
     mkt (If (of_tinyocaml env a, of_tinyocaml env b, of_tinyocaml env c))
 | Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
@@ -42,7 +54,12 @@ let rec of_tinyocaml env = function
     let theref = ref [] in
     let env' = (recflag, theref)::env in
     theref := List.map (of_tinyocaml_binding env') bindings;
-    mkt (Let (recflag, !theref, of_tinyocaml env' e))
+    let of_e = of_tinyocaml env' e in
+    (* If all bindings are values, put this in as an implicit let. *)
+    if List.for_all is_value_binding !theref then
+      {t = of_e.t; lets = (recflag, !theref)::of_e.lets}
+    else
+      mkt (Let (recflag, !theref, of_e))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Fun (_, PatVar v, e, fenv) ->
     mkt (Function (v, env, of_tinyocaml env e))
@@ -69,46 +86,40 @@ and of_tinyocaml_binding env = function
 let of_tinyocaml x = of_tinyocaml [] x
 
 let rec to_tinyocaml e =
-  match e.t with
-    Int i -> Tinyocaml.Int i
-  | Bool b -> Tinyocaml.Bool b
-  | Var v -> Tinyocaml.Var v
-  | If (a, b, c) ->
-      Tinyocaml.If (to_tinyocaml a, to_tinyocaml b, Some (to_tinyocaml c))
-  | Times (a, b) ->
-      Tinyocaml.Op (Tinyocaml.Mul, to_tinyocaml a, to_tinyocaml b)
-  | Minus (a, b) ->
-      Tinyocaml.Op (Tinyocaml.Sub, to_tinyocaml a, to_tinyocaml b)
-  | Equals (a, b) ->
-      Tinyocaml.Cmp (Tinyocaml.EQ, to_tinyocaml a, to_tinyocaml b)
-  | Let (recflag, bindings, e) ->
-      Tinyocaml.Let (recflag, List.map to_tinyocaml_binding bindings, to_tinyocaml e)
-  | LetDef (recflag, bindings) ->
-      Tinyocaml.LetDef (recflag, List.map to_tinyocaml_binding bindings)
-  | Apply (a, b) ->
-      Tinyocaml.App (to_tinyocaml a, to_tinyocaml b)
-  | Function (v, fenv, e) ->
-      Tinyocaml.Fun
-        (Tinyocaml.NoLabel, Tinyocaml.PatVar v, to_tinyocaml e, to_tinyocaml_fenv fenv)
-  | Struct es -> Tinyocaml.Struct (true, List.map to_tinyocaml es)
+  match e.lets with
+    (recflag, bindings)::t ->
+      Tinyocaml.Let
+        (recflag,
+         List.map to_tinyocaml_binding bindings,
+         to_tinyocaml {e with lets = t})
+  | [] ->
+      match e.t with
+        Int i -> Tinyocaml.Int i
+      | Bool b -> Tinyocaml.Bool b
+      | Var v -> Tinyocaml.Var v
+      | If (a, b, c) ->
+          Tinyocaml.If (to_tinyocaml a, to_tinyocaml b, Some (to_tinyocaml c))
+      | Times (a, b) ->
+          Tinyocaml.Op (Tinyocaml.Mul, to_tinyocaml a, to_tinyocaml b)
+      | Minus (a, b) ->
+          Tinyocaml.Op (Tinyocaml.Sub, to_tinyocaml a, to_tinyocaml b)
+      | Equals (a, b) ->
+          Tinyocaml.Cmp (Tinyocaml.EQ, to_tinyocaml a, to_tinyocaml b)
+      | Let (recflag, bindings, e) ->
+          Tinyocaml.Let (recflag, List.map to_tinyocaml_binding bindings, to_tinyocaml e)
+      | LetDef (recflag, bindings) ->
+          Tinyocaml.LetDef (recflag, List.map to_tinyocaml_binding bindings)
+      | Apply (a, b) ->
+          Tinyocaml.App (to_tinyocaml a, to_tinyocaml b)
+      | Function (v, fenv, e) ->
+          Tinyocaml.Fun
+            (Tinyocaml.NoLabel, Tinyocaml.PatVar v, to_tinyocaml e, to_tinyocaml_fenv fenv)
+      | Struct es -> Tinyocaml.Struct (true, List.map to_tinyocaml es)
 
 and to_tinyocaml_binding (v, t) =
   (PatVar v, to_tinyocaml t)
 
 and to_tinyocaml_fenv envitems = [] (* Just used for printing. fenv doesn't matter *)
-
-let rec is_value_t' = function
-  If (a, b, c) -> is_value a && is_value b && is_value c
-| Times (a, b) | Minus (a, b) | Equals (a, b) | Apply (a, b) -> is_value a && is_value b
-| Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
-| LetDef (_, bs) -> List.for_all is_value_binding bs
-| Struct xs -> List.for_all is_value xs
-| Var _ -> false
-| Int _ | Bool _ | Function _ -> true
-
-and is_value_binding (_, x) = is_value x
-
-and is_value x = is_value_t' x.t
 
 (* FIXME: Implement *)
 let string_of_t e = "UNIMP"
@@ -207,6 +218,7 @@ and eval_many env = function
 
 (* Eval one step, assuming not already a value *)
 let rec seval (env : environment) e =
+  (* FIXME Here, put implicit lets into the environment *)
   match e.t with
   | Var v ->
       begin try lookup_in_environment v env with
@@ -227,15 +239,15 @@ let rec seval (env : environment) e =
   | Equals ({t = Bool a}, {t = Bool b}) -> {e with t = Bool (a = b)}
   | Equals ({t = Int _ | Bool _} as a, b) -> {e with t = Equals (a, seval env b)}
   | Equals (a, b) -> {e with t = Equals (seval env a, b)}
-  | Let (recflag, bindings, e) ->
-      (* There must be a non-value binding, because if there was not, this would
+  (*| Let (recflag, bindings, e) ->
+      (* FIXME There must be a non-value binding, because if there was not, this would
        * be in the implicit lets. So 'e' never needs to be touched. But, we may
-       * have to move this let, if *)
+       * have to move this let, if it is now a value. *)
       let new_bindings = seval_first_non_value_binding env bindings in
         if bindings_are_values new_bindings then
-          (* put implicit lets in, new expression is 'e' *)
+          (* FIXME put implicit lets in, new expression is 'e' *)
         else
-          {e with t = Let (recflag, new_bindings, e)}
+          {e with t = Let (recflag, new_bindings, e)}*)
   | LetDef (recflag, bindings) ->
       {e with t = LetDef (recflag, seval_first_non_value_binding env bindings)}
   | Apply ({t = Function (v, fenv, b)} as f, x) ->
@@ -246,6 +258,9 @@ let rec seval (env : environment) e =
         {e with t = Apply (f, seval env x)}
   | Struct items -> {e with t = Struct (seval_first_non_value env items)}
   | Int _ | Bool _ | Function _ -> failwith "already a value"
+
+and seval_first_non_value_binding env = function
+  [] -> failwith "no non-value binding: this should be an implicit let"
 
 and seval_first_non_value env = function
   [] -> failwith "empty program"
@@ -285,8 +300,11 @@ let load_code () =
   | Some (FromText s) -> Some s
   | None -> None
 
+let step = ref false
+
 let argspec =
-  [("-e", Arg.String settext, " Evaluate the program text given")]
+  [("-e", Arg.String settext, " Evaluate the program text given");
+   ("-step", Arg.Set step, " Evaluate step-by-step")]
 
 let _ =
   Arg.parse argspec setfile "Syntax: newtype <filename | -e program>\n";
