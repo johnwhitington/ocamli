@@ -121,11 +121,46 @@ and to_tinyocaml_binding (v, t) =
 
 and to_tinyocaml_fenv envitems = [] (* Just used for printing. fenv doesn't matter *)
 
-(* FIXME: Implement *)
-let string_of_t e = "UNIMP"
+let rec string_of_t' = function
+  Int i -> Printf.sprintf "Int %i" i
+| Bool b -> Printf.sprintf "Bool %b" b
+| Var v -> Printf.sprintf "Var %s" v
+| If (a, b, c) ->
+    Printf.sprintf "If (%s, %s, %s)" (string_of_t a) (string_of_t b) (string_of_t c)
+| Times (a, b) -> Printf.sprintf "Times (%s, %s)" (string_of_t a) (string_of_t b)
+| Minus (a, b) -> Printf.sprintf "Minus (%s, %s)" (string_of_t a) (string_of_t b)
+| Equals (a, b) -> Printf.sprintf "Equals (%s, %s)" (string_of_t a) (string_of_t b)
+| Let (recflag, bindings, e) ->
+    Printf.sprintf "Let %b, [%s], %s" recflag (string_of_bindings bindings) (string_of_t e) 
+| LetDef (recflag, bindings) ->
+    Printf.sprintf "LetDef %b, [%s]" recflag (string_of_bindings bindings)
+| Apply (f, x) ->
+    Printf.sprintf "Apply (%s, %s)" (string_of_t f) (string_of_t x)
+| Function (v, _, e) ->
+    Printf.sprintf "Function (%s, %s)" v (string_of_t e)
+| Struct ts ->
+    Printf.sprintf "Struct %s"
+      (List.fold_left (fun x y -> x ^ "\n" ^ y) "" (List.map string_of_t ts))
 
-(* FIXME: Implement *)
-let string_of_bindings bs = "UNIMP"
+and string_of_implicit_lets = function
+  [] -> ""
+| (recflag, bindings)::more ->
+     Printf.sprintf "%b, %s\n" recflag (string_of_bindings bindings) ^
+     string_of_implicit_lets more
+
+and string_of_t e =
+  string_of_implicit_lets e.lets ^
+  "\n" ^
+  string_of_t' e.t
+
+and string_of_binding (varname, t) =
+  Printf.sprintf "Binding %s" varname
+
+and string_of_bindings bs =
+  List.fold_left
+    (fun a b -> a ^ "\n" ^ b)
+    ""
+    (List.map string_of_binding bs)
 
 let print_env_item (n, bs) =
   Printf.printf "%b, %s\n" n (string_of_bindings !bs)
@@ -150,63 +185,71 @@ let rec lookup_in_environment v (env : environment) =
 let envitem_of_bindings recflag bindings =
   (recflag, ref bindings)
 
+let rec add_implicit_lets_to_environment env = function
+  [] -> env
+| (recflag, bindings)::more ->
+    add_implicit_lets_to_environment
+      ((envitem_of_bindings recflag bindings)::env)
+      more
+
 (* Eval-in-one-go. Implicit lets not really relevant here, because we just put
 them in the env. *)
 let rec eval (env : environment) e =
-  match e.t with
-    Int _ | Bool _ | Function (_, _, _) -> e
-  | Var v ->
-      begin try eval env (lookup_in_environment v env) with
-        _ ->
-         Printf.printf "Looking for %s\n" v;
-         print_env env;
-         raise Exit
-      end
-  | If ({t = Bool b}, x, y) -> eval env (if b then x else y)
-  | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}
-  | Times (x, y) ->
-      begin match (eval env x).t, (eval env y).t with
-        Int x, Int y -> mkt (Int (x * y))
-      | _ -> failwith "eval-times"
-      end
-  | Minus (x, y) ->
-      begin match (eval env x).t, (eval env y).t with
-        Int x, Int y -> mkt (Int (x - y))
-      | _ -> failwith "eval-minus"
-      end
-  | Equals (x, y) ->
-      begin match (eval env x).t, (eval env y).t with
-        Int x, Int y -> mkt (Bool (x = y))
-      | _ -> failwith "eval-equals"
-      end
-  | Apply ({t = Function (v, fenv, b)}, y) ->
-      let new_envitem = envitem_of_bindings false [(v, eval env y)] in
-        eval (new_envitem :: fenv @ env) b
-  | Apply (f, y) ->
-      eval env {e with t = Apply (eval env f, eval env y)}
-  | Let (recflag, bindings, e) ->
-      let env' =
-         envitem_of_bindings recflag
-           (List.map
-             (fun (n, be) ->
-                let benv =
-                  if recflag
-                    then envitem_of_bindings recflag bindings :: env
-                    else env
-                in
-                  (n, eval benv be))
-             bindings)
-         :: env
-      in
-        eval env' e
-  | LetDef (recflag, bindings) ->
-      let benv =
-        if recflag then envitem_of_bindings recflag bindings :: env else env
-      in
-        {e with t =
-          LetDef (recflag, List.map (fun (n, be) -> (n, eval benv be)) bindings)}
-  | Struct es ->
-      {e with t = Struct (eval_many env es)}
+  let env = add_implicit_lets_to_environment env (List.rev e.lets) in
+    match e.t with
+      Int _ | Bool _ | Function (_, _, _) -> e
+    | Var v ->
+        begin try eval env (lookup_in_environment v env) with
+          _ ->
+           Printf.printf "Looking for %s\n" v;
+           print_env env;
+           raise Exit
+        end
+    | If ({t = Bool b}, x, y) -> eval env (if b then x else y)
+    | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}
+    | Times (x, y) ->
+        begin match (eval env x).t, (eval env y).t with
+          Int x, Int y -> mkt (Int (x * y))
+        | _ -> failwith "eval-times"
+        end
+    | Minus (x, y) ->
+        begin match (eval env x).t, (eval env y).t with
+          Int x, Int y -> mkt (Int (x - y))
+        | _ -> failwith "eval-minus"
+        end
+    | Equals (x, y) ->
+        begin match (eval env x).t, (eval env y).t with
+          Int x, Int y -> mkt (Bool (x = y))
+        | _ -> failwith "eval-equals"
+        end
+    | Apply ({t = Function (v, fenv, b)}, y) ->
+        let new_envitem = envitem_of_bindings false [(v, eval env y)] in
+          eval (new_envitem :: fenv @ env) b
+    | Apply (f, y) ->
+        eval env {e with t = Apply (eval env f, eval env y)}
+    | Let (recflag, bindings, e) ->
+        let env' =
+           envitem_of_bindings recflag
+             (List.map
+               (fun (n, be) ->
+                  let benv =
+                    if recflag
+                      then envitem_of_bindings recflag bindings :: env
+                      else env
+                  in
+                    (n, eval benv be))
+               bindings)
+           :: env
+        in
+          eval env' e
+    | LetDef (recflag, bindings) ->
+        let benv =
+          if recflag then envitem_of_bindings recflag bindings :: env else env
+        in
+          {e with t =
+            LetDef (recflag, List.map (fun (n, be) -> (n, eval benv be)) bindings)}
+    | Struct es ->
+        {e with t = Struct (eval_many env es)}
 
 and eval_many env = function
   [] -> []
