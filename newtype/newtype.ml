@@ -338,9 +338,9 @@ let show p =
 let run p = eval [] p
 
 let rec run_step p =
+  show p;
   if is_value p then () else
     let p' = seval [] p in
-      show p;
       run_step p'
 
 type mode =
