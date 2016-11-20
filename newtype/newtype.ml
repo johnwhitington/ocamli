@@ -261,54 +261,66 @@ and eval_many env = function
 
 (* Eval one step, assuming not already a value *)
 let rec seval (env : environment) e =
-  (* FIXME Here, put implicit lets into the environment *)
-  match e.t with
-  | Var v ->
-      begin try lookup_in_environment v env with
-        _ ->
-         Printf.printf "Looking for %s\n" v;
-         print_env env;
-         raise Exit
-      end
-  | If ({t = Bool true}, x, _) | If ({t = Bool false}, _, x) -> x
-  | If (c, x, y) -> {e with t = If (seval env c, x, y)}
-  | Times ({t = Int a}, {t = Int b}) -> {e with t = Int (a * b)}
-  | Times ({t = Int _} as a, b) -> {e with t = Times (seval env a, b)}
-  | Times (a, b) -> {e with t = Times (a, seval env b)}
-  | Minus ({t = Int a}, {t = Int b}) -> {e with t = Int (a - b)}
-  | Minus ({t = Int _} as a, b) -> {e with t = Minus (seval env a, b)}
-  | Minus (a, b) -> {e with t = Minus (a, seval env b)}
-  | Equals ({t = Int a}, {t = Int b}) -> {e with t = Bool (a = b)}
-  | Equals ({t = Bool a}, {t = Bool b}) -> {e with t = Bool (a = b)}
-  | Equals ({t = Int _ | Bool _} as a, b) -> {e with t = Equals (a, seval env b)}
-  | Equals (a, b) -> {e with t = Equals (seval env a, b)}
-  (*| Let (recflag, bindings, e) ->
-      (* FIXME There must be a non-value binding, because if there was not, this would
-       * be in the implicit lets. So 'e' never needs to be touched. But, we may
-       * have to move this let, if it is now a value. *)
-      let new_bindings = seval_first_non_value_binding env bindings in
-        if bindings_are_values new_bindings then
-          (* FIXME put implicit lets in, new expression is 'e' *)
+  let env = add_implicit_lets_to_environment env (List.rev e.lets) in
+    match e.t with
+    | Var v ->
+        begin try lookup_in_environment v env with
+          _ ->
+           Printf.printf "Looking for %s\n" v;
+           print_env env;
+           raise Exit
+        end
+    | If ({t = Bool true}, x, _) | If ({t = Bool false}, _, x) -> x
+    | If (c, x, y) -> {e with t = If (seval env c, x, y)}
+    | Times ({t = Int a}, {t = Int b}) -> {e with t = Int (a * b)}
+    | Times ({t = Int _} as a, b) -> {e with t = Times (seval env a, b)}
+    | Times (a, b) -> {e with t = Times (a, seval env b)}
+    | Minus ({t = Int a}, {t = Int b}) -> {e with t = Int (a - b)}
+    | Minus ({t = Int _} as a, b) -> {e with t = Minus (seval env a, b)}
+    | Minus (a, b) -> {e with t = Minus (a, seval env b)}
+    | Equals ({t = Int a}, {t = Int b}) -> {e with t = Bool (a = b)}
+    | Equals ({t = Bool a}, {t = Bool b}) -> {e with t = Bool (a = b)}
+    | Equals ({t = Int _ | Bool _} as a, b) -> {e with t = Equals (a, seval env b)}
+    | Equals (a, b) -> {e with t = Equals (seval env a, b)}
+    | Let (recflag, bindings, e') ->
+        let new_bindings = seval_first_non_value_binding env bindings in
+          if List.for_all is_value_binding new_bindings then
+            {lets = (recflag, new_bindings)::e.lets @ e'.lets;
+             t = e'.t}
+          else
+            {e with t = Let (recflag, new_bindings, e')}
+    | Apply ({t = Function (v, fenv, b)} as f, x) ->
+        if is_value x then
+          let new_envitem = envitem_of_bindings false [(v, x)] in
+            seval (new_envitem :: fenv @ env) b
         else
-          {e with t = Let (recflag, new_bindings, e)}*)
-  | LetDef (recflag, bindings) ->
-      {e with t = LetDef (recflag, seval_first_non_value_binding env bindings)}
-  | Apply ({t = Function (v, fenv, b)} as f, x) ->
-      if is_value x then
-        let new_envitem = envitem_of_bindings false [(v, x)] in
-          seval (new_envitem :: fenv @ env) b
-      else
-        {e with t = Apply (f, seval env x)}
-  | Struct items -> {e with t = Struct (seval_first_non_value env items)}
-  | Int _ | Bool _ | Function _ -> failwith "already a value"
-
-and seval_first_non_value_binding env = function
-  [] -> failwith "no non-value binding: this should be an implicit let"
+          {e with t = Apply (f, seval env x)}
+    | Apply (f, x) -> {e with t = Apply (seval env f, x)}
+    | Struct items -> {e with t = Struct (seval_first_non_value env items)}
+    | LetDef _ -> failwith "LetDef not in a struct"
+    | Int _ | Bool _ | Function _ -> failwith "already a value"
 
 and seval_first_non_value env = function
-  [] -> failwith "empty program"
+  [] -> []
+| {t = LetDef (recflag, bindings)} as h::more ->
+     let env = add_implicit_lets_to_environment env (List.rev h.lets) in
+       if is_value h then
+         h::
+           seval_first_non_value
+             (envitem_of_bindings recflag bindings :: env)
+             more
+       else
+         {h with t =
+           LetDef (recflag, seval_first_non_value_binding env bindings)}::more
 | h::t when is_value h -> h::seval_first_non_value env t
 | h::t -> seval env h::t
+
+and seval_first_non_value_binding env = function
+  [] -> []
+| (n, e)::t ->
+    if is_value e
+      then (n, e)::seval_first_non_value_binding env t
+      else (n, seval env e)::t
 
 (* string -> ocaml ast -> tinyocaml ast -> newtype ast *)
 let of_program_text s =
@@ -318,12 +330,18 @@ let of_program_text s =
 let to_program_text x =
   Pptinyocaml.to_string (to_tinyocaml x)
 
-(* Run the program p *)
-let run p = eval [] p
-
 let show p =
   print_string (to_program_text p);
   print_string "\n"
+
+(* Run the program p *)
+let run p = eval [] p
+
+let rec run_step p =
+  if is_value p then () else
+    let p' = seval [] p in
+      show p;
+      run_step p'
 
 type mode =
   FromFile of string
@@ -354,9 +372,14 @@ let _ =
   match load_code () with
     Some code ->
       let p = of_program_text code in
-        show p;
-        print_string "\n";
-        show (run p)
+        if !step then
+          run_step p
+        else
+          begin
+            show p;
+            print_string "\n";
+            show (run p)
+          end
   | None ->
       Printf.eprintf "No source code provided.\n";
       exit 2
