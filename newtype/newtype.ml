@@ -6,7 +6,7 @@ and environment = envitem list
 
 and t =
   {t : t';
-   lets : (bool * binding list) list} (* The implicit value-lets around any expression *)
+   lets : (bool * binding list) list}
 
 and t' =
   Int of int
@@ -25,13 +25,11 @@ and t' =
 let mkt x = {t = x; lets = []}
 
 let rec is_value_t' = function
-  If (a, b, c) -> is_value a && is_value b && is_value c
-| Times (a, b) | Minus (a, b) | Equals (a, b) | Apply (a, b) -> is_value a && is_value b
 | Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
 | LetDef (_, bs) -> List.for_all is_value_binding bs
 | Struct xs -> List.for_all is_value xs
-| Var _ -> false
 | Int _ | Bool _ | Function _ -> true
+| _ -> false
 
 and is_value_binding (_, x) = is_value x
 
@@ -261,6 +259,7 @@ and eval_many env = function
 
 (* Eval one step, assuming not already a value *)
 let rec seval (env : environment) e =
+  (*Printf.printf "seval:: %s\n" (string_of_t' e.t);*)
   let env = add_implicit_lets_to_environment env (List.rev e.lets) in
     match e.t with
     | Var v ->
@@ -273,11 +272,11 @@ let rec seval (env : environment) e =
     | If ({t = Bool true}, x, _) | If ({t = Bool false}, _, x) -> x
     | If (c, x, y) -> {e with t = If (seval env c, x, y)}
     | Times ({t = Int a}, {t = Int b}) -> {e with t = Int (a * b)}
-    | Times ({t = Int _} as a, b) -> {e with t = Times (seval env a, b)}
-    | Times (a, b) -> {e with t = Times (a, seval env b)}
+    | Times ({t = Int _} as a, b) -> {e with t = Times (a, seval env b)}
+    | Times (a, b) -> {e with t = Times (seval env a, b)}
     | Minus ({t = Int a}, {t = Int b}) -> {e with t = Int (a - b)}
-    | Minus ({t = Int _} as a, b) -> {e with t = Minus (seval env a, b)}
-    | Minus (a, b) -> {e with t = Minus (a, seval env b)}
+    | Minus ({t = Int _} as a, b) -> {e with t = Minus (a, seval env b)}
+    | Minus (a, b) -> {e with t = Minus (seval env a, b)}
     | Equals ({t = Int a}, {t = Int b}) -> {e with t = Bool (a = b)}
     | Equals ({t = Bool a}, {t = Bool b}) -> {e with t = Bool (a = b)}
     | Equals ({t = Int _ | Bool _} as a, b) -> {e with t = Equals (a, seval env b)}
@@ -298,7 +297,8 @@ let rec seval (env : environment) e =
     | Apply (f, x) -> {e with t = Apply (seval env f, x)}
     | Struct items -> {e with t = Struct (seval_first_non_value env items)}
     | LetDef _ -> failwith "LetDef not in a struct"
-    | Int _ | Bool _ | Function _ -> failwith "already a value"
+    | _ ->
+        failwith (Printf.sprintf "seval: %s already a value" (string_of_t e))
 
 and seval_first_non_value env = function
   [] -> []
