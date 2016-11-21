@@ -1,3 +1,5 @@
+type op = Add | Sub | Mul | Div
+
 type binding = string * t
 
 and envitem = bool * binding list ref
@@ -13,8 +15,7 @@ and t' =
 | Bool of bool
 | Var of string
 | If of t * t * t
-| Times of t * t
-| Minus of t * t
+| Op of op * t * t
 | Equals of t * t
 | Let of bool * binding list * t
 | LetDef of bool * binding list

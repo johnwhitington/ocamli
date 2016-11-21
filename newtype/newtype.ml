@@ -1,3 +1,11 @@
+type op = Add | Sub | Mul | Div
+
+let string_of_op = function
+  Add -> "Add"
+| Sub -> "Sub"
+| Mul -> "Mul"
+| Div -> "Div"
+
 type binding = string * t
 
 and envitem = bool * binding list ref
@@ -13,8 +21,7 @@ and t' =
 | Bool of bool
 | Var of string
 | If of t * t * t
-| Times of t * t
-| Minus of t * t
+| Op of op * t * t
 | Equals of t * t
 | Let of bool * binding list * t
 | LetDef of bool * binding list
@@ -43,9 +50,13 @@ let rec of_tinyocaml env = function
 | Tinyocaml.If (a, b, Some c) ->
     mkt (If (of_tinyocaml env a, of_tinyocaml env b, of_tinyocaml env c))
 | Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
-    mkt (Times (of_tinyocaml env a, of_tinyocaml env b))
+    mkt (Op (Mul, of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Op (Tinyocaml.Sub, a, b) ->
-    mkt (Minus (of_tinyocaml env a, of_tinyocaml env b))
+    mkt (Op (Sub, of_tinyocaml env a, of_tinyocaml env b))
+| Tinyocaml.Op (Tinyocaml.Add, a, b) ->
+    mkt (Op (Add, of_tinyocaml env a, of_tinyocaml env b))
+| Tinyocaml.Op (Tinyocaml.Div, a, b) ->
+    mkt (Op (Div, of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Cmp (Tinyocaml.EQ, a, b) ->
     mkt (Equals (of_tinyocaml env a, of_tinyocaml env b))
 | Tinyocaml.Let (recflag, bindings, e) ->
@@ -97,10 +108,14 @@ let rec to_tinyocaml e =
       | Var v -> Tinyocaml.Var v
       | If (a, b, c) ->
           Tinyocaml.If (to_tinyocaml a, to_tinyocaml b, Some (to_tinyocaml c))
-      | Times (a, b) ->
+      | Op (Mul, a, b) ->
           Tinyocaml.Op (Tinyocaml.Mul, to_tinyocaml a, to_tinyocaml b)
-      | Minus (a, b) ->
+      | Op (Sub, a, b) ->
           Tinyocaml.Op (Tinyocaml.Sub, to_tinyocaml a, to_tinyocaml b)
+      | Op (Add, a, b) ->
+          Tinyocaml.Op (Tinyocaml.Add, to_tinyocaml a, to_tinyocaml b)
+      | Op (Div, a, b) ->
+          Tinyocaml.Op (Tinyocaml.Div, to_tinyocaml a, to_tinyocaml b)
       | Equals (a, b) ->
           Tinyocaml.Cmp (Tinyocaml.EQ, to_tinyocaml a, to_tinyocaml b)
       | Let (recflag, bindings, e) ->
@@ -125,8 +140,7 @@ let rec string_of_t' = function
 | Var v -> Printf.sprintf "Var %s" v
 | If (a, b, c) ->
     Printf.sprintf "If (%s, %s, %s)" (string_of_t a) (string_of_t b) (string_of_t c)
-| Times (a, b) -> Printf.sprintf "Times (%s, %s)" (string_of_t a) (string_of_t b)
-| Minus (a, b) -> Printf.sprintf "Minus (%s, %s)" (string_of_t a) (string_of_t b)
+| Op (op, a, b) -> Printf.sprintf "%s (%s, %s)" (string_of_op op) (string_of_t a) (string_of_t b)
 | Equals (a, b) -> Printf.sprintf "Equals (%s, %s)" (string_of_t a) (string_of_t b)
 | Let (recflag, bindings, e) ->
     Printf.sprintf "Let %b, [%s], %s" recflag (string_of_bindings bindings) (string_of_t e) 
@@ -190,6 +204,12 @@ let rec add_implicit_lets_to_environment env = function
       ((envitem_of_bindings recflag bindings)::env)
       more
 
+let real_op = function
+  Mul -> ( * )
+| Div -> ( / )
+| Add -> ( + )
+| Sub -> ( - )
+
 (* Eval-in-one-go. Implicit lets not really relevant here, because we just put
 them in the env. *)
 let rec eval (env : environment) e =
@@ -205,14 +225,9 @@ let rec eval (env : environment) e =
         end
     | If ({t = Bool b}, x, y) -> eval env (if b then x else y)
     | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}
-    | Times (x, y) ->
+    | Op (op, x, y) ->
         begin match (eval env x).t, (eval env y).t with
-          Int x, Int y -> mkt (Int (x * y))
-        | _ -> failwith "eval-times"
-        end
-    | Minus (x, y) ->
-        begin match (eval env x).t, (eval env y).t with
-          Int x, Int y -> mkt (Int (x - y))
+          Int x, Int y -> mkt (Int (real_op op x y))
         | _ -> failwith "eval-minus"
         end
     | Equals (x, y) ->
@@ -269,14 +284,12 @@ let rec seval (env : environment) e =
            print_env env;
            raise Exit
         end
-    | If ({t = Bool true}, x, _) | If ({t = Bool false}, _, x) -> x
+    | If ({t = Bool true}, x, _) | If ({t = Bool false}, _, x) ->
+        {x with lets = e.lets @ x.lets}
     | If (c, x, y) -> {e with t = If (seval env c, x, y)}
-    | Times ({t = Int a}, {t = Int b}) -> {e with t = Int (a * b)}
-    | Times ({t = Int _} as a, b) -> {e with t = Times (a, seval env b)}
-    | Times (a, b) -> {e with t = Times (seval env a, b)}
-    | Minus ({t = Int a}, {t = Int b}) -> {e with t = Int (a - b)}
-    | Minus ({t = Int _} as a, b) -> {e with t = Minus (a, seval env b)}
-    | Minus (a, b) -> {e with t = Minus (seval env a, b)}
+    | Op (op, {t = Int a}, {t = Int b}) -> {e with t = Int (real_op op a b)}
+    | Op (op, ({t = Int _} as a), b) -> {e with t = Op (op, a, seval env b)}
+    | Op (op, a, b) -> {e with t = Op (op, seval env a, b)}
     | Equals ({t = Int a}, {t = Int b}) -> {e with t = Bool (a = b)}
     | Equals ({t = Bool a}, {t = Bool b}) -> {e with t = Bool (a = b)}
     | Equals ({t = Int _ | Bool _} as a, b) -> {e with t = Equals (a, seval env b)}
@@ -293,7 +306,9 @@ let rec seval (env : environment) e =
           let new_envitem = envitem_of_bindings false [(v, x)] in
             seval (new_envitem :: fenv @ env) b
         else
-          {e with t = Apply (f, seval env x)}
+          let new_let = (false, [(v, x)]) in
+            {e with t =
+              Apply ({f with lets = new_let::e.lets}, seval env x)}
     | Apply (f, x) -> {e with t = Apply (seval env f, x)}
     | Struct items -> {e with t = Struct (seval_first_non_value env items)}
     | LetDef _ -> failwith "LetDef not in a struct"
