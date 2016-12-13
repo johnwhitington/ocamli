@@ -6,6 +6,8 @@ type prog =
 
 type assoc = L | N | R
 
+type stack = prog list
+
 let assoc = function
   Op _ -> L
 | Int _ -> N
@@ -42,7 +44,7 @@ let calc_op a b = function
 | Mul -> a * b
 | Div -> a / b (* May cause Division_by_zero *)
 
-let rec uncompile s = function
+let rec uncompile (s : stack) = function
   [] -> begin match s with e::_ -> e | _ -> failwith "uncompile: stack" end
 | IConst i::r -> uncompile (Int i::s) r
 | IOp op::r ->
@@ -70,15 +72,40 @@ let rec print isleft parent node =
 let print x =
   print false None x
 
-let rec run s = function
+let rec run (s : stack) = function
   [] ->
     begin match s with x::_ -> x | _ -> failwith "run: stack empty" end
-| IConst i::r -> run (i::s) r
+| IConst i::r -> run (Int i::s) r
 | IOp op::r ->
     begin match s with
-      n2::n1::s' -> run ((calc_op n1 n2 op)::s') r
+      Int n2::Int n1::s' -> run (Int (calc_op n1 n2 op)::s') r
     | _ -> failwith "run: stack empty 2"
     end
+
+let run_step (s : stack) = function
+  [] ->
+    begin match s with
+      x::t -> ([], [x], false)
+    | _ -> failwith "run_step: stack empty"
+    end
+| IConst i::r -> (r, Int i::s, false)
+| IOp op::r ->
+    begin match s with
+      Int n2::Int n1::s' -> (r, Int (calc_op n1 n2 op)::s', true)
+    | _ -> failwith "run_step: stack empty 2"
+    end
+
+let rec run_step_by_step (s : stack) p =
+  let print () =
+    print_string (print (uncompile s p));
+    print_newline ()
+  in
+    match s, p with
+      [Int x], [] -> print ()
+    | _ ->
+      let p, s, important = run_step s p in
+        if important then print ();
+        run_step_by_step s p
 
 let example_prog =
   Op (Int 5, Mul, Op (Int 1, Add, Int 2))
@@ -86,5 +113,5 @@ let example_prog =
 let example_instrs =
   compile example_prog
 
-let _ = run [] example_instrs 
+let _ = run_step_by_step [] example_instrs 
 
