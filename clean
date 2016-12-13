@@ -11,3 +11,6 @@ cd ../newtype
 make clean
 ocamlfind remove ocamli
 ocamlfind remove ppx_eval
+cd ../abstract-machine
+make clean
+
