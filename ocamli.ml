@@ -45,6 +45,8 @@ let make_regexp reference str =
           if !showregexps then Printf.printf "Made search term %S\n" (Ocamlipat.regexp_of_string str);
           Str.regexp r
 
+let times = ref 1
+
 let argspec =
   [("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
    ("-regexp", Arg.Set regexp, " Search terms are regular expressions rather than the built-in system");
@@ -84,7 +86,8 @@ let argspec =
    ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
-   ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs")]
+   ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs");
+   ("-times", Arg.Set_int times, " Do many times")]
 
 let linecount = ref 0
 
@@ -287,7 +290,7 @@ let go () =
           if !linecount >= !numresults && !stopaftersearch then raise Exit
         end;
       if !debugpp then raise Exit;
-      really_run true state
+      for _ = 1 to !times do really_run true state done
    in
      try
        if not !top then
