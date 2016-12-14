@@ -129,18 +129,19 @@ let run_step (s : stack) = function
     | _ -> failwith "run_step: stack empty 2"
     end
 
-let rec run_step_by_step debug show_unimportant (s : stack) p =
+let rec run_step_by_step debug show_unimportant quiet (s : stack) p =
   let print () =
     print_string (print (uncompile s p));
     print_newline ()
   in
     match s, p with
-      [Int x], [] -> print ()
+      [Int x], [] ->
+        if not quiet then print ()
     | _ ->
       let p', s', important = run_step s p in
         if debug && (important || show_unimportant) then print_string (print_step s p);
-        if important || show_unimportant then print ();
-        run_step_by_step debug show_unimportant s' p'
+        if not quiet && (important || show_unimportant) then print ();
+        run_step_by_step debug show_unimportant quiet s' p'
 
 let rec of_tinyocaml = function
   Tinyocaml.Int i -> Int i
@@ -163,16 +164,23 @@ let show_unimportant = ref false
 
 let setfile s = ()
 
+let times = ref 1
+
+let quiet = ref false
+
 let argspec =
   [("-e", Arg.Set_string program, " Evaluate the program text given");
    ("-debug", Arg.Set debug, " Show the bytecode and stack at every point.");
-   ("-show-unimportant", Arg.Set show_unimportant, " Show after every bytecode instruction, even when no change")]
+   ("-show-unimportant", Arg.Set show_unimportant, " Show after every bytecode instruction, even when no change");
+   ("-times", Arg.Set_int times, " Do it many times");
+   ("-quiet", Arg.Set quiet, " Suppress output")]
 
 let prog_of_string s =
   of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
 
 let go () =
-  run_step_by_step !debug !show_unimportant [] (compile (prog_of_string !program))
+  let prog = compile (prog_of_string !program) in
+    for _ = 1 to !times do run_step_by_step !debug !show_unimportant !quiet [] prog done
 
 let _ =
   Arg.parse argspec setfile
