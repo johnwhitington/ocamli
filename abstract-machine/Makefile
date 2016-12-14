@@ -5,7 +5,7 @@ MODS = arith
 
 SOURCES = arith.ml
 
-PACKS =
+PACKS = bigarray ocamli
 
 RESULT = arith
 

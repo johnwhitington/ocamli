@@ -3,19 +3,22 @@ type op = Add | Sub | Mul | Div
 type prog =
   Int of int
 | Op of prog * op * prog
+| Underline of prog
 
 type assoc = L | N | R
 
 type stack = prog list
 
-let assoc = function
+let rec assoc = function
   Op _ -> L
 | Int _ -> N
+| Underline x -> assoc x
 
-let prec = function
+let rec prec = function
   Int _ -> max_int
 | Op (_, (Mul | Div), _) -> 100
 | Op (_, _, _) -> 50
+| Underline x -> prec x
 
 let parens node parent isleft =
   match parent with
@@ -37,6 +40,7 @@ type instr =
 let rec compile = function
   Int i -> [IConst i]
 | Op (a1, op, a2) -> compile a1 @ compile a2 @ [IOp op]
+| Underline _ -> failwith "compile: underline"
 
 let calc_op a b = function
   Add -> a + b
@@ -44,16 +48,24 @@ let calc_op a b = function
 | Mul -> a * b
 | Div -> a / b (* May cause Division_by_zero *)
 
-let rec uncompile (s : stack) = function
+let rec uncompile first (s : stack) = function
   [] -> begin match s with e::_ -> e | _ -> failwith "uncompile: stack" end
-| IConst i::r -> uncompile (Int i::s) r
+| IConst i::r -> uncompile false (Int i::s) r
 | IOp op::r ->
    match s with
-     a::b::s' -> uncompile (Op (b, op, a)::s') r
+     a::b::s' ->
+       let prog_op = Op (b, op, a) in
+       let prog_op = if first then Underline prog_op else prog_op in
+         uncompile false (prog_op::s') r
    | _ -> failwith "uncompile: stack empty"
+
+let uncompile s p =
+  uncompile true s p
 
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
+
+let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
 let rec print isleft parent node =
   let lp, rp = parens node parent isleft in
@@ -68,9 +80,31 @@ let rec print isleft parent node =
         (string_of_op op)
         (print true (Some node) b)
         rp
+  | Underline x ->
+      ul ^ print isleft parent x ^ code_end
 
 let print x =
   print false None x
+
+(* Print the stack and instruction list *) 
+let string_of_stack s =
+  List.fold_left
+    (fun a b -> a ^ (if a = "" then "" else "; ") ^ b)
+    ""
+    (List.map print s)
+
+let string_of_instr = function
+  IConst i -> Printf.sprintf "IConst %i" i
+| IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
+
+let string_of_instrs s =
+  List.fold_left
+    (fun a b -> a ^ (if a = "" then "" else "; ") ^ b)
+    ""
+    (List.map string_of_instr s)
+
+let print_step (s : stack) (p : instr list) =
+  Printf.sprintf "%s || %s\n" (string_of_instrs p) (string_of_stack s)
 
 let rec run (s : stack) = function
   [] ->
@@ -95,7 +129,7 @@ let run_step (s : stack) = function
     | _ -> failwith "run_step: stack empty 2"
     end
 
-let rec run_step_by_step (s : stack) p =
+let rec run_step_by_step debug show_unimportant (s : stack) p =
   let print () =
     print_string (print (uncompile s p));
     print_newline ()
@@ -103,15 +137,44 @@ let rec run_step_by_step (s : stack) p =
     match s, p with
       [Int x], [] -> print ()
     | _ ->
-      let p, s, important = run_step s p in
-        if important then print ();
-        run_step_by_step s p
+      let p', s', important = run_step s p in
+        if debug && (important || show_unimportant) then print_string (print_step s p);
+        if important || show_unimportant then print ();
+        run_step_by_step debug show_unimportant s' p'
 
-let example_prog =
-  Op (Int 5, Mul, Op (Int 1, Add, Int 2))
+let rec of_tinyocaml = function
+  Tinyocaml.Int i -> Int i
+| Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
+    Op (of_tinyocaml a, Mul, of_tinyocaml b)
+| Tinyocaml.Op (Tinyocaml.Sub, a, b) ->
+    Op (of_tinyocaml a, Sub, of_tinyocaml b)
+| Tinyocaml.Op (Tinyocaml.Add, a, b) ->
+    Op (of_tinyocaml a, Add, of_tinyocaml b)
+| Tinyocaml.Op (Tinyocaml.Div, a, b) ->
+    Op (of_tinyocaml a, Div, of_tinyocaml b)
+| Tinyocaml.Struct (_, [x]) -> of_tinyocaml x
+| e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
-let example_instrs =
-  compile example_prog
+let program = ref ""
 
-let _ = run_step_by_step [] example_instrs 
+let debug = ref false
 
+let show_unimportant = ref false
+
+let setfile s = ()
+
+let argspec =
+  [("-e", Arg.Set_string program, " Evaluate the program text given");
+   ("-debug", Arg.Set debug, " Show the bytecode and stack at every point.");
+   ("-show-unimportant", Arg.Set show_unimportant, " Show after every bytecode instruction, even when no change")]
+
+let prog_of_string s =
+  of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
+
+let go () =
+  run_step_by_step !debug !show_unimportant [] (compile (prog_of_string !program))
+
+let _ =
+  Arg.parse argspec setfile
+    "Syntax: arith -e program [-debug] [-show-unimportant]\n";
+  go ()
