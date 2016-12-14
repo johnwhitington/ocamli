@@ -26,7 +26,6 @@ type op = Add | Sub | Mul | Div
 type prog =
   Int of int
 | Op of prog * op * prog
-| Underline of prog
 \end{verbatim}
 
 And here is the type for bytecode instructions:
