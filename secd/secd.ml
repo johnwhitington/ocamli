@@ -1,8 +1,13 @@
 type op = Add | Sub | Mul | Div
 
+(* The main type is done with deBruijn indexes when read in. *)
 type prog =
   Int of int
 | Op of prog * op * prog
+| Apply of prog * prog
+| Lambda of prog
+| Index of int
+| Let of prog * prog
 | Underline of prog
 
 type assoc = L | N | R
@@ -34,8 +39,15 @@ let parens node parent isleft =
         ("(", ")")
 
 type instr =
-  IConst of int
+  IEmpty
+| IConst of int
 | IOp of op
+| IAccess of int
+| IClosure of instr list
+| ILet
+| IEndLet
+| IApply
+| IReturn
 
 let rec compile = function
   Int i -> [IConst i]
@@ -51,6 +63,7 @@ let calc_op a b = function
 let rec uncompile first (s : stack) = function
   [] -> begin match s with e::_ -> e | _ -> failwith "uncompile: stack" end
 | IConst i::r -> uncompile false (Int i::s) r
+| IEmpty::_ -> failwith "uncompile: empty"
 | IOp op::r ->
    match s with
      a::b::s' ->
@@ -96,6 +109,7 @@ let string_of_stack s =
 let string_of_instr = function
   IConst i -> Printf.sprintf "IConst %i" i
 | IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
+| IEmpty -> Printf.sprintf "Empty"
 
 let string_of_instrs s =
   List.fold_left
@@ -109,6 +123,7 @@ let print_step (s : stack) (p : instr list) =
 let rec run (s : stack) = function
   [] ->
     begin match s with x::_ -> x | _ -> failwith "run: stack empty" end
+| IEmpty::_ -> failwith "run: empty"
 | IConst i::r -> run (Int i::s) r
 | IOp op::r ->
     begin match s with
@@ -122,6 +137,7 @@ let run_step (s : stack) = function
       x::t -> ([], [x], false)
     | _ -> failwith "run_step: stack empty"
     end
+| IEmpty::_ -> failwith "run_step: empty"
 | IConst i::r -> (r, Int i::s, false)
 | IOp op::r ->
     begin match s with
