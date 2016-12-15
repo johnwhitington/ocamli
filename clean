@@ -13,4 +13,7 @@ ocamlfind remove ocamli
 ocamlfind remove ppx_eval
 cd ../abstract-machine
 make clean
+cd ../secd
+make clean
+
 
