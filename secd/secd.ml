@@ -156,7 +156,7 @@ let rec run (s : stack) = function
     | _ -> failwith "run: stack empty 2"
     end
 
-let run_step (s : stack) = function
+let run_step (s : stack) (e : environment) = function
   [] ->
     begin match s with
       x::t -> ([], [x], false)
@@ -179,8 +179,8 @@ let rec run_step_by_step debug show_unimportant quiet (s : stack) p =
       [Int x], [] ->
         if not quiet then print ()
     | _ ->
+      if debug (*&& (important || show_unimportant)*) then print_string (print_step s p);
       let p', s', important = run_step s p in
-        if debug && (important || show_unimportant) then print_string (print_step s p);
         if not quiet && (important || show_unimportant) then print ();
         run_step_by_step debug show_unimportant quiet s' p'
 
@@ -204,7 +204,7 @@ let rec of_tinyocaml db = function
 | Tinyocaml.Let (false, [(PatVar v, e)], e') ->
     Let (of_tinyocaml (v::db) e, of_tinyocaml (v::db) e')
 | Tinyocaml.Var v ->
-    VarAccess (find_debruijn_index 0 v db)
+    VarAccess (find_debruijn_index 1 v db)
 | Tinyocaml.Fun (Tinyocaml.NoLabel, PatVar v, e, _) ->
     Lambda (of_tinyocaml (v::db) e)
 | Tinyocaml.Struct (_, [x]) -> of_tinyocaml db x
