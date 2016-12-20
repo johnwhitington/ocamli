@@ -6,8 +6,8 @@ type prog =
 | Op of prog * op * prog
 | Apply of prog * prog
 | Lambda of prog
-| Index of int
 | Let of prog * prog
+| VarAccess of int
 | Underline of prog
 
 type assoc = L | N | R
@@ -15,15 +15,18 @@ type assoc = L | N | R
 type stack = prog list
 
 let rec assoc = function
-  Op _ -> L
-| Int _ -> N
+  Op _ | Apply _ -> L
 | Underline x -> assoc x
+| _ -> N
+
 
 let rec prec = function
-  Int _ -> max_int
-| Op (_, (Mul | Div), _) -> 100
-| Op (_, _, _) -> 50
+  Apply _ -> 100
+| Op (_, (Mul | Div), _) -> 90
+| Op (_, _, _) -> 80
+| Let _ -> 10
 | Underline x -> prec x
+| _ -> max_int
 
 let parens node parent isleft =
   match parent with
@@ -52,6 +55,10 @@ type instr =
 let rec compile = function
   Int i -> [IConst i]
 | Op (a1, op, a2) -> compile a1 @ compile a2 @ [IOp op]
+| Apply (a, b) -> compile a @ compile b @ [IApply]
+| Let (a, b) -> compile a @ [ILet] @ compile b @ [IEndLet]
+| VarAccess i -> [IAccess i]
+| Lambda p -> [IClosure (compile p @ [IReturn])]
 | Underline _ -> failwith "compile: underline"
 
 let calc_op a b = function
@@ -93,6 +100,18 @@ let rec print isleft parent node =
         (string_of_op op)
         (print true (Some node) b)
         rp
+  | Apply (a, b) ->
+      Printf.sprintf "%s %s"
+        (print true (Some node) a) (print false (Some node) b)
+  | Lambda body ->
+      Printf.sprintf "fun _ -> %s" (print isleft (Some node) body)
+  | Let (e, e') ->
+      Printf.sprintf
+        "let _ = %s in %s"
+        (print isleft (Some node) e)
+        (print isleft (Some node) e')
+  | VarAccess x ->
+      Printf.sprintf "VAR%i" x
   | Underline x ->
       ul ^ print isleft parent x ^ code_end
 
@@ -106,12 +125,18 @@ let string_of_stack s =
     ""
     (List.map print s)
 
-let string_of_instr = function
+let rec string_of_instr = function
   IConst i -> Printf.sprintf "IConst %i" i
 | IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
-| IEmpty -> Printf.sprintf "Empty"
+| IEmpty -> Printf.sprintf "IEmpty"
+| IAccess i -> Printf.sprintf "IAccess %i" i
+| IClosure instrs -> Printf.sprintf "IClosure [%s]" (string_of_instrs instrs)
+| ILet -> "ILet"
+| IEndLet -> "IEndLet"
+| IApply -> "IApply"
+| IReturn -> "IReturn"
 
-let string_of_instrs s =
+and string_of_instrs s =
   List.fold_left
     (fun a b -> a ^ (if a = "" then "" else "; ") ^ b)
     ""
@@ -159,17 +184,30 @@ let rec run_step_by_step debug show_unimportant quiet (s : stack) p =
         if not quiet && (important || show_unimportant) then print ();
         run_step_by_step debug show_unimportant quiet s' p'
 
-let rec of_tinyocaml = function
+let rec find_debruijn_index n v = function
+  v'::vs when v = v' -> n
+| _::vs -> find_debruijn_index (n + 1) v vs
+| [] -> failwith "find_debruijn_index"
+
+let rec of_tinyocaml db = function
   Tinyocaml.Int i -> Int i
 | Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
-    Op (of_tinyocaml a, Mul, of_tinyocaml b)
+    Op (of_tinyocaml db a, Mul, of_tinyocaml db b)
 | Tinyocaml.Op (Tinyocaml.Sub, a, b) ->
-    Op (of_tinyocaml a, Sub, of_tinyocaml b)
+    Op (of_tinyocaml db a, Sub, of_tinyocaml db b)
 | Tinyocaml.Op (Tinyocaml.Add, a, b) ->
-    Op (of_tinyocaml a, Add, of_tinyocaml b)
+    Op (of_tinyocaml db a, Add, of_tinyocaml db b)
 | Tinyocaml.Op (Tinyocaml.Div, a, b) ->
-    Op (of_tinyocaml a, Div, of_tinyocaml b)
-| Tinyocaml.Struct (_, [x]) -> of_tinyocaml x
+    Op (of_tinyocaml db a, Div, of_tinyocaml db b)
+| Tinyocaml.App (a, b) ->
+    Apply (of_tinyocaml db a, of_tinyocaml db b)
+| Tinyocaml.Let (false, [(PatVar v, e)], e') ->
+    Let (of_tinyocaml (v::db) e, of_tinyocaml (v::db) e')
+| Tinyocaml.Var v ->
+    VarAccess (find_debruijn_index 0 v db)
+| Tinyocaml.Fun (Tinyocaml.NoLabel, PatVar v, e, _) ->
+    Lambda (of_tinyocaml (v::db) e)
+| Tinyocaml.Struct (_, [x]) -> of_tinyocaml db x
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
 let program = ref ""
@@ -192,7 +230,7 @@ let argspec =
    ("-quiet", Arg.Set quiet, " Suppress output")]
 
 let prog_of_string s =
-  of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
+  of_tinyocaml [] (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
 
 let go () =
   let prog = compile (prog_of_string !program) in

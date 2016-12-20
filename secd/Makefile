@@ -7,7 +7,7 @@ SOURCES = secd.ml
 
 PACKS = bigarray ocamli
 
-RESULT = arith
+RESULT = secd
 
 OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
 OCAMLBCFLAGS = -safe-string -g -w -3 -w -40
