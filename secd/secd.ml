@@ -12,7 +12,6 @@ type prog =
 
 type assoc = L | N | R
 
-
 let rec assoc = function
   Op _ | Apply _ -> L
 | Underline x -> assoc x
@@ -130,25 +129,31 @@ let print x =
   print false None x
 
 (* Print the stack and instruction list *) 
-let string_of_closure c = "<<closure>>"
+let string_of_int_list is =
+  List.fold_left (fun a b -> a ^ b) "" (List.map string_of_int is)
 
-let string_of_environment e = "<<environment>>"
+let rec string_of_environment e =
+  Printf.sprintf "<<env: %s>>" (string_of_int_list e)
 
-let string_of_code c = "<<code>>"
+and string_of_closure (instrs, env) =
+  Printf.sprintf
+    "<<closure (ops = [%s]), env = %s>>"
+    (string_of_instrs instrs)
+    (string_of_environment env)
 
-let string_of_stackitem = function
+and string_of_stackitem = function
   StackInt i -> Printf.sprintf "StackInt %i" i
-| StackCode c -> Printf.sprintf "StackCode %s" (string_of_code c)
+| StackCode c -> Printf.sprintf "StackCode <<%s>>" (string_of_instrs c)
 | StackClosure c -> Printf.sprintf "StackClosure %s" (string_of_closure c)
 | StackEnvironment e -> Printf.sprintf "StackEnvironment %s" (string_of_environment e)
 
-let string_of_stack s =
+and string_of_stack s =
   List.fold_left
     (fun a b -> a ^ (if a = "" then "" else "; ") ^ b)
     ""
     (List.map string_of_stackitem s)
 
-let rec string_of_instr = function
+and string_of_instr = function
   IConst i -> Printf.sprintf "IConst %i" i
 | IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
 | IEmpty -> Printf.sprintf "IEmpty"
@@ -165,8 +170,9 @@ and string_of_instrs s =
     ""
     (List.map string_of_instr s)
 
-let print_step (s : stack) (p : instr list) =
-  Printf.sprintf "%s || %s\n" (string_of_instrs p) (string_of_stack s)
+let print_step (s : stack) (p : instr list) (e : environment) =
+  Printf.sprintf "%s || %s || %s\n"
+    (string_of_instrs p) (string_of_stack s) (string_of_environment e)
 
 let run_step (s : stack) (e : environment) = function
   [] ->
@@ -201,13 +207,13 @@ let run_step (s : stack) (e : environment) = function
 | IApply::c ->
     begin match s with
       StackInt v::StackClosure (c', e')::s' ->
-        (c', v::e', StackCode c::StackEnvironment e::s, true)
+        (c', v::e', StackCode c::StackEnvironment e::s', true)
     | _ -> failwith "run_step: IApply"
     end
 | IAccess i::c ->
-    (c, e, StackInt(List.nth e i)::s, false)
+    (c, e, StackInt(List.nth e (i - 1))::s, false)
 | IClosure c'::c ->
-    (c, e, StackClosure (c, e)::s, false)
+    (c, e, StackClosure (c', e)::s, false)
 
 let rec run_step_by_step debug show_unimportant quiet (s : stack) (e : environment) p =
   let print () =
@@ -216,9 +222,10 @@ let rec run_step_by_step debug show_unimportant quiet (s : stack) (e : environme
   in
     match s, p with
       [StackInt x], [] ->
-        if not quiet then print ()
+        if not quiet then print ();
+        if debug then print_string (print_step s p e);
     | _ ->
-      if debug (*&& (important || show_unimportant)*) then print_string (print_step s p);
+      if debug then print_string (print_step s p e);
       let p', e', s', important = run_step s e p in
         if not quiet && (important || show_unimportant) then print ();
         run_step_by_step debug show_unimportant quiet s' e' p'
