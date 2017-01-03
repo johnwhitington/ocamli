@@ -1,0 +1,40 @@
+\documentclass[11pt]{article}
+\usepackage{palatino}
+
+\begin{document}
+
+\title{Extended Abstract Machine for Prettyprinting Intermediate Computations}
+\maketitle
+
+\section{For arithmetic only}
+\begin{tabular}{l|l|l|l||l|l|l|l}
+\multicolumn{4}{c}{Machine state before}&
+\multicolumn{4}{c}{Machine state after}\\
+Code & Env & Stack & Print & Code & Env & Stack & Print\\
+INT(i); c & e & s & p & c & e & i.s & -\\
+OP(o); c & e & i.i'.s & p & c & e & o(i, i').s & p\\
+\end{tabular}
+
+\section{Add lets}
+
+e.g \texttt{let x = 1 in let y = 2 in x + y} compiles to:
+
+
+
+\section{Full machine}
+
+\begin{tabular}{l|l|l|l||l|l|l|l}
+\multicolumn{4}{c}{Machine state before}&
+\multicolumn{4}{c}{Machine state after}\\
+Code & Env & Stack & Print & Code & Env & Stack & Print\\
+INT(i); c & e & s & p & c & e & i.s & -\\
+OP(o); c & e & i.i'.s & p & c & e & o(i, i').s & p\\
+ACCESS($n$); c & e & s & p & c & e & e(n).s & - \\
+LET; c & e & v.s & p & c & v.e & s & -\\
+ENDLET; c & v.e & s & p & c & e & s & -\\
+CLOSURE(c'); c & e & s & p & c & e & c'[e].s & -\\
+APPLY; c & e & v.c'[e'].s & p & c' & v.e' & c.e.s & -\\
+RETURN; c & e & v.c'.e'.s & p & c' & e' & v.s & -\\
+\end{tabular}
+
+\end{document}
