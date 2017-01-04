@@ -1,3 +1,6 @@
+
+let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
+
 type op = Add | Sub | Mul | Div
 
 (* The main type is done with deBruijn indexes when read in. *)
@@ -49,6 +52,8 @@ type instr =
 | IApply
 | IReturn
 
+type code = instr list
+
 type environment = int list
 
 type closure = instr list * environment
@@ -58,6 +63,7 @@ type stackitem =
 | StackClosure of closure
 | StackCode of instr list
 | StackEnvironment of environment
+| StackProgram of prog
 
 type stack = stackitem list
 
@@ -76,26 +82,8 @@ let calc_op a b = function
 | Mul -> a * b
 | Div -> a / b (* May cause Division_by_zero *)
 
-(*let rec uncompile first (s : stack) = function
-  [] -> begin match s with e::_ -> e | _ -> failwith "uncompile: stack" end
-| IConst i::r -> uncompile false (Int i::s) r
-| IEmpty::_ -> failwith "uncompile: empty"
-| IOp op::r ->
-   match s with
-     a::b::s' ->
-       let prog_op = Op (b, op, a) in
-       let prog_op = if first then Underline prog_op else prog_op in
-         uncompile false (prog_op::s') r
-   | _ -> failwith "uncompile: stack empty"*)
-
-let uncompile s p =
-  Int 0
-  (*uncompile true s p*)
-
 let string_of_op = function
   Add -> "+" | Sub -> "-" | Mul -> "*" | Div -> "/"
-
-let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
 let rec print isleft parent node =
   let lp, rp = parens node parent isleft in
@@ -146,6 +134,7 @@ and string_of_stackitem = function
 | StackCode c -> Printf.sprintf "StackCode <<%s>>" (string_of_instrs c)
 | StackClosure c -> Printf.sprintf "StackClosure %s" (string_of_closure c)
 | StackEnvironment e -> Printf.sprintf "StackEnvironment %s" (string_of_environment e)
+| StackProgram p -> Printf.sprintf "StackProgram %s" (print p)
 
 and string_of_stack s =
   List.fold_left
@@ -169,6 +158,44 @@ and string_of_instrs s =
     (fun a b -> a ^ (if a = "" then "" else "; ") ^ b)
     ""
     (List.map string_of_instr s)
+
+let prog_of_stackitem = function
+  StackInt i -> Int i
+| StackProgram p -> p
+| _ -> failwith "prog_of_stackitem"
+
+(* We build up 'u' from items we pass, for ACCESS of deBruijn vars *)
+let rec uncompile (s : stack) (u : stack) (c : code) =
+  match c with
+    [] ->
+      begin match s with
+          StackInt i::_ -> Int i
+        | StackProgram p::_ -> p
+        | s ->
+            failwith (Printf.sprintf "uncompile: stack = %s" (string_of_stack s))
+      end
+  | IAccess l::c' ->
+      Printf.printf "IAccess %i, %i things in 'u'\n" l (List.length u);
+      begin match List.nth u (l - 1) with
+        StackProgram p -> p
+      | _ -> failwith "IAccess"
+      end
+  | IEndLet::c' -> uncompile s u c'
+  | IConst i::r -> uncompile (StackInt i::s) u r
+  | IEmpty::_ -> failwith "uncompile: empty"
+  | IOp op::r ->
+     begin match s with
+       a::b::s' ->
+         let prog_op = StackProgram (Op (prog_of_stackitem b, op, prog_of_stackitem a)) in
+           uncompile (prog_op::s') u r
+     | _ -> failwith "uncompile: stack empty"
+     end
+  | ILet::c' ->
+      (* [let x = a in b] has [a] at the top of the stack, and [b] as everything else *)
+      begin match s with
+        si::_ -> Let (prog_of_stackitem si, uncompile s (StackProgram (prog_of_stackitem si)::u) c')
+      | _ -> failwith "ilet: stack empty"
+      end
 
 let print_step (s : stack) (p : instr list) (e : environment) =
   Printf.sprintf "%s || %s || %s\n"
@@ -217,7 +244,7 @@ let run_step (s : stack) (e : environment) = function
 
 let rec run_step_by_step debug show_unimportant quiet (s : stack) (e : environment) p =
   let print () =
-    print_string (print (uncompile s p));
+    print_string (print (uncompile s [] p));
     print_newline ()
   in
     match s, p with

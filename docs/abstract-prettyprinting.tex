@@ -6,6 +6,16 @@
 \title{Extended Abstract Machine for Prettyprinting Intermediate Computations}
 \maketitle
 
+\section{Compilation Scheme}
+
+C(i) = INT(i)\\
+C(a op b) = C(a); C(b); OP(o)\\
+C(\underline{n}) = ACCESS(n)\\
+C($\lambda a$) = CLOSURE(C(a); RETURN)\\
+C(let $a$ in $b$) = C($a$); LET; C($b$); ENDLET\\
+C(a b) = C(a); C(b); APPLY
+
+
 \section{For arithmetic only}
 \begin{tabular}{l|l|l|l||l|l|l|l}
 \multicolumn{4}{c}{Machine state before}&
