@@ -9,8 +9,8 @@ type prog =
 | Op of prog * op * prog
 | Apply of prog * prog
 | Lambda of prog
-| Let of prog * prog
-| VarAccess of int
+| Let of string * prog * prog
+| VarAccess of string * int
 | Underline of prog
 
 type assoc = L | N | R
@@ -45,9 +45,9 @@ type instr =
   IEmpty
 | IConst of int
 | IOp of op
-| IAccess of int
+| IAccess of string * int
 | IClosure of instr list
-| ILet
+| ILet of string
 | IEndLet
 | IApply
 | IReturn
@@ -71,8 +71,8 @@ let rec compile = function
   Int i -> [IConst i]
 | Op (a1, op, a2) -> compile a1 @ compile a2 @ [IOp op]
 | Apply (a, b) -> compile a @ compile b @ [IApply]
-| Let (a, b) -> compile a @ [ILet] @ compile b @ [IEndLet]
-| VarAccess i -> [IAccess i]
+| Let (name, a, b) -> compile a @ [ILet name] @ compile b @ [IEndLet]
+| VarAccess (s, i) -> [IAccess (s, i)]
 | Lambda p -> [IClosure (compile p @ [IReturn])]
 | Underline _ -> failwith "compile: underline"
 
@@ -103,13 +103,14 @@ let rec print isleft parent node =
         (print true (Some node) a) (print false (Some node) b)
   | Lambda body ->
       Printf.sprintf "fun _ -> %s" (print isleft (Some node) body)
-  | Let (e, e') ->
+  | Let (name, e, e') ->
       Printf.sprintf
-        "let _ = %s in %s"
+        "let %s = %s in %s"
+        name
         (print isleft (Some node) e)
         (print isleft (Some node) e')
-  | VarAccess x ->
-      Printf.sprintf "VAR%i" x
+  | VarAccess (n, x) ->
+      Printf.sprintf "%s" n
   | Underline x ->
       ul ^ print isleft parent x ^ code_end
 
@@ -146,9 +147,9 @@ and string_of_instr = function
   IConst i -> Printf.sprintf "IConst %i" i
 | IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
 | IEmpty -> Printf.sprintf "IEmpty"
-| IAccess i -> Printf.sprintf "IAccess %i" i
+| IAccess (n, i) -> Printf.sprintf "IAccess %s at %i" n i
 | IClosure instrs -> Printf.sprintf "IClosure [%s]" (string_of_instrs instrs)
-| ILet -> "ILet"
+| ILet n -> "ILet " ^ n
 | IEndLet -> "IEndLet"
 | IApply -> "IApply"
 | IReturn -> "IReturn"
@@ -164,7 +165,10 @@ let prog_of_stackitem = function
 | StackProgram p -> p
 | _ -> failwith "prog_of_stackitem"
 
-(* We build up 'u' from items we pass, for ACCESS of deBruijn vars *)
+(* For now, uncompile only works on these things:
+  * 1) Whole programs i.e lists of instructions compiled from a program
+  * 3) Execution fragments beginning IOp
+  * 4) The empty final-state program with the final result left in the stack. *)
 let rec uncompile (s : stack) (u : stack) (c : code) =
   match c with
     [] ->
@@ -174,12 +178,8 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
         | s ->
             failwith (Printf.sprintf "uncompile: stack = %s" (string_of_stack s))
       end
-  | IAccess l::c' ->
-      Printf.printf "IAccess %i, %i things in 'u'\n" l (List.length u);
-      begin match List.nth u (l - 1) with
-        StackProgram p -> p
-      | _ -> failwith "IAccess"
-      end
+  | IAccess (n, l)::c' ->
+      uncompile (StackProgram (VarAccess (n, l))::s) u c'
   | IEndLet::c' -> uncompile s u c'
   | IConst i::r -> uncompile (StackInt i::s) u r
   | IEmpty::_ -> failwith "uncompile: empty"
@@ -190,10 +190,10 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
            uncompile (prog_op::s') u r
      | _ -> failwith "uncompile: stack empty"
      end
-  | ILet::c' ->
+  | ILet n::c' ->
       (* [let x = a in b] has [a] at the top of the stack, and [b] as everything else *)
       begin match s with
-        si::_ -> Let (prog_of_stackitem si, uncompile s (StackProgram (prog_of_stackitem si)::u) c')
+        si::_ -> Let (n, prog_of_stackitem si, uncompile s (StackProgram (prog_of_stackitem si)::u) c')
       | _ -> failwith "ilet: stack empty"
       end
 
@@ -215,9 +215,9 @@ let run_step (s : stack) (e : environment) = function
         (c, e, StackInt (calc_op n1 n2 op)::s', true)
     | _ -> failwith "run_step: stack empty 2"
     end
-| ILet::c ->
+| ILet _::c ->
     begin match s with
-      StackInt v::s' -> (c, (v::e), s', true)
+      StackInt v::s' -> (c, (v::e), s', false)
     | _ -> failwith "run_step: stack empty let"
     end
 | IEndLet::c ->
@@ -237,25 +237,25 @@ let run_step (s : stack) (e : environment) = function
         (c', v::e', StackCode c::StackEnvironment e::s', true)
     | _ -> failwith "run_step: IApply"
     end
-| IAccess i::c ->
+| IAccess (_, i)::c ->
     (c, e, StackInt(List.nth e (i - 1))::s, false)
 | IClosure c'::c ->
     (c, e, StackClosure (c', e)::s, false)
 
-let rec run_step_by_step debug show_unimportant quiet (s : stack) (e : environment) p =
+let rec run_step_by_step first debug show_unimportant quiet (s : stack) (e : environment) p =
   let print () =
     print_string (print (uncompile s [] p));
     print_newline ()
   in
     match s, p with
       [StackInt x], [] ->
-        if not quiet then print ();
         if debug then print_string (print_step s p e);
+        if not quiet then print ();
     | _ ->
       if debug then print_string (print_step s p e);
       let p', e', s', important = run_step s e p in
-        if not quiet && (important || show_unimportant) then print ();
-        run_step_by_step debug show_unimportant quiet s' e' p'
+        if not quiet && (important || show_unimportant) || first then print ();
+        run_step_by_step false debug show_unimportant quiet s' e' p'
 
 let rec find_debruijn_index n v = function
   v'::vs when v = v' -> n
@@ -275,9 +275,9 @@ let rec of_tinyocaml db = function
 | Tinyocaml.App (a, b) ->
     Apply (of_tinyocaml db a, of_tinyocaml db b)
 | Tinyocaml.Let (false, [(PatVar v, e)], e') ->
-    Let (of_tinyocaml (v::db) e, of_tinyocaml (v::db) e')
+    Let (v, of_tinyocaml (v::db) e, of_tinyocaml (v::db) e')
 | Tinyocaml.Var v ->
-    VarAccess (find_debruijn_index 1 v db)
+    VarAccess (v, find_debruijn_index 1 v db)
 | Tinyocaml.Fun (Tinyocaml.NoLabel, PatVar v, e, _) ->
     Lambda (of_tinyocaml (v::db) e)
 | Tinyocaml.Struct (_, [x]) -> of_tinyocaml db x
@@ -308,7 +308,7 @@ let prog_of_string s =
 let go () =
   let prog = compile (prog_of_string !program) in
     for _ = 1 to !times do
-      run_step_by_step !debug !show_unimportant !quiet [] [] prog
+      run_step_by_step true !debug !show_unimportant !quiet [] [] prog
     done
 
 let _ =
