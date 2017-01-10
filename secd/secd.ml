@@ -4,13 +4,15 @@ let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 type op = Add | Sub | Mul | Div
 
 (* The main type is done with deBruijn indexes when read in. *)
+type name = string
+
 type prog =
   Int of int
 | Op of prog * op * prog
 | Apply of prog * prog
-| Lambda of prog
-| Let of string * prog * prog
-| VarAccess of string * int
+| Lambda of name * prog
+| Let of name * prog * prog
+| VarAccess of name * int
 | Underline of prog
 
 type assoc = L | N | R
@@ -45,9 +47,9 @@ type instr =
   IEmpty
 | IConst of int
 | IOp of op
-| IAccess of string * int
-| IClosure of instr list
-| ILet of string
+| IAccess of name * int
+| IClosure of name * instr list
+| ILet of name
 | IEndLet
 | IApply
 | IReturn
@@ -60,7 +62,7 @@ type closure = instr list * environment
 
 type stackitem =
   StackInt of int
-| StackClosure of closure
+| StackClosure of name * closure
 | StackCode of instr list
 | StackEnvironment of environment
 | StackProgram of prog
@@ -73,7 +75,7 @@ let rec compile = function
 | Apply (a, b) -> compile a @ compile b @ [IApply]
 | Let (name, a, b) -> compile a @ [ILet name] @ compile b @ [IEndLet]
 | VarAccess (s, i) -> [IAccess (s, i)]
-| Lambda p -> [IClosure (compile p @ [IReturn])]
+| Lambda (n, p) -> [IClosure (n, (compile p @ [IReturn]))]
 | Underline _ -> failwith "compile: underline"
 
 let calc_op a b = function
@@ -101,8 +103,8 @@ let rec print isleft parent node =
   | Apply (a, b) ->
       Printf.sprintf "%s %s"
         (print true (Some node) a) (print false (Some node) b)
-  | Lambda body ->
-      Printf.sprintf "fun _ -> %s" (print isleft (Some node) body)
+  | Lambda (name, body) ->
+      Printf.sprintf "fun %s -> %s" name (print isleft (Some node) body)
   | Let (name, e, e') ->
       Printf.sprintf
         "let %s = %s in %s"
@@ -133,7 +135,7 @@ and string_of_closure (instrs, env) =
 and string_of_stackitem = function
   StackInt i -> Printf.sprintf "StackInt %i" i
 | StackCode c -> Printf.sprintf "StackCode <<%s>>" (string_of_instrs c)
-| StackClosure c -> Printf.sprintf "StackClosure %s" (string_of_closure c)
+| StackClosure (n, c) -> Printf.sprintf "StackClosure (%s -> %s)" n (string_of_closure c)
 | StackEnvironment e -> Printf.sprintf "StackEnvironment %s" (string_of_environment e)
 | StackProgram p -> Printf.sprintf "StackProgram %s" (print p)
 
@@ -148,7 +150,7 @@ and string_of_instr = function
 | IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
 | IEmpty -> Printf.sprintf "IEmpty"
 | IAccess (n, i) -> Printf.sprintf "IAccess %s at %i" n i
-| IClosure instrs -> Printf.sprintf "IClosure [%s]" (string_of_instrs instrs)
+| IClosure (_, instrs) -> Printf.sprintf "IClosure [%s]" (string_of_instrs instrs)
 | ILet n -> "ILet " ^ n
 | IEndLet -> "IEndLet"
 | IApply -> "IApply"
@@ -167,7 +169,7 @@ let prog_of_stackitem = function
 
 (* For now, uncompile only works on these things:
   * 1) Whole programs i.e lists of instructions compiled from a program
-  * 3) Execution fragments beginning IOp
+  * 3) Execution fragments beginning IOp, IApply
   * 4) The empty final-state program with the final result left in the stack. *)
 let rec uncompile (s : stack) (u : stack) (c : code) =
   match c with
@@ -196,6 +198,15 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
         si::_ -> Let (n, prog_of_stackitem si, uncompile s (StackProgram (prog_of_stackitem si)::u) c')
       | _ -> failwith "ilet: stack empty"
       end
+  | IClosure (n, closure)::c' ->
+      uncompile (StackClosure (n, (closure, []))::s) u c'
+  | IApply::c' ->
+      (* f x has x on stack, then f. Collect them and make program *)
+      begin match s with
+        StackInt i::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] [] c), Int i)
+      | _ -> failwith "iapply: stack empty"
+      end
+  | IReturn::c' -> uncompile s u c'
 
 let print_step (s : stack) (p : instr list) (e : environment) =
   Printf.sprintf "%s || %s || %s\n"
@@ -228,19 +239,19 @@ let run_step (s : stack) (e : environment) = function
 | IReturn::c ->
     begin match s with
       StackInt v::StackCode c'::StackEnvironment e'::s' ->
-        (c, e', StackInt v::s', true)
+        (c, e', StackInt v::s', false)
     | _ -> failwith "run_step: IReturn"
     end
 | IApply::c ->
     begin match s with
-      StackInt v::StackClosure (c', e')::s' ->
-        (c', v::e', StackCode c::StackEnvironment e::s', true)
+      StackInt v::StackClosure (n, (c', e'))::s' ->
+        (c', v::e', StackCode c::StackEnvironment e::s', false)
     | _ -> failwith "run_step: IApply"
     end
 | IAccess (_, i)::c ->
     (c, e, StackInt(List.nth e (i - 1))::s, false)
-| IClosure c'::c ->
-    (c, e, StackClosure (c', e)::s, false)
+| IClosure (n, c')::c ->
+    (c, e, StackClosure (n, (c', e))::s, false)
 
 let rec run_step_by_step first debug show_unimportant quiet (s : stack) (e : environment) p =
   let print () =
@@ -279,7 +290,7 @@ let rec of_tinyocaml db = function
 | Tinyocaml.Var v ->
     VarAccess (v, find_debruijn_index 1 v db)
 | Tinyocaml.Fun (Tinyocaml.NoLabel, PatVar v, e, _) ->
-    Lambda (of_tinyocaml (v::db) e)
+    Lambda (v, of_tinyocaml (v::db) e)
 | Tinyocaml.Struct (_, [x]) -> of_tinyocaml db x
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
