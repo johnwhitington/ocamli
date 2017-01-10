@@ -203,8 +203,9 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
   | IApply::c' ->
       (* f x has x on stack, then f. Collect them and make program *)
       begin match s with
-        StackInt i::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] [] c), Int i)
-      | _ -> failwith "iapply: stack empty"
+        StackProgram p::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] [] c), p)
+      | StackInt i::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] [] c), Int i)
+      | _ -> failwith ("iapply: stack empty: " ^ string_of_stack s)
       end
   | IReturn::c' -> uncompile s u c'
 
