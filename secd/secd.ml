@@ -275,7 +275,7 @@ let rec of_tinyocaml db = function
 | Tinyocaml.App (a, b) ->
     Apply (of_tinyocaml db a, of_tinyocaml db b)
 | Tinyocaml.Let (false, [(PatVar v, e)], e') ->
-    Let (v, of_tinyocaml (v::db) e, of_tinyocaml (v::db) e')
+    Let (v, of_tinyocaml db e, of_tinyocaml (v::db) e')
 | Tinyocaml.Var v ->
     VarAccess (v, find_debruijn_index 1 v db)
 | Tinyocaml.Fun (Tinyocaml.NoLabel, PatVar v, e, _) ->
