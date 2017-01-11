@@ -9,11 +9,14 @@
 \section{Compilation Scheme}
 
 C(i) = INT(i)\\
+C(b) = BOOL(b)\\
 C(a op b) = C(a); C(b); OP(o)\\
+C(a = b) = C(a); C(b); EQ
 C(\underline{n}) = ACCESS(n)\\
 C($\lambda a$) = CLOSURE(C(a); RETURN)\\
 C(let $a$ in $b$) = C($a$); LET; C($b$); ENDLET\\
-C(a b) = C(a); C(b); APPLY
+C(a b) = C(a); C(b); APPLY\\
+C(if a then b else c) = C($\lambda b$); C($\lambda c$); C(a); BRANCH
 
 
 \section{For arithmetic only}
@@ -36,8 +39,9 @@ e.g \texttt{let x = 1 in let y = 2 in x + y} compiles to:
 \begin{tabular}{l|l|l|l||l|l|l|l}
 \multicolumn{4}{c}{Machine state before}&
 \multicolumn{4}{c}{Machine state after}\\
-Code & Env & Stack & Print & Code & Env & Stack & Print\\
+Code & Env & Stack & Uncompile & Code & Env & Stack & Print\\
 INT(i); c & e & s & p & c & e & i.s & -\\
+BOOL(b); c & e & s & u & c & e & b.s & -\\
 OP(o); c & e & i.i'.s & p & c & e & o(i, i').s & p\\
 ACCESS($n$); c & e & s & p & c & e & e(n).s & - \\
 LET; c & e & v.s & p & c & v.e & s & -\\

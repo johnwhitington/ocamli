@@ -9,12 +9,13 @@ type name = string
 type prog =
   Int of int
 | Bool of bool
+| VarAccess of name * int
 | Eq of prog * prog
 | Op of prog * op * prog
 | Apply of prog * prog
 | Lambda of name * prog
 | Let of name * prog * prog
-| VarAccess of name * int
+| If of prog * prog * prog
 | Underline of prog
 
 type assoc = L | N | R
@@ -29,6 +30,7 @@ let rec prec = function
 | Op (_, (Mul | Div), _) -> 90
 | Op (_, _, _) -> 80
 | Eq _ -> 70
+| If _ -> 50
 | Let _ | Lambda _ -> 10
 | Underline x -> prec x
 | _ -> max_int
@@ -58,6 +60,7 @@ type instr =
 | IEndLet
 | IApply
 | IReturn
+| IBranch
 
 type code = instr list
 
@@ -84,6 +87,7 @@ let rec compile = function
 | Let (name, a, b) -> compile a @ [ILet name] @ compile b @ [IEndLet]
 | VarAccess (s, i) -> [IAccess (s, i)]
 | Lambda (n, p) -> [IClosure (n, (compile p @ [IReturn]))]
+| If (a, b, c) -> compile (Lambda ("", b)) @ compile (Lambda ("", c)) @ compile a @ [IBranch]
 | Underline _ -> failwith "compile: underline"
 
 let calc_op a b = function
@@ -122,6 +126,14 @@ let rec print isleft parent node =
         lp (print true (Some node) a) (print false (Some node) b) rp
   | Lambda (name, body) ->
       Printf.sprintf "%sfun %s -> %s%s" lp name (print isleft (Some node) body) rp
+  | If (a, b, c) ->
+      Printf.sprintf
+        "%sif %s then %s else %s%s"
+        lp
+        (print isleft (Some node) a)
+        (print isleft (Some node) b)
+        (print isleft (Some node) c)
+        rp
   | Let (name, e, e') ->
       Printf.sprintf
         "%slet %s = %s in %s%s"
@@ -173,6 +185,7 @@ and string_of_instr = function
 | IAccess (n, i) -> Printf.sprintf "IAccess %s at %i" n i
 | IClosure (_, instrs) -> Printf.sprintf "IClosure [%s]" (string_of_instrs instrs)
 | ILet n -> "ILet " ^ n
+| IBranch -> "IBranch"
 | IEndLet -> "IEndLet"
 | IApply -> "IApply"
 | IReturn -> "IReturn"
@@ -211,7 +224,7 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
       begin match s with
         a::b::s' ->
           let prog = StackProgram (Eq (prog_of_stackitem b, prog_of_stackitem a)) in
-            uncompile (prog::s) u r
+            uncompile (prog::s') u r
       | _ -> failwith "uncompile: eq empty"
       end
   | IOp op::r ->
@@ -229,6 +242,14 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
       end
   | IClosure (n, closure)::c' ->
       uncompile (StackClosure (n, (closure, []))::s) u c'
+  | IBranch::c' ->
+      begin match s with
+        cond::StackClosure (_, (thn, e))::StackClosure (_, (els, e'))::s' ->
+          If (prog_of_stackitem cond,
+              uncompile s' u thn,
+              uncompile s' u els)
+      | _ -> failwith ("IBranch: stack empty" ^ string_of_stack s)
+      end
   | IApply::c' ->
       (* f x has x on stack, then f. Collect them and make program *)
       begin match s with
@@ -293,6 +314,16 @@ let run_step (s : stack) (e : environment) = function
     (c, e, StackInt(List.nth e (i - 1))::s, false, true)
 | IClosure (n, c')::c ->
     (c, e, StackClosure (n, (c', e))::s, false, false)
+| IBranch::c' ->
+    begin match s with
+      StackBool b::StackClosure (_, (thn, e))::StackClosure (_, (els, e'))::s' ->
+        ((if b then thn else els),
+         (if b then e else e'),
+         StackCode c'::StackEnvironment e::s,
+         false,
+         true)
+    | _ -> failwith "run_step: IBranch"
+    end
 
 let rec run_step_by_step first debug quiet (s : stack) (e : environment) p =
   let print s p =
@@ -335,6 +366,8 @@ let rec of_tinyocaml db = function
     VarAccess (v, find_debruijn_index 1 v db)
 | Tinyocaml.Fun (Tinyocaml.NoLabel, PatVar v, e, _) ->
     Lambda (v, of_tinyocaml (v::db) e)
+| Tinyocaml.If (a, b, Some c) ->
+    If (of_tinyocaml db a, of_tinyocaml db b, of_tinyocaml db c)
 | Tinyocaml.Struct (_, [x]) -> of_tinyocaml db x
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
