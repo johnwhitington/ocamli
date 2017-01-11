@@ -8,6 +8,8 @@ type name = string
 
 type prog =
   Int of int
+| Bool of bool
+| Eq of prog * prog
 | Op of prog * op * prog
 | Apply of prog * prog
 | Lambda of name * prog
@@ -18,7 +20,7 @@ type prog =
 type assoc = L | N | R
 
 let rec assoc = function
-  Op _ | Apply _ -> L
+  Op _ | Apply _ | Eq _ -> L
 | Underline x -> assoc x
 | _ -> N
 
@@ -26,6 +28,7 @@ let rec prec = function
   Apply _ -> 100
 | Op (_, (Mul | Div), _) -> 90
 | Op (_, _, _) -> 80
+| Eq _ -> 70
 | Let _ | Lambda _ -> 10
 | Underline x -> prec x
 | _ -> max_int
@@ -46,7 +49,9 @@ let parens node parent isleft =
 type instr =
   IEmpty
 | IConst of int
+| IBool of bool
 | IOp of op
+| IEq
 | IAccess of name * int
 | IClosure of name * instr list
 | ILet of name
@@ -62,6 +67,7 @@ type closure = instr list * environment
 
 type stackitem =
   StackInt of int
+| StackBool of bool
 | StackClosure of name * closure
 | StackCode of instr list
 | StackEnvironment of environment
@@ -71,6 +77,8 @@ type stack = stackitem list
 
 let rec compile = function
   Int i -> [IConst i]
+| Bool b -> [IBool b]
+| Eq (a, b) -> compile a @ compile b @ [IEq]
 | Op (a1, op, a2) -> compile a1 @ compile a2 @ [IOp op]
 | Apply (a, b) -> compile a @ compile b @ [IApply]
 | Let (name, a, b) -> compile a @ [ILet name] @ compile b @ [IEndLet]
@@ -92,12 +100,21 @@ let rec print isleft parent node =
   match node with
     Int i ->
       Printf.sprintf "%i" i
+  | Bool b ->
+      Printf.sprintf "%b" b
   | Op (a, op, b) ->
       Printf.sprintf
         "%s%s %s %s%s"
         lp
         (print true (Some node) a)
         (string_of_op op)
+        (print true (Some node) b)
+        rp
+  | Eq (a, b) ->
+      Printf.sprintf
+        "%s%s = %s%s"
+        lp
+        (print true (Some node) a)
         (print true (Some node) b)
         rp
   | Apply (a, b) ->
@@ -136,6 +153,7 @@ and string_of_closure (instrs, env) =
 
 and string_of_stackitem = function
   StackInt i -> Printf.sprintf "StackInt %i" i
+| StackBool b -> Printf.sprintf "StackBool %b" b
 | StackCode c -> Printf.sprintf "StackCode <<%s>>" (string_of_instrs c)
 | StackClosure (n, c) -> Printf.sprintf "StackClosure (%s -> %s)" n (string_of_closure c)
 | StackEnvironment e -> Printf.sprintf "StackEnvironment %s" (string_of_environment e)
@@ -149,6 +167,7 @@ and string_of_stack s =
 
 and string_of_instr = function
   IConst i -> Printf.sprintf "IConst %i" i
+| IBool b -> Printf.sprintf "IBool %b" b
 | IOp op -> Printf.sprintf "IOp %s" (string_of_op op)
 | IEmpty -> Printf.sprintf "IEmpty"
 | IAccess (n, i) -> Printf.sprintf "IAccess %s at %i" n i
@@ -157,6 +176,7 @@ and string_of_instr = function
 | IEndLet -> "IEndLet"
 | IApply -> "IApply"
 | IReturn -> "IReturn"
+| IEq -> "IEq"
 
 and string_of_instrs s =
   List.fold_left
@@ -166,6 +186,7 @@ and string_of_instrs s =
 
 let prog_of_stackitem = function
   StackInt i -> Int i
+| StackBool b -> Bool b
 | StackProgram p -> p
 | _ -> failwith "prog_of_stackitem"
 
@@ -175,18 +196,24 @@ let prog_of_stackitem = function
   * 4) The empty final-state program with the final result left in the stack. *)
 let rec uncompile (s : stack) (u : stack) (c : code) =
   match c with
-    [] ->
+    [] -> 
       begin match s with
-          StackInt i::_ -> Int i
-        | StackProgram p::_ -> p
-        | s ->
-            failwith (Printf.sprintf "uncompile: stack = %s" (string_of_stack s))
+        si::_ -> prog_of_stackitem si
+        | _ -> failwith (Printf.sprintf "uncompile: stack = %s" (string_of_stack s))
       end
   | IAccess (n, l)::c' ->
       uncompile (StackProgram (VarAccess (n, l))::s) u c'
   | IEndLet::c' -> uncompile s u c'
   | IConst i::r -> uncompile (StackInt i::s) u r
+  | IBool b::r -> uncompile (StackBool b::s) u r
   | IEmpty::_ -> failwith "uncompile: empty"
+  | IEq::r ->
+      begin match s with
+        a::b::s' ->
+          let prog = StackProgram (Eq (prog_of_stackitem b, prog_of_stackitem a)) in
+            uncompile (prog::s) u r
+      | _ -> failwith "uncompile: eq empty"
+      end
   | IOp op::r ->
      begin match s with
        a::b::s' ->
@@ -228,6 +255,12 @@ let run_step (s : stack) (e : environment) = function
     end
 | IEmpty::_ -> failwith "run_step: empty"
 | IConst i::c -> (c, e, StackInt i::s, false, false)
+| IBool b::c -> (c, e, StackBool b::s, false, false)
+| IEq::c ->
+    begin match s with
+      n2::n1::s' -> (c, e, StackBool (n2 = n1)::s', false, true)
+    | _ -> failwith "run_step: stack empty eq"
+    end
 | IOp op::c ->
     begin match s with
       StackInt n2::StackInt n1::s' ->
@@ -266,16 +299,15 @@ let rec run_step_by_step first debug quiet (s : stack) (e : environment) p =
     print_string (print (uncompile s [] p));
     print_newline ()
   in
-    match s, p with
-      [StackInt x], [] ->
+    match p with
+      [] ->
         if debug then print_string (print_step s p e);
-        (*if not quiet then print s p;*)
     | _ ->
-      if debug then print_string (print_step s p e);
-      let p', e', s', important_before, important_after = run_step s e p in
-        if not quiet && important_before || first then print s p;
-        if not quiet && important_after then print s' p';
-        run_step_by_step false debug quiet s' e' p'
+        if debug then print_string (print_step s p e);
+        let p', e', s', important_before, important_after = run_step s e p in
+          if not quiet && important_before || first then print s p;
+          if not quiet && important_after then print s' p';
+          run_step_by_step false debug quiet s' e' p'
 
 let rec find_debruijn_index n v = function
   v'::vs when v = v' -> n
@@ -284,6 +316,9 @@ let rec find_debruijn_index n v = function
 
 let rec of_tinyocaml db = function
   Tinyocaml.Int i -> Int i
+| Tinyocaml.Bool b -> Bool b
+| Tinyocaml.Cmp (Tinyocaml.EQ, a, b) ->
+    Eq (of_tinyocaml db a, of_tinyocaml db b)
 | Tinyocaml.Op (Tinyocaml.Mul, a, b) ->
     Op (of_tinyocaml db a, Mul, of_tinyocaml db b)
 | Tinyocaml.Op (Tinyocaml.Sub, a, b) ->
