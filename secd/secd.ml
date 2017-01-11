@@ -307,7 +307,8 @@ let program = ref ""
 
 let debug = ref false
 
-let setfile s = ()
+let setfile s =
+  program := Ocamliutil.load_file s
 
 let times = ref 1
 
