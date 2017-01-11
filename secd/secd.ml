@@ -26,7 +26,7 @@ let rec prec = function
   Apply _ -> 100
 | Op (_, (Mul | Div), _) -> 90
 | Op (_, _, _) -> 80
-| Let _ -> 10
+| Let _ | Lambda _ -> 10
 | Underline x -> prec x
 | _ -> max_int
 
@@ -101,16 +101,18 @@ let rec print isleft parent node =
         (print true (Some node) b)
         rp
   | Apply (a, b) ->
-      Printf.sprintf "%s %s"
-        (print true (Some node) a) (print false (Some node) b)
+      Printf.sprintf "%s%s %s%s"
+        lp (print true (Some node) a) (print false (Some node) b) rp
   | Lambda (name, body) ->
-      Printf.sprintf "fun %s -> %s" name (print isleft (Some node) body)
+      Printf.sprintf "%sfun %s -> %s%s" lp name (print isleft (Some node) body) rp
   | Let (name, e, e') ->
       Printf.sprintf
-        "let %s = %s in %s"
+        "%slet %s = %s in %s%s"
+        lp
         name
         (print isleft (Some node) e)
         (print isleft (Some node) e')
+        rp
   | VarAccess (n, x) ->
       Printf.sprintf "%s" n
   | Underline x ->
@@ -190,7 +192,7 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
        a::b::s' ->
          let prog_op = StackProgram (Op (prog_of_stackitem b, op, prog_of_stackitem a)) in
            uncompile (prog_op::s') u r
-     | _ -> failwith "uncompile: stack empty"
+     | _ -> failwith ("uncompile: stack empty: " ^ string_of_stack s)
      end
   | ILet n::c' ->
       (* [let x = a in b] has [a] at the top of the stack, and [b] as everything else *)
@@ -209,6 +211,11 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
       end
   | IReturn::c' -> uncompile s u c'
 
+let uncompile s u c =
+  (*Printf.printf
+    "Begin uncompile: %s %s %s\n" (string_of_stack s) (string_of_stack u) (string_of_instrs c);*)
+  uncompile s u c
+
 let print_step (s : stack) (p : instr list) (e : environment) =
   Printf.sprintf "%s || %s || %s\n"
     (string_of_instrs p) (string_of_stack s) (string_of_environment e)
@@ -216,58 +223,59 @@ let print_step (s : stack) (p : instr list) (e : environment) =
 let run_step (s : stack) (e : environment) = function
   [] ->
     begin match s with
-      x::t -> ([], e, [x], false)
+      x::t -> ([], e, [x], false, false)
     | _ -> failwith "run_step: stack empty"
     end
 | IEmpty::_ -> failwith "run_step: empty"
-| IConst i::c -> (c, e, StackInt i::s, false)
+| IConst i::c -> (c, e, StackInt i::s, false, false)
 | IOp op::c ->
     begin match s with
       StackInt n2::StackInt n1::s' ->
-        (c, e, StackInt (calc_op n1 n2 op)::s', true)
+        (c, e, StackInt (calc_op n1 n2 op)::s', false, true)
     | _ -> failwith "run_step: stack empty 2"
     end
 | ILet _::c ->
     begin match s with
-      StackInt v::s' -> (c, (v::e), s', false)
+      StackInt v::s' -> (c, (v::e), s', false, false)
     | _ -> failwith "run_step: stack empty let"
     end
 | IEndLet::c ->
     begin match e with
-      _::es -> (c, es, s, false)
+      _::es -> (c, es, s, false, false)
     | [] -> failwith "run_step: env empty endlet"
     end
 | IReturn::c ->
     begin match s with
       StackInt v::StackCode c'::StackEnvironment e'::s' ->
-        (c, e', StackInt v::s', false)
+        (c, e', StackInt v::s', false, false)
     | _ -> failwith "run_step: IReturn"
     end
 | IApply::c ->
     begin match s with
       StackInt v::StackClosure (n, (c', e'))::s' ->
-        (c', v::e', StackCode c::StackEnvironment e::s', false)
+        (c', v::e', StackCode c::StackEnvironment e::s', false, false)
     | _ -> failwith "run_step: IApply"
     end
 | IAccess (_, i)::c ->
-    (c, e, StackInt(List.nth e (i - 1))::s, false)
+    (c, e, StackInt(List.nth e (i - 1))::s, false, true)
 | IClosure (n, c')::c ->
-    (c, e, StackClosure (n, (c', e))::s, false)
+    (c, e, StackClosure (n, (c', e))::s, false, false)
 
-let rec run_step_by_step first debug show_unimportant quiet (s : stack) (e : environment) p =
-  let print () =
+let rec run_step_by_step first debug quiet (s : stack) (e : environment) p =
+  let print s p =
     print_string (print (uncompile s [] p));
     print_newline ()
   in
     match s, p with
       [StackInt x], [] ->
         if debug then print_string (print_step s p e);
-        if not quiet then print ();
+        (*if not quiet then print s p;*)
     | _ ->
       if debug then print_string (print_step s p e);
-      let p', e', s', important = run_step s e p in
-        if not quiet && (important || show_unimportant) || first then print ();
-        run_step_by_step false debug show_unimportant quiet s' e' p'
+      let p', e', s', important_before, important_after = run_step s e p in
+        if not quiet && important_before || first then print s p;
+        if not quiet && important_after then print s' p';
+        run_step_by_step false debug quiet s' e' p'
 
 let rec find_debruijn_index n v = function
   v'::vs when v = v' -> n
@@ -299,8 +307,6 @@ let program = ref ""
 
 let debug = ref false
 
-let show_unimportant = ref false
-
 let setfile s = ()
 
 let times = ref 1
@@ -310,7 +316,6 @@ let quiet = ref false
 let argspec =
   [("-e", Arg.Set_string program, " Evaluate the program text given");
    ("-debug", Arg.Set debug, " Show the bytecode and stack at every point.");
-   ("-show-unimportant", Arg.Set show_unimportant, " Show after every bytecode instruction, even when no change");
    ("-times", Arg.Set_int times, " Do it many times");
    ("-quiet", Arg.Set quiet, " Suppress output")]
 
@@ -320,7 +325,7 @@ let prog_of_string s =
 let go () =
   let prog = compile (prog_of_string !program) in
     for _ = 1 to !times do
-      run_step_by_step true !debug !show_unimportant !quiet [] [] prog
+      run_step_by_step true !debug !quiet [] [] prog
     done
 
 let _ =
