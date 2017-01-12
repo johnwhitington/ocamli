@@ -1,5 +1,6 @@
 \documentclass[11pt]{article}
 \usepackage{palatino}
+\usepackage{amsmath}
 
 \begin{document}
 
@@ -8,47 +9,54 @@
 
 \section{Compilation Scheme}
 
-C(i) = INT(i)\\
-C(b) = BOOL(b)\\
-C(a op b) = C(a); C(b); OP(o)\\
-C(a = b) = C(a); C(b); EQ
-C(\underline{n}) = ACCESS(n)\\
-C($\lambda a$) = CLOSURE(C(a); RETURN)\\
-C(let $a$ in $b$) = C($a$); LET; C($b$); ENDLET\\
-C(a b) = C(a); C(b); APPLY\\
-C(if a then b else c) = C($\lambda b$); C($\lambda c$); C(a); BRANCH
-
-
-\section{For arithmetic only}
-\begin{tabular}{l|l|l|l||l|l|l|l}
-\multicolumn{4}{c}{Machine state before}&
-\multicolumn{4}{c}{Machine state after}\\
-Code & Env & Stack & Print & Code & Env & Stack & Print\\
-INT(i); c & e & s & p & c & e & i.s & -\\
-OP(o); c & e & i.i'.s & p & c & e & o(i, i').s & p\\
-\end{tabular}
-
-\section{Add lets}
+\begin{align*}
+\mathcal{C}(i) &= \text{INT}(i)\\
+\mathcal{C}(b) &= \text{BOOL}(b)\\
+\mathcal{C}(a \oplus b) &= \mathcal{C}(a); \mathcal{C}(b); \text{OP}(\oplus)\\
+\mathcal{C}(a = b) &= \mathcal{C}(a); \mathcal{C}(b); \text{EQ}\\
+\mathcal{C}(\underline{n}) &= \text{ACCESS}(n)\\
+\mathcal{C}(\lambda a) &= \text{CLOSURE}(\mathcal{C}(a); \text{RETURN})\\
+\mathcal{C}(\texttt{let}\ a\ \texttt{in}\ b) &= \mathcal{C}(a); \text{LET}; \mathcal{C}(b); \text{ENDLET}\\
+\mathcal{C}(a b) &= \mathcal{C}(a); \mathcal{C}(b); \text{APPLY}\\
+\mathcal{C}(\texttt{if}\ a\ \texttt{then}\ b\ \texttt{else}\ c) &= \mathcal{C}(\lambda b); \mathcal{C}(\lambda c); \mathcal{C}(a); \text{IF}
+\end{align*}
 
 e.g \texttt{let x = 1 in let y = 2 in x + y} compiles to:
 
 
 
-\section{Full machine}
+\section{Evalution Scheme}
 
-\begin{tabular}{l|l|l|l||l|l|l|l}
-\multicolumn{4}{c}{Machine state before}&
-\multicolumn{4}{c}{Machine state after}\\
-Code & Env & Stack & Uncompile & Code & Env & Stack & Print\\
-INT(i); c & e & s & p & c & e & i.s & -\\
-BOOL(b); c & e & s & u & c & e & b.s & -\\
-OP(o); c & e & i.i'.s & p & c & e & o(i, i').s & p\\
-ACCESS($n$); c & e & s & p & c & e & e(n).s & - \\
-LET; c & e & v.s & p & c & v.e & s & -\\
-ENDLET; c & v.e & s & p & c & e & s & -\\
-CLOSURE(c'); c & e & s & p & c & e & c'[e].s & -\\
-APPLY; c & e & v.c'[e'].s & p & c' & v.e' & c.e.s & -\\
-RETURN; c & e & v.c'.e'.s & p & c' & e' & v.s & -\\
+\begin{tabular}{l|l|l||l|l|l}
+\multicolumn{3}{c}{Machine state before}&\multicolumn{3}{c}{Machine state after}                       \\
+Code                    & Env   & Stack                          & Code   & Env    & Stack             \\
+$\text{INT}(i);c$       & $e$   & $s$                            & $c$    & $e$    & $i.s$             \\
+$\text{BOOL}(b);c$      & $e$   & $s$                            & $c$    & $e$    & $b.s$             \\
+$\text{OP}(\oplus);c$   & $e$   & $i.i'.s$                       & $c$    & $e$    & $\oplus(i, i').s$ \\
+$\text{EQ};c$           & $e$   & $i.i'.s$                       & $c$    & $e$    & $(i = i').s$      \\
+$\text{ACCESS}(n);c$    & $e$   & $s$                            & $c$    & $e$    & $e(n).s$          \\
+$\text{CLOSURE}(c');c$  & $e$   & $s$                            & $c$    & $e$    & $c'[e].s$         \\
+$\text{LET};c$          & $e$   & $v.s$                          & $c$    & $v.e$  & $s$               \\
+$\text{ENDLET};c$       & $v.e$ & $s$                            & $c$    & $e$    & $s$               \\
+$\text{APPLY;c}$        & $e$   & $v.c'[e'].s$                   & $c'$   & $v.e'$ & $c.e.s$           \\
+$\text{RETURN;c}$       & $e$   & $v.c'.e'.s$                    & $c'$   & $e'$   & $v.s$             \\
+$\text{IF;c}$           & $e$   & $\textsf{T}.c'[e'].c''[e''].s$ & $c'$   & $e'$   & $c[e].s$          \\
+$\text{IF;c}$           & $e$   & $\textsf{F}.c'[e'].c''[e''].s$ & $c''$  & $e''$  & $c[e].s$          \\
 \end{tabular}
+
+\bigskip
+
+\noindent The final result is at the top of the stack when the code is empty.
+
+\section{Decompilation Scheme}
+
+We need to be able to decompile:
+
+\begin{itemize}
+\item Any program which has been compiled by the compilation scheme above.
+\item Certain incomplete evaluations under the evaluation scheme above. That is to say, given $(c, e, s)$ we can decompile a program which represents the evaluation at that stage.
+\end{itemize}
+
+\noindent We need not be able to decompile arbitrary $(c, e, s)$ triples.
 
 \end{document}
