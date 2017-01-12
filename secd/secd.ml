@@ -244,10 +244,11 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
       uncompile (StackClosure (n, (closure, []))::s) u c'
   | IBranch::c' ->
       begin match s with
-        cond::StackClosure (_, (thn, e))::StackClosure (_, (els, e'))::s' ->
-          If (prog_of_stackitem cond,
-              uncompile s' u thn,
-              uncompile s' u els)
+        cond::StackClosure (_, (els, _))::StackClosure (_, (thn, _))::s' ->
+          let prog =
+            If (prog_of_stackitem cond, uncompile s' u thn, uncompile s' u els)
+          in
+            uncompile (StackProgram prog::s') u c'
       | _ -> failwith ("IBranch: stack empty" ^ string_of_stack s)
       end
   | IApply::c' ->
@@ -257,7 +258,13 @@ let rec uncompile (s : stack) (u : stack) (c : code) =
       | StackInt i::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] [] c), Int i)
       | _ -> failwith ("iapply: stack empty: " ^ string_of_stack s)
       end
-  | IReturn::c' -> uncompile s u c'
+  | IReturn::c'' ->
+      begin match s with
+        si::StackCode c'::StackEnvironment _::s' ->
+          uncompile (si::s') u c'
+      | _ -> uncompile s u c'' (*FIXME a bodge... - how to fix? *)
+      (* Do we need to distinguish between whole-program and partial-program decompilation? *)
+      end
 
 let uncompile s u c =
   (*Printf.printf
@@ -301,7 +308,7 @@ let run_step (s : stack) (e : environment) = function
 | IReturn::c ->
     begin match s with
       StackInt v::StackCode c'::StackEnvironment e'::s' ->
-        (c, e', StackInt v::s', false, false)
+        (c', e', StackInt v::s', false, false)
     | _ -> failwith "run_step: IReturn"
     end
 | IApply::c ->
@@ -316,10 +323,10 @@ let run_step (s : stack) (e : environment) = function
     (c, e, StackClosure (n, (c', e))::s, false, false)
 | IBranch::c' ->
     begin match s with
-      StackBool b::StackClosure (_, (thn, e))::StackClosure (_, (els, e'))::s' ->
+      StackBool b::StackClosure (_, (els, e'))::StackClosure (_, (thn, e))::s' ->
         ((if b then thn else els),
          (if b then e else e'),
-         StackCode c'::StackEnvironment e::s,
+         StackCode c'::StackEnvironment e::s',
          false,
          true)
     | _ -> failwith "run_step: IBranch"
