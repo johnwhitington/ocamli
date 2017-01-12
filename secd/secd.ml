@@ -203,73 +203,73 @@ let prog_of_stackitem = function
 | StackProgram p -> p
 | _ -> failwith "prog_of_stackitem"
 
-(* For now, uncompile only works on these things:
+(* For now, decompile only works on these things:
   * 1) Whole programs i.e lists of instructions compiled from a program
   * 3) Execution fragments beginning IOp, IApply
   * 4) The empty final-state program with the final result left in the stack. *)
-let rec uncompile (s : stack) (c : code) =
+let rec decompile (s : stack) (c : code) =
   match c with
     [] -> 
       begin match s with
         si::_ -> prog_of_stackitem si
-        | _ -> failwith (Printf.sprintf "uncompile: stack = %s" (string_of_stack s))
+        | _ -> failwith (Printf.sprintf "decompile: stack = %s" (string_of_stack s))
       end
   | IAccess (n, l)::c' ->
-      uncompile (StackProgram (VarAccess (n, l))::s) c'
-  | IEndLet::c' -> uncompile s c'
-  | IConst i::r -> uncompile (StackInt i::s) r
-  | IBool b::r -> uncompile (StackBool b::s) r
-  | IEmpty::_ -> failwith "uncompile: empty"
+      decompile (StackProgram (VarAccess (n, l))::s) c'
+  | IEndLet::c' -> decompile s c'
+  | IConst i::r -> decompile (StackInt i::s) r
+  | IBool b::r -> decompile (StackBool b::s) r
+  | IEmpty::_ -> failwith "decompile: empty"
   | IEq::r ->
       begin match s with
         a::b::s' ->
           let prog = StackProgram (Eq (prog_of_stackitem b, prog_of_stackitem a)) in
-            uncompile (prog::s') r
-      | _ -> failwith "uncompile: eq empty"
+            decompile (prog::s') r
+      | _ -> failwith "decompile: eq empty"
       end
   | IOp op::r ->
      begin match s with
        a::b::s' ->
          let prog_op = StackProgram (Op (prog_of_stackitem b, op, prog_of_stackitem a)) in
-           uncompile (prog_op::s') r
-     | _ -> failwith ("uncompile: stack empty: " ^ string_of_stack s)
+           decompile (prog_op::s') r
+     | _ -> failwith ("decompile: stack empty: " ^ string_of_stack s)
      end
   | ILet n::c' ->
       (* [let x = a in b] has [a] at the top of the stack, and [b] as everything else *)
       begin match s with
-        si::s' -> Let (n, prog_of_stackitem si, uncompile s' c')
+        si::s' -> Let (n, prog_of_stackitem si, decompile s' c')
       | _ -> failwith "ilet: stack empty"
       end
   | IClosure (n, closure)::c' ->
-      uncompile (StackClosure (n, (closure, []))::s) c'
+      decompile (StackClosure (n, (closure, []))::s) c'
   | IBranch::c' ->
       begin match s with
         cond::StackClosure (_, (els, _))::StackClosure (_, (thn, _))::s' ->
           let prog =
-            If (prog_of_stackitem cond, uncompile s' thn, uncompile s' els)
+            If (prog_of_stackitem cond, decompile s' thn, decompile s' els)
           in
-            uncompile (StackProgram prog::s') c'
+            decompile (StackProgram prog::s') c'
       | _ -> failwith ("IBranch: stack empty" ^ string_of_stack s)
       end
   | IApply::c' ->
       (* f x has x on stack, then f. Collect them and make program *)
       begin match s with
-        StackProgram p::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] c), p)
-      | StackInt i::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, uncompile [] c), Int i)
+        StackProgram p::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, decompile [] c), p)
+      | StackInt i::StackClosure (n, (c, _))::_ -> Apply (Lambda (n, decompile [] c), Int i)
       | _ -> failwith ("iapply: stack empty: " ^ string_of_stack s)
       end
   | IReturn::c'' ->
       begin match s with
         si::StackCode c'::StackEnvironment _::s' ->
-          uncompile (si::s') c'
-      | _ -> uncompile s c'' (*FIXME a bodge... - how to fix? *)
+          decompile (si::s') c'
+      | _ -> decompile s c'' (*FIXME a bodge... - how to fix? *)
       (* Do we need to distinguish between whole-program and partial-program decompilation? *)
       end
 
-let uncompile s c =
+let decompile s c =
   (*Printf.printf
-    "Begin uncompile: %s %s %s\n" (string_of_stack s) (string_of_stack u) (string_of_instrs c);*)
-  uncompile s c
+    "Begin decompile: %s %s %s\n" (string_of_stack s) (string_of_stack u) (string_of_instrs c);*)
+  decompile s c
 
 let print_step (s : stack) (p : instr list) (e : environment) =
   Printf.sprintf "%s || %s || %s\n"
@@ -278,7 +278,7 @@ let print_step (s : stack) (p : instr list) (e : environment) =
 let run_step (s : stack) (e : environment) = function
   [] ->
     begin match s with
-      x::t -> ([], e, [x], false, false)
+      x::_ -> ([], e, [x], false, false)
     | _ -> failwith "run_step: stack empty"
     end
 | IEmpty::_ -> failwith "run_step: empty"
@@ -334,7 +334,7 @@ let run_step (s : stack) (e : environment) = function
 
 let rec run_step_by_step first debug quiet (s : stack) (e : environment) p =
   let print s p =
-    print_string (print (uncompile s p));
+    print_string (print (decompile s p));
     print_newline ()
   in
     match p with
