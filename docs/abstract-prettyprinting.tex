@@ -1,59 +1,115 @@
 \documentclass[11pt]{article}
 \usepackage{palatino}
 \usepackage{amsmath}
+\usepackage{pdflscape}
 
 \begin{document}
 
-\title{Extended Abstract Machine for Prettyprinting Intermediate Computations}
+\title{Prettyprinting Intermediate Computations from a Bytecode}
 \maketitle
 
-\section{Compilation Scheme}
 
-\begin{verbatim}
+\section{Programs}
+
+Programs are defined like this. Variable accesses have been converted to deBruijn indices when the program was converted from an OCaml one.
+
+{\small\begin{verbatim}
+type op = Add | Sub | Mul | Div
+
 type prog =
   Int of int
 | Bool of bool
-| VarAccess of int
+| Var of int
 | Eq of prog * prog
 | Op of prog * op * prog
 | Apply of prog * prog
 | Lambda of prog
 | Let of prog * prog
-| If of prog * prog * prog\end{verbatim}
+| If of prog * prog * prog\end{verbatim}}
 
-\begin{verbatim}
-type instr =
-  IEmpty
-| IConst of int
-| IBool of bool
-| IOp of op
-| IEq
-| IAccess of int
-| IClosure of instr list
-| ILet
-| IEndLet
-| IApply
-| IReturn
-| IBranch\end{verbatim}
+\noindent For example, the OCaml program
 
+\medskip
+\noindent\texttt{let x = 5 in if x = 4 then 1 else (fun x -> x + 1) 2}
+\medskip
+
+\noindent may be represented as:
+
+\medskip
+{\small
+\begin{verbatim}Let(Int 5,
+    If(Eq(Var 1, Int 4),
+       Int 1,
+       Apply(Lambda(Op(Var 1, Add, Int 1), Int 2))))\end{verbatim}}
+
+
+\section{Compilation Scheme}
+
+The abstract machine instructions are as followed (Leroy plus BOOL, IF, EQ)
+
+\medskip
+
+\noindent
+EMPTY\\
+CONST(integer)\\
+BOOL(boolean)\\\
+OP(op)\\
+EQ\\
+ACCESS(integer)\\
+CLOSURE(instructions)\\
+LET\\
+ENDLET\\
+APPLY\\
+RETURN\\
+IF
+\medskip
+
+\noindent Here is the compilation scheme, again extended from Leroy:
 
 \begin{align*}
-\mathcal{C}(i) &= \text{INT}(i)\\
-\mathcal{C}(b) &= \text{BOOL}(b)\\
-\mathcal{C}(a \oplus b) &= \mathcal{C}(a); \mathcal{C}(b); \text{OP}(\oplus)\\
-\mathcal{C}(a = b) &= \mathcal{C}(a); \mathcal{C}(b); \text{EQ}\\
-\mathcal{C}(\underline{n}) &= \text{ACCESS}(n)\\
-\mathcal{C}(\lambda a) &= \text{CLOSURE}(\mathcal{C}(a); \text{RETURN})\\
-\mathcal{C}(\texttt{let}\ a\ \texttt{in}\ b) &= \mathcal{C}(a); \text{LET}; \mathcal{C}(b); \text{ENDLET}\\
-\mathcal{C}(a b) &= \mathcal{C}(a); \mathcal{C}(b); \text{APPLY}\\
-\mathcal{C}(\texttt{if}\ a\ \texttt{then}\ b\ \texttt{else}\ c) &= \mathcal{C}(\lambda b); \mathcal{C}(\lambda c); \mathcal{C}(a); \text{IF}
+\mathcal{C}(\texttt{Int}(i)) &= \text{INT}(i)\\
+\mathcal{C}(\texttt{Bool}(b)) &= \text{BOOL}(b)\\
+\mathcal{C}(\texttt{Op}(a, \oplus, b)) &= \mathcal{C}(a); \mathcal{C}(b); \text{OP}(\oplus)\\
+\mathcal{C}(\texttt{Eq}(a, b)) &= \mathcal{C}(a); \mathcal{C}(b); \text{EQ}\\
+\mathcal{C}(\texttt{Var}(n)) &= \text{ACCESS}(n)\\
+\mathcal{C}(\texttt{Lambda}(a)) &= \text{CLOSURE}(\mathcal{C}(a); \text{RETURN})\\
+\mathcal{C}(\texttt{Let}(a, b)) &= \mathcal{C}(a); \text{LET}; \mathcal{C}(b); \text{ENDLET}\\
+\mathcal{C}(\texttt{Apply}(a, b)) &= \mathcal{C}(a); \mathcal{C}(b); \text{APPLY}\\
+\mathcal{C}(\texttt{If}(a, b, c)) &= \mathcal{C}(\texttt{Lambda}(b)); \mathcal{C}(\texttt{Lambda}(c)); \mathcal{C}(a); \text{IF}
 \end{align*}
 
-e.g \texttt{let x = 1 in let y = 2 in x + y} compiles to:
+\noindent So our example compiles to:
 
+\medskip
 
+\noindent ICONST 5\\
+LET\\
+CLOSURE\\
+\phantom{\ \ }\ CONST 1\\
+\phantom{\ \ }\ RETURN\\
+CLOSURE\\
+\phantom{\ \ } CLOSURE\\
+\phantom{\ \ \ \ } ACCESS 1\\
+\phantom{\ \ \ \ } CONST 1\\
+\phantom{\ \ \ \ } OP +\\
+\phantom{\ \ \ \ } RETURN\\
+\phantom{\ \ } CONST 2\\
+\phantom{\ \ } APPLY\\
+\phantom{\ \ } RETURN\\
+ACCESS 1\\
+CONST 4\\
+EQ\\
+BRANCH\\
+ENDLET\\
+EMPTY
+
+\medskip
 
 \section{Evaluation Scheme}
+
+Here is the evaluation scheme $\mathcal{E}$, again extended from Leroy.
+
+\bigskip
 
 \begin{tabular}{l|l|l||l|l|l}
 \multicolumn{3}{c}{Machine state before}&\multicolumn{3}{c}{Machine state after}                       \\
@@ -82,18 +138,10 @@ We need to be able to decompile:
 
 \begin{itemize}
 \item Any program which has been compiled by the compilation scheme above.
-\item Certain incomplete evaluations under the evaluation scheme above. That is to say, given $(c, e, s)$ we can decompile a program which represents the evaluation at that stage.
+\item Certain incomplete evaluations under the evaluation scheme above. That is to say, given $(c, s)$ we can decompile a program which represents the evaluation at that stage. We need not be able to decompile arbitrary $(c, e, s)$ triples.
 \end{itemize}
 
-\noindent We need not be able to decompile arbitrary $(c, e, s)$ triples.
-
-Extend ACCESS and LET with names, not required for evaluation, but for decompilation.
-
-
-
-\bigskip
-
-\noindent We add names to \texttt{VarAccess}, \texttt{Lambda} and \texttt{Let}:
+\noindent Extend ACCESS and LET with names, not required for evaluation, but for decompilation. We add names to \texttt{VarAccess}, \texttt{Lambda} and \texttt{Let}:
 
 \begin{verbatim}
 type prog =
@@ -107,20 +155,26 @@ type prog =
 | Let of name * prog * prog
 | If of prog * prog * prog\end{verbatim}
 
-\begin{verbatim}type instr =
-  IEmpty
-| IConst of int
-| IBool of bool
-| IOp of op
-| IEq
-| IAccess of name * int
-| IClosure of name * instr list
-| ILet of name
-| IEndLet
-| IApply
-| IReturn
-| IBranch\end{verbatim}
+\noindent Similarly, we add names to the ACCESS, CLOSURE and LET instructions:
 
+\bigskip
+
+\noindent
+EMPTY\\
+CONST(integer)\\
+BOOL(boolean)\\\
+OP(op)\\
+EQ\\
+ACCESS(name, integer)\\
+CLOSURE(name, instructions)\\
+LET(name)\\
+ENDLET\\
+APPLY\\
+RETURN\\
+IF
+\medskip
+
+\noindent Decompilation is performed by going through the instructions in order, holding a stack a little like the evaluation stack, but which may also contain decompiled program fragments. When we have gone through all the instructions, the final program is at the top of the stack. We do not need the environment, since we are not running the code, just decompiling it.
 
 \begin{align*}
 \mathcal{D}(\text{EMPTY}, v.s) &= v\\
@@ -132,11 +186,87 @@ type prog =
 \mathcal{D}(\text{CLOSURE}(n, c'); c, s) &= \mathcal{D}(c, c'[n, e].s)\\
 \mathcal{D}(\text{LET}(n); c, v.s) &= \mathcal{D}(c, \texttt{Let}(n, v, \mathcal{D}(c, s').s))\\
 \mathcal{D}(\text{ENDLET}; c, s) &= \mathcal{D}(c, s)\\
-\mathcal{D}(\text{APPLY}; c, v.c'[e'].s) &= \texttt{Apply}(\mathcal{D}(\text{EMPTY}, c'), v)\\
-\mathcal{D}(\text{RETURN}; c, v.c'.e'.s) &= \mathcal{D}(v.s, c')\\
+\mathcal{D}(\text{APPLY}; c, v.c'[e'].s) &= \texttt{Apply}(\mathcal{D}(c', \text{EMPTYSTACK}), v)\\
+\mathcal{D}(\text{RETURN}; c, v.c'.e'.s) &= \mathcal{D}(c', v.s)\\
 \mathcal{D}(\text{RETURN}; c, s) &= \mathcal{D}(c, s)\\
 \mathcal{D}(\text{IF}; c, e.c'[e'].c''[e''].s) &= \mathcal{D}(c, \texttt{If}(e, \mathcal{D}(c', s), \mathcal{D}(c'', s)).s)
 \end{align*}
 
+\noindent This decompiler works for:
+
+\begin{itemize}
+\item Any program-stack pair (P, EMPTYSTACK) where P was compiled by $\mathcal{C}$ above.
+\item program,stack pair (P, S) which is an intermediate state of the evaluation procedure $\mathcal{E}$ (minus the environment) where P begins with OP or APPLY.
+\end{itemize}
+
+\noindent Our example program decompiles properly from bytecode.
+
+\section{Worked examples}
+
+The following pages contain a worked example of the compilation $\mathcal{C}$, the evaluation $\mathcal{E}$, and full-program and partial-evaluation invocations of the decompiler $\mathcal{D}$.
+
+
+\begin{landscape}
+
+\noindent Compilation under $\mathcal{C}$:
+
+\bigskip
+
+{\small
+
+\noindent$\mathcal{C}$(\texttt{Let(Int 5, If(Eq(Var 1, Int 4), Int 1, Apply(Lambda(Op(Var 1, Add, Int 1), Int 2))))})
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Let}
+\smallskip
+
+\noindent $\mathcal{C}$(\texttt{Int 5}); LET; $\mathcal{C}$(\texttt{If(Eq(Var 1, Int 4), Int 1, Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); ENDLET
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Int}
+\smallskip
+
+\noindent INT 5; LET; $\mathcal{C}$(\texttt{If(Eq(Var 1, Int 4), Int 1, Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); ENDLET
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{If}
+\smallskip
+
+\noindent INT 5; LET; $\mathcal{C}$(\texttt{Lambda (Int 1)}); $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); $\mathcal{C}$(\texttt{Eq(Var 1, Int 4)}); IF; ENDLET
+
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Eq} then Rule $\mathcal{C}$-\texttt{Eq} then Rule $\mathcal{C}$-\texttt{Eq}
+\smallskip
+
+\noindent INT 5; LET; $\mathcal{C}$(\texttt{Lambda (Int 1)}); $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); VARACCESS 1; INT 4; EQ; IF; ENDLET
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Lambda} then Rule $\mathcal{C}$-\texttt{Int}
+\smallskip
+
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); VARACCESS 1; INT 4; EQ; IF; ENDLET
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Lambda}
+\smallskip
+
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [$\mathcal{C}$(\texttt{Apply(Lambda(Op(Var 1, Add, Int 1), Int 2))}); RETURN]; VARACCESS 1; INT 4; EQ; IF; ENDLET
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Apply}
+\smallskip
+
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [$\mathcal{C}$(\texttt{Lambda(Op(Var 1, Add, Int 1))}; $\mathcal{C}$(\texttt{Int 2}); APPLY; RETURN]; VARACCESS 1; INT 4; EQ; IF; ENDLET
+
+
+\smallskip
+\noindent Rule $\mathcal{C}$-\texttt{Int} then Rule $\mathcal{C}$-\texttt{Lambda} then Rule $\mathcal{C}$-\texttt{Op} then Rule $\mathcal{C}$-\texttt{Var} then Rule $\mathcal{C}$-\texttt{Int}
+\smallskip
+
+\noindent ICONST 5; LET; CLOSURE [CONST 1; RETURN]; CLOSURE [CLOSURE [ACCESS 1; CONST 1; OP +; RETURN]; CONST 2; APPLY; RETURN]; ACCESS 1; CONST 4; EQ; IF; ENDLET
+
+
+}\end{landscape}
 
 \end{document}
