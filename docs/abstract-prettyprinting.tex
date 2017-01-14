@@ -9,6 +9,34 @@
 
 \section{Compilation Scheme}
 
+\begin{verbatim}
+type prog =
+  Int of int
+| Bool of bool
+| VarAccess of int
+| Eq of prog * prog
+| Op of prog * op * prog
+| Apply of prog * prog
+| Lambda of prog
+| Let of prog * prog
+| If of prog * prog * prog\end{verbatim}
+
+\begin{verbatim}
+type instr =
+  IEmpty
+| IConst of int
+| IBool of bool
+| IOp of op
+| IEq
+| IAccess of int
+| IClosure of instr list
+| ILet
+| IEndLet
+| IApply
+| IReturn
+| IBranch\end{verbatim}
+
+
 \begin{align*}
 \mathcal{C}(i) &= \text{INT}(i)\\
 \mathcal{C}(b) &= \text{BOOL}(b)\\
@@ -61,22 +89,54 @@ We need to be able to decompile:
 
 Extend ACCESS and LET with names, not required for evaluation, but for decompilation.
 
-\begin{tabular}{l|l|l||l}
-\multicolumn{2}{c}{Machine state before}&\multicolumn{2}{c}{Machine state after}                       \\
-Code                      & Stack                          & Code    & Stack             \\
-$\text{INT}(i);c$         & $s$                            & $c$     & $i.s$             \\
-$\text{BOOL}(b);c$        & $s$                            & $c$     & $b.s$             \\
-$\text{OP}(\oplus);c$     & $i.i'.s$                       & $c$     & $\texttt{"i$\oplus$i"}.s$ \\
-$\text{EQ};c$             & $i.i'.s$                       & $c$     & $\texttt{"i = i"}.s$      \\
-$\text{ACCESS}(n, l);c$   & $s$                            & $c$     & $\texttt{l}.s$          \\
-$\text{CLOSURE}(n, c');c$ & $s$                            & $c$     & $c'[n, e].s$         \\
-$\text{LET(n)};c$         & $v.s$                          & $c$     & $\texttt{"let n = v in D(s', c)"}.s$               \\
-$\text{ENDLET};c$         & $s$                            & $c$     & $s$               \\
-$\text{APPLY;c}$          & $v.c'[e'].s$                   & $c'$    & $\texttt{"D([], c') v}"$           \\
-$\text{RETURN;c}$         & $v.c'.e'.s$                    & $c$     & $D(v.s, c')$             \\
-$\text{RETURN;c}$         & $\_$                           & $c$     & $s$             \\
-$\text{IF;c}$             & $e.c'[e'].c''[e''].s$          & $c$     & $\texttt{"if e then D(c') else D(c'')"}$          \\
-\end{tabular}
+
+
+\bigskip
+
+\noindent We add names to \texttt{VarAccess}, \texttt{Lambda} and \texttt{Let}:
+
+\begin{verbatim}
+type prog =
+  Int of int
+| Bool of bool
+| VarAccess of name * int
+| Eq of prog * prog
+| Op of prog * op * prog
+| Apply of prog * prog
+| Lambda of name * prog
+| Let of name * prog * prog
+| If of prog * prog * prog\end{verbatim}
+
+\begin{verbatim}type instr =
+  IEmpty
+| IConst of int
+| IBool of bool
+| IOp of op
+| IEq
+| IAccess of name * int
+| IClosure of name * instr list
+| ILet of name
+| IEndLet
+| IApply
+| IReturn
+| IBranch\end{verbatim}
+
+
+\begin{align*}
+\mathcal{D}(\text{EMPTY}, v.s) &= v\\
+\mathcal{D}(\text{INT}(i); c, s) &= \mathcal{D}(c, \texttt{Int}(i).s)\\
+\mathcal{D}(\text{BOOL}(i); c, s) &= \mathcal{D}(c, \texttt{Bool}(b).s)\\
+\mathcal{D}(\text{OP}(\oplus); c, i.i'.s) &= \mathcal{D}(c, \texttt{Op}(i, \oplus, i').s) \\
+\mathcal{D}(\text{EQ}; c, i.i'.s) &= \mathcal{D}(c, \texttt{Eq}(i, i').s)\\
+\mathcal{D}(\text{ACCESS}(n, l); c, s) &= \mathcal{D}(c, \texttt{VarAccess}(n, l).s)\\
+\mathcal{D}(\text{CLOSURE}(n, c'); c, s) &= \mathcal{D}(c, c'[n, e].s)\\
+\mathcal{D}(\text{LET}(n); c, v.s) &= \mathcal{D}(c, \texttt{Let}(n, v, \mathcal{D}(c, s').s))\\
+\mathcal{D}(\text{ENDLET}; c, s) &= \mathcal{D}(c, s)\\
+\mathcal{D}(\text{APPLY}; c, v.c'[e'].s) &= \texttt{Apply}(\mathcal{D}(\text{EMPTY}, c'), v)\\
+\mathcal{D}(\text{RETURN}; c, v.c'.e'.s) &= \mathcal{D}(v.s, c')\\
+\mathcal{D}(\text{RETURN}; c, s) &= \mathcal{D}(c, s)\\
+\mathcal{D}(\text{IF}; c, e.c'[e'].c''[e''].s) &= \mathcal{D}(c, \texttt{If}(e, \mathcal{D}(c', s), \mathcal{D}(c'', s)).s)
+\end{align*}
 
 
 \end{document}
