@@ -2,7 +2,7 @@
 \usepackage{palatino}
 \usepackage{amsmath}
 \usepackage{pdflscape}
-
+\usepackage[margin=2cm]{geometry}
 \begin{document}
 
 \title{Prettyprinting Intermediate Computations from a Bytecode}
@@ -183,10 +183,10 @@ IF
 \mathcal{D}(\text{OP}(\oplus); c, i.i'.s) &= \mathcal{D}(c, \texttt{Op}(i, \oplus, i').s) \\
 \mathcal{D}(\text{EQ}; c, i.i'.s) &= \mathcal{D}(c, \texttt{Eq}(i, i').s)\\
 \mathcal{D}(\text{ACCESS}(n, l); c, s) &= \mathcal{D}(c, \texttt{VarAccess}(n, l).s)\\
-\mathcal{D}(\text{CLOSURE}(n, c'); c, s) &= \mathcal{D}(c, c'[n, e].s)\\
-\mathcal{D}(\text{LET}(n); c, v.s) &= \mathcal{D}(c, \texttt{Let}(n, v, \mathcal{D}(c, s').s))\\
+\mathcal{D}(\text{CLOSURE}(n, c'); c, s) &= \mathcal{D}(c, c'[n, \{\}].s)\\
+\mathcal{D}(\text{LET}(n); c, v.s) &= \texttt{Let}(n, v, \mathcal{D}(c, s))\\
 \mathcal{D}(\text{ENDLET}; c, s) &= \mathcal{D}(c, s)\\
-\mathcal{D}(\text{APPLY}; c, v.c'[e'].s) &= \texttt{Apply}(\mathcal{D}(c', \text{EMPTYSTACK}), v)\\
+\mathcal{D}(\text{APPLY}; c, v.c'[n, e'].s) &= \texttt{Apply}(\texttt{Lambda(n}, \mathcal{D}(c', \{\}\texttt{))}, v)\\
 \mathcal{D}(\text{RETURN}; c, v.c'.e'.s) &= \mathcal{D}(c', v.s)\\
 \mathcal{D}(\text{RETURN}; c, s) &= \mathcal{D}(c, s)\\
 \mathcal{D}(\text{IF}; c, e.c'[e'].c''[e''].s) &= \mathcal{D}(c, \texttt{If}(e, \mathcal{D}(c', s), \mathcal{D}(c'', s)).s)
@@ -195,7 +195,7 @@ IF
 \noindent This decompiler works for:
 
 \begin{itemize}
-\item Any program-stack pair (P, EMPTYSTACK) where P was compiled by $\mathcal{C}$ above.
+\item Any program-stack pair (P, \{\}) where P was compiled by $\mathcal{C}$ above.
 \item program,stack pair (P, S) which is an intermediate state of the evaluation procedure $\mathcal{E}$ (minus the environment) where P begins with OP or APPLY.
 \end{itemize}
 
@@ -264,9 +264,113 @@ The following pages contain a worked example of the compilation $\mathcal{C}$, t
 \noindent Rule $\mathcal{C}$-\texttt{Int} then Rule $\mathcal{C}$-\texttt{Lambda} then Rule $\mathcal{C}$-\texttt{Op} then Rule $\mathcal{C}$-\texttt{Var} then Rule $\mathcal{C}$-\texttt{Int}
 \smallskip
 
-\noindent ICONST 5; LET; CLOSURE [CONST 1; RETURN]; CLOSURE [CLOSURE [ACCESS 1; CONST 1; OP +; RETURN]; CONST 2; APPLY; RETURN]; ACCESS 1; CONST 4; EQ; IF; ENDLET
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET
 
 
-}\end{landscape}
+}
+
+\newpage
+
+{\small
+
+\noindent Decompilation under $\mathcal{D}$ of a program compiled under $\mathcal{C}$:
+
+\bigskip
+
+\noindent $\mathcal{D}$(INT 5; LET x; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS (x, 1); INT 4; EQ; IF; ENDLET, \{\})
+
+\smallskip
+\noindent Rule $\mathcal{D}$-CONST
+\smallskip
+
+\noindent LET x; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS (x, 1); INT 4; EQ; IF; ENDLET \textit{with stack} \{\texttt{Int 5}\}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-LET
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS (x, 1); INT 4; EQ; IF; ENDLET, \{\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-CLOSURE
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(CLOSURE [CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS (x, 1); INT 4; EQ; IF; ENDLET, \{CLOSURE [INT 1; RETURN]\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-CLOSURE
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(ACCESS (x, 1); INT 4; EQ; IF; ENDLET, \{ CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN; INT 2; APPLY; RETURN]; CLOSURE [INT 1; RETURN]\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-ACCESS
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(INT 4; EQ; IF; ENDLET, \{\texttt{VarAccess(x, 1)}; CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN; INT 2; APPLY; RETURN]; CLOSURE [INT 1; RETURN]\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-INT
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(EQ; IF; ENDLET, \{\texttt{Int 4}; \texttt{VarAccess(x, 1)}; CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN; CLOSURE [INT 1; RETURN]\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-EQ
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(IF; ENDLET, \{\texttt{Eq(VarAccess (x, 1), Int 4)};  CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN; CLOSURE [INT 1; RETURN]\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-IF
+\smallskip
+
+\noindent \texttt{Let(x, }\texttt{Int 5}, $\mathcal{D}$(ENDLET, \{\texttt{If(Eq(VarAccess (x, 1), Int 4)}, $\mathcal{D}$(CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN, \{\}), $\mathcal{D}$(CLOSURE [INT 1; RETURN], \{\})\texttt{)}
+
+
+\smallskip
+\noindent Rule $\mathcal{D}$-ENDLET
+\smallskip
+
+\noindent \texttt{Let(x, Int 5, If(Eq(VarAccess (x, 1), Int 4)}, $\mathcal{D}$(CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN, \{\}), $\mathcal{D}$(CLOSURE [INT 1; RETURN], \{\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-CLOSURE then $\mathcal{D}$-INT then $\mathcal{D}$-RETURN
+\smallskip
+
+\noindent \texttt{Let(x, Int 5, If(Eq(VarAccess (x, 1), Int 4)}, $\mathcal{D}$(CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN, \{\}), \texttt{Int 1})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-CLOSURE
+\smallskip
+
+\noindent \texttt{Let(x, Int 5, If(Eq(VarAccess (x, 1), Int 4)}, $\mathcal{D}$(INT 2; APPLY; RETURN, \{CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]\}), \texttt{Int 1})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-INT
+\smallskip
+
+\noindent \texttt{Let(x, Int 5, If(Eq(VarAccess (x, 1), Int 4)}, $\mathcal{D}$(APPLY; RETURN, \{\texttt{Int 2}; CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]\}), \texttt{Int 1})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-APPLY
+\smallskip
+
+\noindent \texttt{Let(x, Int 5, If(Eq(VarAccess (x, 1), Int 4)}, \ \texttt{Apply(}$\mathcal{D}$(ACCESS (x, 1); INT 1; OP +; RETURN, \{\}), \texttt{Int 2)}, \texttt{Int 1})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-ACCESS then $\mathcal{D}$-INT then $\mathcal{D}$-OP then $\mathcal{D}$-RETURN
+\smallskip
+
+\noindent \texttt{Let(x, Int 5, If(Eq(VarAccess (x, 1), Int 4)}, \ \texttt{Apply(Lambda(Op(Var 1, Add, Int 1)), \texttt{Int 2)}, \texttt{Int 1})\texttt{)}}
+
+}
+
+
+
+
+
+
+\end{landscape}
 
 \end{document}
