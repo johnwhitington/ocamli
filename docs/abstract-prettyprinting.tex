@@ -51,8 +51,8 @@ The abstract machine instructions are as followed (Leroy plus BOOL, IF, EQ)
 
 \noindent
 EMPTY\\
-CONST(integer)\\
-BOOL(boolean)\\\
+INT(integer)\\
+BOOL(boolean)\\
 OP(op)\\
 EQ\\
 ACCESS(integer)\\
@@ -78,26 +78,34 @@ IF
 \mathcal{C}(\texttt{If}(a, b, c)) &= \mathcal{C}(\texttt{Lambda}(b)); \mathcal{C}(\texttt{Lambda}(c)); \mathcal{C}(a); \text{IF}
 \end{align*}
 
-\noindent So our example compiles to:
+\noindent So our example
+
+
+\medskip
+\noindent\texttt{let x = 5 in if x = 4 then 1 else (fun x -> x + 1) 2}
+\medskip
+
+
+\noindent compiles to (including an EMPTY at the end):
 
 \medskip
 
-\noindent ICONST 5\\
+\noindent INT 5\\
 LET\\
 CLOSURE\\
-\phantom{\ \ }\ CONST 1\\
+\phantom{\ \ }\ INT 1\\
 \phantom{\ \ }\ RETURN\\
 CLOSURE\\
 \phantom{\ \ } CLOSURE\\
 \phantom{\ \ \ \ } ACCESS 1\\
-\phantom{\ \ \ \ } CONST 1\\
+\phantom{\ \ \ \ } INT 1\\
 \phantom{\ \ \ \ } OP +\\
 \phantom{\ \ \ \ } RETURN\\
-\phantom{\ \ } CONST 2\\
+\phantom{\ \ } INT 2\\
 \phantom{\ \ } APPLY\\
 \phantom{\ \ } RETURN\\
 ACCESS 1\\
-CONST 4\\
+INT 4\\
 EQ\\
 BRANCH\\
 ENDLET\\
@@ -130,7 +138,7 @@ $\text{IF;c}$           & $e$   & $\textsf{F}.c'[e'].c''[e''].s$ & $c''$  & $e''
 
 \bigskip
 
-\noindent The final result is at the top of the stack when the code is empty.
+\noindent The final result is at the top of the stack when the code is EMPTY.
 
 \section{Decompilation Scheme}
 
@@ -141,7 +149,7 @@ We need to be able to decompile:
 \item Certain incomplete evaluations under the evaluation scheme above. That is to say, given $(c, s)$ we can decompile a program which represents the evaluation at that stage. We need not be able to decompile arbitrary $(c, e, s)$ triples.
 \end{itemize}
 
-\noindent Extend ACCESS and LET with names, not required for evaluation, but for decompilation. We add names to \texttt{VarAccess}, \texttt{Lambda} and \texttt{Let}:
+\noindent  We add names to \texttt{VarAccess}, \texttt{Lambda} and \texttt{Let}:
 
 \begin{verbatim}
 type prog =
@@ -155,13 +163,13 @@ type prog =
 | Let of name * prog * prog
 | If of prog * prog * prog\end{verbatim}
 
-\noindent Similarly, we add names to the ACCESS, CLOSURE and LET instructions:
+\noindent Similarly, we add names to the ACCESS, CLOSURE and LET instructions (not required for evaluation, but only for decompilation).
 
 \bigskip
 
 \noindent
 EMPTY\\
-CONST(integer)\\
+INT(integer)\\
 BOOL(boolean)\\\
 OP(op)\\
 EQ\\
@@ -174,7 +182,7 @@ RETURN\\
 IF
 \medskip
 
-\noindent Decompilation is performed by going through the instructions in order, holding a stack a little like the evaluation stack, but which may also contain decompiled program fragments. When we have gone through all the instructions, the final program is at the top of the stack. We do not need the environment, since we are not running the code, just decompiling it.
+\noindent Decompilation is performed by going through the instructions in order, holding a stack a little like the evaluation stack, but which may also contain decompiled program fragments -- the empty stack is written $\{\}$. When we have gone through all the instructions, the final program is at the top of the stack. We do not need the environment, since we are not running the code, just decompiling it.
 
 \begin{align*}
 \mathcal{D}(\text{EMPTY}, v.s) &= v\\
@@ -239,25 +247,25 @@ The following pages contain a worked example of the compilation $\mathcal{C}$, t
 \noindent Rule $\mathcal{C}$-\texttt{Eq} then Rule $\mathcal{C}$-\texttt{Eq} then Rule $\mathcal{C}$-\texttt{Eq}
 \smallskip
 
-\noindent INT 5; LET; $\mathcal{C}$(\texttt{Lambda (Int 1)}); $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); VARACCESS 1; INT 4; EQ; IF; ENDLET
+\noindent INT 5; LET; $\mathcal{C}$(\texttt{Lambda (Int 1)}); $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); ACCESS 1; INT 4; EQ; IF; ENDLET
 
 \smallskip
 \noindent Rule $\mathcal{C}$-\texttt{Lambda} then Rule $\mathcal{C}$-\texttt{Int}
 \smallskip
 
-\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); VARACCESS 1; INT 4; EQ; IF; ENDLET
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; $\mathcal{C}$(\texttt{Lambda(Apply(Lambda(Op(Var 1, Add, Int 1), Int 2)))}); ACCESS 1; INT 4; EQ; IF; ENDLET
 
 \smallskip
 \noindent Rule $\mathcal{C}$-\texttt{Lambda}
 \smallskip
 
-\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [$\mathcal{C}$(\texttt{Apply(Lambda(Op(Var 1, Add, Int 1), Int 2))}); RETURN]; VARACCESS 1; INT 4; EQ; IF; ENDLET
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [$\mathcal{C}$(\texttt{Apply(Lambda(Op(Var 1, Add, Int 1), Int 2))}); RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET
 
 \smallskip
 \noindent Rule $\mathcal{C}$-\texttt{Apply}
 \smallskip
 
-\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [$\mathcal{C}$(\texttt{Lambda(Op(Var 1, Add, Int 1))}; $\mathcal{C}$(\texttt{Int 2}); APPLY; RETURN]; VARACCESS 1; INT 4; EQ; IF; ENDLET
+\noindent INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [$\mathcal{C}$(\texttt{Lambda(Op(Var 1, Add, Int 1))}; $\mathcal{C}$(\texttt{Int 2}); APPLY; RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET
 
 
 \smallskip
@@ -271,9 +279,58 @@ The following pages contain a worked example of the compilation $\mathcal{C}$, t
 
 \newpage
 
+\noindent Evaluation under $\mathcal{E}$. Stacks and environments are written \{items\}, and a closure on the stack is written [instructions]\{environment\}. Environments may be put on the stack.
+
+\bigskip
+
+{\small
+\begin{tabular}{l||p{9.5cm}|l|p{9.5cm}}
+& \multicolumn{3}{c}{Machine state after}                       \\
+Instruction & Code      & Env   & Stack\\
+   -        & INT 5; LET; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET & \{\}  & \{\}\\
+
+INT & LET; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET& \{\}   & \{5\}\\
+
+LET & CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET & \{5\}   & \{\}\\
+
+CLOSURE & CLOSURE [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS 1; INT 4; EQ; IF; ENDLET & \{5\}   & \{[INT 1; RETURN]\{5\}\}\\
+
+CLOSURE & ACCESS 1; INT 4; EQ; IF; ENDLET & \{5\} & \{[CLOSURE [ACCESS 1; INT 1; OP +; RETURN]\{5\}; INT 2; APPLY; RETURN]; [INT 1; RETURN]\{5\}\}\\
+
+ACCESS & INT 4; EQ; IF; ENDLET & \{5\}   & \{5; [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]\{5\}; INT 2; APPLY; RETURN]; [INT 1; RETURN]\{5\}\}\\
+
+INT & EQ; IF; ENDLET & \{5\}   & \{4; 5; [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]\{5\}; INT 2; APPLY; RETURN]; [INT 1; RETURN]\{5\}\}\\
+
+EQ & IF; ENDLET & \{5\}   & \{false; [CLOSURE [ACCESS 1; INT 1; OP +; RETURN]\{5\}; INT 2; APPLY; RETURN]; [INT 1; RETURN]\{5\}\}\\
+
+IF & CLOSURE [ACCESS 1; INT 1; OP +; RETURN]; INT 2; APPLY; RETURN & \{5\} & \{[ENDLET]; \{5\}\}\\
+
+CLOSURE & INT 2; APPLY; RETURN & \{5\} & \{[ACCESS 1; INT 1; OP +; RETURN]\{5\}; [ENDLET]; \{5\}\}\\
+
+INT & APPLY; RETURN & \{5\} & \{2; [ACCESS 1; INT 1; OP +; RETURN]\{5\}; [ENDLET]; \{5\}\}\\
+
+APPLY & ACCESS 1; INT 1; OP +; RETURN & \{2; 5\} & \{[RETURN]; \{5\}; [ENDLET]; \{5\}\}\\
+
+ACCESS & INT 1; OP +; RETURN & \{2; 5\} & \{2; [RETURN]; \{5\}; [ENDLET]; \{5\}\}\\
+
+INT & OP +; RETURN & \{2; 5\} & \{1; 2; [RETURN]; \{5\}; [ENDLET]; \{5\}\}\\
+
+OP & RETURN & \{2; 5\} & \{3; [RETURN]; \{5\}; [ENDLET]; \{5\}\}\\
+
+RETURN & EMPTY & \{2; 5\} & \{3; [RETURN]; \{5\}; [ENDLET]; \{5\}\}\\
+
+RETURN & EMPTY & \{5\} & \{3; [ENDLET]; \{5\}\}\\
+
+ENDLET & EMPTY & \{\} & \{3\}\\
+EMPTY
+\end{tabular}
+}
+
+\newpage
+
 {\small
 
-\noindent Decompilation under $\mathcal{D}$ of a program compiled under $\mathcal{C}$:
+\noindent Decompilation under $\mathcal{D}$ of a program compiled under $\mathcal{C}$, with an empty stack to begin, since the program is unexecuted.
 
 \bigskip
 
@@ -283,7 +340,7 @@ The following pages contain a worked example of the compilation $\mathcal{C}$, t
 \noindent Rule $\mathcal{D}$-CONST
 \smallskip
 
-\noindent LET x; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS (x, 1); INT 4; EQ; IF; ENDLET \textit{with stack} \{\texttt{Int 5}\}
+\noindent $\mathcal{D}$(LET x; CLOSURE [INT 1; RETURN]; CLOSURE [CLOSURE [ACCESS (x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; ACCESS (x, 1); INT 4; EQ; IF; ENDLET, \{\texttt{Int 5}\})
 
 \smallskip
 \noindent Rule $\mathcal{D}$-LET
