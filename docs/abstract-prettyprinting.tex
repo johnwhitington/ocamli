@@ -423,11 +423,82 @@ EMPTY
 
 }
 
+\newpage
+
+{\small
+
+\noindent Decompilation under $\mathcal{D}$ of a program compiled under $\mathcal{C}$ and partially evaluated with $\mathcal{D}$.
+
+\bigskip
+
+\noindent $\mathcal{D}$(IF; ENDLET, {false; [CLOSURE [ACCESS(x, 1); INT 1; OP +; RETURN]; INT 2; APPLY; RETURN]; [INT 1; RETURN]})
+
+\smallskip
+\noindent Rule $\mathcal{D}$-IF
+\smallskip
+
+\noindent $\mathcal{D}$(ENDLET, If (false, $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), $\mathcal{D}$([INT 1; RETURN], \{\})), \{\})
+
+\smallskip
+\noindent Rule $\mathcal{D}$-ENDLET
+\smallskip
+
+\noindent \texttt{If (Bool false,} $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), $\mathcal{D}$([INT 1; RETURN], \{\})\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-INT then $\mathcal{D}$-RETURN
+\smallskip
 
 
+\noindent \texttt{If (Bool false,} $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), \texttt{Int 1}\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-CLOSURE
+\smallskip
 
 
+\noindent \texttt{If (Bool false,} $\mathcal{D}$([INT 2; APPLY; RETURN], \{[ACCESS(x, 1); INT 1; OP +: RETURN]\}), \texttt{Int 1}\texttt{)}
 
-\end{landscape}
+\smallskip
+\noindent Rule $\mathcal{D}$-INT
+\smallskip
+
+\noindent \texttt{If (Bool false,} $\mathcal{D}$([APPLY; RETURN], \{\texttt{Int 2}; [ACCESS(x, 1); INT 1; OP +: RETURN]\}), \texttt{Int 1}\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-APPLY
+\smallskip
+
+\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(ACCESS(x, 1); INT 1; OP +: RETURN, \{\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-ACCESS
+\smallskip
+
+\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(INT 1; OP +; RETURN, \{\texttt{VarAccess(x, 1)}\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-INT
+\smallskip
+
+\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(OP +; RETURN, \{\texttt{Int 1; VarAccess(x, 1)}\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-OP
+\smallskip
+
+\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(RETURN, \{\texttt{Op(VarAccess(x, 1), Add, Int 1)}\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+
+\smallskip
+\noindent Rule $\mathcal{D}$-RETURN
+\smallskip
+
+\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, Op(VarAccess(x, 1), Add, Int 1)}, \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+
+\bigskip
+
+\noindent This is the program \texttt{if false then 1 else (fun x -> x + 1) 2}, as required.
+
+}\end{landscape}
 
 \end{document}
