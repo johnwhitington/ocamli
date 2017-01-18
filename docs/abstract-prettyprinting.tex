@@ -437,63 +437,63 @@ EMPTY
 \noindent Rule $\mathcal{D}$-IF
 \smallskip
 
-\noindent $\mathcal{D}$(ENDLET, If (false, $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), $\mathcal{D}$([INT 1; RETURN], \{\})), \{\})
+\noindent $\mathcal{D}$(ENDLET, \texttt{If (false,} $\mathcal{D}$([INT 1; RETURN], \{\})) $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), \{\})
 
 \smallskip
 \noindent Rule $\mathcal{D}$-ENDLET
 \smallskip
 
-\noindent \texttt{If (Bool false,} $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), $\mathcal{D}$([INT 1; RETURN], \{\})\texttt{)}
+\noindent \texttt{If (Bool false,} $\mathcal{D}$([INT 1; RETURN], \{\}), $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN]\{\}), \texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-INT then $\mathcal{D}$-RETURN
 \smallskip
 
 
-\noindent \texttt{If (Bool false,} $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN], \{\}), \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, $\mathcal{D}$([CLOSURE [ACCESS(x, 1); INT 1; OP +: RETURN]; INT 2; APPLY; RETURN]\{\}),\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-CLOSURE
 \smallskip
 
 
-\noindent \texttt{If (Bool false,} $\mathcal{D}$([INT 2; APPLY; RETURN], \{[ACCESS(x, 1); INT 1; OP +: RETURN]\}), \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, $\mathcal{D}$([INT 2; APPLY; RETURN], \{[ACCESS(x, 1); INT 1; OP +: RETURN]\})\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-INT
 \smallskip
 
-\noindent \texttt{If (Bool false,} $\mathcal{D}$([APPLY; RETURN], \{\texttt{Int 2}; [ACCESS(x, 1); INT 1; OP +: RETURN]\}), \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, $\mathcal{D}$([APPLY; RETURN], \{\texttt{Int 2}; [ACCESS(x, 1); INT 1; OP +: RETURN]\})\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-APPLY
 \smallskip
 
-\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(ACCESS(x, 1); INT 1; OP +: RETURN, \{\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,}, \texttt{Int 1}, \texttt{Apply (Lambda(x, }$\mathcal{D}$(ACCESS(x, 1); INT 1; OP +: RETURN, \{\}), \texttt{Int 2))}\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-ACCESS
 \smallskip
 
-\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(INT 1; OP +; RETURN, \{\texttt{VarAccess(x, 1)}\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, \texttt{Apply (Lambda(x, }$\mathcal{D}$(INT 1; OP +; RETURN, \{\texttt{VarAccess(x, 1)}\}), \texttt{Int 2))}\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-INT
 \smallskip
 
-\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(OP +; RETURN, \{\texttt{Int 1; VarAccess(x, 1)}\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, \texttt{Apply (Lambda(x, }$\mathcal{D}$(OP +; RETURN, \{\texttt{Int 1; VarAccess(x, 1)}\}), \texttt{Int 2))}\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-OP
 \smallskip
 
-\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, }$\mathcal{D}$(RETURN, \{\texttt{Op(VarAccess(x, 1), Add, Int 1)}\}), \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, \texttt{Apply (Lambda(x, }$\mathcal{D}$(RETURN, \{\texttt{Op(VarAccess(x, 1), Add, Int 1)}\}), \texttt{Int 2))}\texttt{)}
 
 \smallskip
 \noindent Rule $\mathcal{D}$-RETURN
 \smallskip
 
-\noindent \texttt{If (Bool false,} \texttt{Apply (Lambda(x, Op(VarAccess(x, 1), Add, Int 1)}, \texttt{Int 2))}, \texttt{Int 1}\texttt{)}
+\noindent \texttt{If (Bool false,} \texttt{Int 1}, \texttt{Apply (Lambda(x, Op(VarAccess(x, 1), Add, Int 1)}, \texttt{Int 2))}\texttt{)}
 
 \bigskip
 
