@@ -57,6 +57,13 @@ let caml_create_string =
     (function [Int i] -> String (string_create i)
      | _ -> failwith "caml_create_string")
 
+external bytes_create : int -> bytes = "caml_create_bytes"
+
+let caml_create_bytes =
+  mk "caml_create_bytes"
+    (function [Int i] -> String (string_create i)
+     | _ -> failwith "caml_create_bytes")
+
 external unsafe_input : in_channel -> string -> int -> int -> int
                       = "caml_ml_input"
 
@@ -84,6 +91,14 @@ let percent_string_length =
     (function
      | [String e] -> Int (String.length e)
      | _ -> failwith "percent_string_length")
+
+external get_backend_type : unit -> Sys.backend_type = "%backend_type"
+    
+let percent_backend_type =
+  mk "%backend_type"
+    (function
+     | [Unit] -> Int 0 (* FIXME *)
+     | _ -> failwith "percent_backend_type")
 
 let percent_raise =
   mk "%raise"
@@ -442,6 +457,7 @@ let unix_fork =
      | _ -> failwith "unix_fork")
 
 let builtin_primitives = [
+  percent_backend_type;
   unix_fork;
   percent_string_unsafe_get;
   percent_string_safe_get;
@@ -480,6 +496,7 @@ let builtin_primitives = [
   caml_ml_input_char;
   caml_int_of_string;
   caml_create_string;
+  caml_create_bytes;
   caml_int64_float_of_bits;
   percent_max_wosize;
   percent_word_size;
