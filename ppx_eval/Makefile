@@ -3,7 +3,7 @@ export OCAMLFIND_IGNORE_DUPS_IN
 
 SOURCES = ppx_eval.ml
 
-PACKS = ppx_tools ocamli
+PACKS = ppx_tools ocamli bigarray
 
 RESULT = ppx_eval
 

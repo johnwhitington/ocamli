@@ -1,0 +1,36 @@
+Compile-time, from code, which the compiler will typecheck at compile time
+
+let x = [%compiletime 1 + 2 + 3]
+
+Compile-time, from a string, which the compiler will typecheck at compile time
+
+let x = [%compiletimestr “1 + 2 + 3”]
+
+Run-time, Fixed code, with a type, which is checked by ocamli if provided
+
+let x = [%runtime (1 + 2 + 3) : int]
+
+Run-time, Fixed code, from a string, which is type checked by ocamli if provided
+
+let x = [%runtimestr “1 + 2 + 3”]
+
+Run-time, from a string variable, which is type checked by ocamli provided
+
+
+let f = [%runtimefunction (function x -> x + 1)]
+
+===>
+
+let f =
+  function x ->
+    Tinyocaml.to_ocaml_value (Runeval.eval_string ("let x = " ^ x ^ " + 1"))
+
+
+
+Can have type-checked / un-type-checked variants. Provide a type if you want it checked.
+
+let sum x : int =
+  Tinyocaml.to_ocaml_value (Eval.eval_string ("List.fold_left (fun a b -> a + b) 0 " ^ x));;
+
+
+let y : Tinyocaml.t = Tinyocaml.of_ocaml_value 42
