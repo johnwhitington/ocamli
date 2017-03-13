@@ -64,6 +64,13 @@ let caml_create_bytes =
     (function [Int i] -> String (string_create i)
      | _ -> failwith "caml_create_bytes")
 
+external bytes_to_string : bytes -> string = "%bytes_to_string"
+
+let percent_bytes_to_string =
+  mk "%bytes_to_string"
+    (function [String x] -> String (String.copy x)
+     | _ -> failwith "%bytes_to_string")
+
 external unsafe_input : in_channel -> string -> int -> int -> int
                       = "caml_ml_input"
 
@@ -457,6 +464,7 @@ let unix_fork =
      | _ -> failwith "unix_fork")
 
 let builtin_primitives = [
+  percent_bytes_to_string;
   percent_backend_type;
   unix_fork;
   percent_string_unsafe_get;
