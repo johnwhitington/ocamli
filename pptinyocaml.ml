@@ -649,10 +649,11 @@ and print_pattern f isleft parent pat label =
         List.iter
           (fun (n, p) ->
             txt n;
-            txt " : ";
-            print_pattern f isleft parent p NoLabel)
+            txt " = ";
+            print_pattern f isleft parent p NoLabel;
+            txt "; ")
           items;
-        if not openflag then txt "_";
+        if openflag then txt " _";
         txt "}"
     | PatException p ->
         boldtxt "exception ";
