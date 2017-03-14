@@ -167,7 +167,12 @@ and of_real_ocaml_pattern env = function
     PatException (of_real_ocaml_pattern env p.ppat_desc)
 | _ -> failwith "unknown pattern"
 
-and of_real_ocaml env x = of_real_ocaml_expression_desc env x.pexp_desc
+and of_real_ocaml env x =
+  match x.pexp_attributes with
+    [] -> of_real_ocaml_expression_desc env x.pexp_desc
+  | ({txt = n}, PStr x)::_ ->
+      Annot (n, List.hd (of_real_ocaml_structure env [] x)) (* FIXME: Only reads one for now *)
+  | _ -> failwith "unknown annotation"
 
 and of_real_ocaml_primitive p =
   let n = p.pval_name.txt in
@@ -268,7 +273,8 @@ and of_real_ocaml_structure_item env = function
     (Some (Include (of_real_ocaml_module_expr env include_declaration.pincl_mod)), env)
 | _ -> failwith "unknown structure item"
 
-and of_real_ocaml_structure env acc = function
+and of_real_ocaml_structure (env : env) (acc : t list) (items : structure_item list) =
+  match items with
   | [] -> List.rev acc
   | s::ss ->
       match of_real_ocaml_structure_item env s with

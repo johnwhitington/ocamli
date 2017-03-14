@@ -106,6 +106,7 @@ and t =
 | LocalOpen of (string * t)    (** String.(length "4") *)
 | Include of t
 | Lazy of t                    (** lazy e *)
+| Annot of string * t          (** An annotation *)
 
 val string_of_op : op -> string
 

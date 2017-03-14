@@ -228,6 +228,12 @@ let rec print_tiny_inner f isleft parent node =
       Format.pp_open_tag f (string_of_tag tag);
       print_tiny_inner f isleft parent x;
       Format.pp_close_tag f ()
+  | Annot (n, x) ->
+      str "[@";
+      str n;
+      str "]";
+      txt " ";
+      print_tiny_inner f false (Some node) x;
   | Unit -> str "()"
   | Int i -> str (string_of_int i)
   | Int32 i -> str (Int32.to_string i ^ "l")

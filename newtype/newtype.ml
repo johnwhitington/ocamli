@@ -12,9 +12,12 @@ and envitem = bool * binding list ref
 
 and environment = envitem list
 
+and annotation = string
+
 and t =
   {t : t';
-   lets : (bool * binding list) list}
+   lets : (bool * binding list) list;
+   annots : annotation list}
 
 and t' =
   Int of int
@@ -29,7 +32,7 @@ and t' =
 | Function of string * environment * t
 | Struct of t list
 
-let mkt x = {t = x; lets = []}
+let mkt x = {t = x; lets = []; annots = []}
 
 let rec is_value_t' = function
 | Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
@@ -66,7 +69,7 @@ let rec of_tinyocaml env = function
     let of_e = of_tinyocaml env' e in
     (* If all bindings are values, put this in as an implicit let. *)
     if List.for_all is_value_binding !theref then
-      {t = of_e.t; lets = (recflag, !theref)::of_e.lets}
+      {t = of_e.t; lets = (recflag, !theref)::of_e.lets; annots = of_e.annots}
     else
       mkt (Let (recflag, !theref, of_e))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml env a, of_tinyocaml env b))
@@ -298,6 +301,7 @@ let rec seval (env : environment) e =
         let new_bindings = seval_first_non_value_binding env bindings in
           if List.for_all is_value_binding new_bindings then
             {lets = (recflag, new_bindings)::e.lets @ e'.lets;
+             annots = e'.annots;
              t = e'.t}
           else
             {e with t = Let (recflag, new_bindings, e')}
