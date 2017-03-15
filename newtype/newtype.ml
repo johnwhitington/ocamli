@@ -1,5 +1,7 @@
 let _ = Pptinyocaml.simple := true
 
+let showannot = ref false
+
 type op = Add | Sub | Mul | Div
 
 let string_of_op = function
@@ -364,9 +366,50 @@ let of_program_text s =
 let to_program_text x =
   Pptinyocaml.to_string (to_tinyocaml x)
 
+(* For now, just finds one, and not robustly *)
+let rec getshow_t = function
+  {annots = ["show"]; lets; t} ->
+    Some ({(mkt t) with lets})
+| x -> getshow_t' x.t
+
+and getshow_t' = function
+  Int _ | Bool _ | Var _ -> None
+| Op (_, a, b) ->
+    begin match getshow_t a with
+      Some x -> Some x
+    | None -> getshow_t b
+    end
+| Struct items ->
+    getshow_first items
+
+and getshow_first = function
+  [] -> None
+| x::xs ->
+    match getshow_t x with
+      None -> getshow_first xs
+    | Some y -> Some y
+
+(*| If (a, b, c) ->
+| Equals (a, b) ->
+| Let (_, bindings, a) ->
+| LetDef (_, bindings, a) ->
+| Apply (a, b) ->
+| Function (_, _, a) ->*)
+
+
+(* Show a step, unless -show-annot prevents us *)
 let show p =
-  print_string (to_program_text p);
-  print_string "\n"
+  if !showannot then
+    match getshow_t p with
+      None -> ()
+    | Some p' ->
+        print_string (to_program_text p');
+        print_string "\n"
+  else
+    begin
+      print_string (to_program_text p);
+      print_string "\n"
+    end
 
 (* Run the program p *)
 let run p = eval [] p
@@ -397,9 +440,12 @@ let load_code () =
 
 let step = ref false
 
+
+
 let argspec =
   [("-e", Arg.String settext, " Evaluate the program text given");
-   ("-step", Arg.Set step, " Evaluate step-by-step")]
+   ("-step", Arg.Set step, " Evaluate step-by-step");
+   ("-show-annot", Arg.Set showannot, " Show only terms annotated with [@show]")]
 
 let _ =
   Arg.parse argspec setfile "Syntax: newtype <filename | -e program>\n";
