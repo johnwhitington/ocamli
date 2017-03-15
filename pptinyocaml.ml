@@ -228,9 +228,11 @@ let rec print_tiny_inner f isleft parent node =
       Format.pp_open_tag f (string_of_tag tag);
       print_tiny_inner f isleft parent x;
       Format.pp_close_tag f ()
-  | Annot (n, x) ->
+  | Annot (n, p, x) ->
       str "[@";
       str n;
+      str " ";
+      print_tiny_inner f false (Some node) p;
       str "]";
       txt " ";
       print_tiny_inner f false (Some node) x;

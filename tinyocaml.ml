@@ -110,7 +110,7 @@ and t =
 | LocalOpen of (string * t) (* String.(length "4") *)
 | Include of t
 | Lazy of t                 (* lazy t *)
-| Annot of string * t          (** An annotation *)
+| Annot of string * t * t   (* An annotation (name, payload, what is annotated *)
 
 (* The type of OCaml values in memory *)
 type untyped_ocaml_value =
@@ -167,7 +167,7 @@ let rec recurse f exp =
   | While (a, b, c, d) -> While (f a, f b, f c, f d)
   | For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
   | Control (c, x) -> Control (c, f x)
-  | Annot (n, x) -> Annot (n, f x)
+  | Annot (n, x, y) -> Annot (n, f x, f y)
   | Array xs -> Array (Array.map f xs)
   | Record items ->
       List.iter (fun (k, v) -> v := f !v) items;
@@ -304,8 +304,8 @@ let rec to_string = function
       "TryWith (%s, %s)" (to_string e) (to_string_patmatch patmatch)
 | Control (c, t) ->
     Printf.sprintf "Control (%s, %s)" (to_string_control c) (to_string t)
-| Annot (n, t) ->
-    Printf.sprintf "Control (%s, %s)" n (to_string t)
+| Annot (n, p, t) ->
+    Printf.sprintf "Annot (%s, %s, %s)" n (to_string p) (to_string t)
 | CallBuiltIn (typ, name, _, _) ->
     Printf.sprintf "CallBuiltIn %s" name
 | Struct l ->

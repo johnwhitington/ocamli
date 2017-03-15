@@ -170,8 +170,9 @@ and of_real_ocaml_pattern env = function
 and of_real_ocaml env x =
   match x.pexp_attributes with
     [] -> of_real_ocaml_expression_desc env x.pexp_desc
-  | ({txt = n}, PStr x)::_ ->
-      Annot (n, List.hd (of_real_ocaml_structure env [] x)) (* FIXME: Only reads one for now *)
+  | ({txt = n}, PStr _)::_ ->
+      (* Just the annotation name for now, with dummy payload. *)
+      Annot (n, Struct (false, []), of_real_ocaml_expression_desc env x.pexp_desc)
   | _ -> failwith "unknown annotation"
 
 and of_real_ocaml_primitive p =

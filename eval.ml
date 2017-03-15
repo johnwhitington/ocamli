@@ -34,7 +34,7 @@ let rec appears var = function
 | If (a, b, None) -> appears var a || appears var b
 | If (a, b, Some c) -> appears var a || appears var b || appears var c
 | Control (_, x) -> appears var x
-| Annot (_, x) -> appears var x
+| Annot (_, x, y) -> appears var x || appears var y
 | Let (recflag, bindings, e') ->
     if recflag then
       (* Inside expression e', or in a rhs, all bindings in the letrec occlude *)
@@ -283,7 +283,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Lazy e -> Lazy (eval peek env e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
 | Constr (n, Some x) -> Constr (n, Some (eval peek env x))
-| Annot (n, x) -> Annot (n, eval peek env x)
+| Annot (n, x, y) -> Annot (n, x, eval peek env y)
 | Assert (Bool false) ->
     Raise ("Assert_failure", Some (Tuple [String "//unknown//"; Int 0; Int 0]))
 | Assert (Bool true) -> Unit

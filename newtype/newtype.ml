@@ -32,7 +32,8 @@ and t' =
 | Function of string * environment * t
 | Struct of t list
 
-let mkt x = {t = x; lets = []; annots = []}
+let mkt x =
+  {t = x; lets = []; annots = []}
 
 let rec is_value_t' = function
 | Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
@@ -79,6 +80,11 @@ let rec of_tinyocaml env = function
     mkt (Function (v, env, of_tinyocaml env rhs))
 | Tinyocaml.Struct (_, es) ->
     mkt (Struct (of_tinyocaml_many env es))
+| Tinyocaml.Annot (name, _, expr_annotated) ->
+    let inside = of_tinyocaml env expr_annotated in
+      {t = inside.t;
+       annots = name::inside.annots;
+       lets = [] @ inside.lets}
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
 and of_tinyocaml_many env = function
