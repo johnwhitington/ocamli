@@ -1,3 +1,5 @@
+let _ = Pptinyocaml.simple := true
+
 type op = Add | Sub | Mul | Div
 
 let string_of_op = function
@@ -104,6 +106,13 @@ and of_tinyocaml_binding env = function
 let of_tinyocaml x = of_tinyocaml [] x
 
 let rec to_tinyocaml e =
+  match e.annots with
+    name::more ->
+      Tinyocaml.Annot
+        (name,
+         Struct (false, []),
+         to_tinyocaml {e with annots = more})
+  | [] ->
   match e.lets with
     (recflag, bindings)::t ->
       Tinyocaml.Let
@@ -136,7 +145,7 @@ let rec to_tinyocaml e =
       | Function (v, fenv, e) ->
           Tinyocaml.Fun
             (Tinyocaml.NoLabel, Tinyocaml.PatVar v, to_tinyocaml e, to_tinyocaml_fenv fenv)
-      | Struct es -> Tinyocaml.Struct (true, List.map to_tinyocaml es)
+      | Struct es -> Tinyocaml.Struct (false, List.map to_tinyocaml es)
 
 and to_tinyocaml_binding (v, t) =
   (PatVar v, to_tinyocaml t)
