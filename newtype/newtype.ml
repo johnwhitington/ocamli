@@ -372,15 +372,15 @@ let rec getshow_t = function
     Some ({(mkt t) with lets})
 | x -> getshow_t' x.t
 
-and getshow_t' = function
-  Int _ | Bool _ | Var _ -> None
-| Op (_, a, b) ->
-    begin match getshow_t a with
-      Some x -> Some x
-    | None -> getshow_t b
-    end
-| Struct items ->
-    getshow_first items
+and getshow_of_two a b =
+  match getshow_t a with
+    Some x -> Some x
+  | None -> getshow_t b
+
+and getshow_of_three a b c =
+  match getshow_t c with
+    Some x -> Some x
+  | None -> getshow_of_two a b
 
 and getshow_first = function
   [] -> None
@@ -389,13 +389,23 @@ and getshow_first = function
       None -> getshow_first xs
     | Some y -> Some y
 
-(*| If (a, b, c) ->
-| Equals (a, b) ->
-| Let (_, bindings, a) ->
-| LetDef (_, bindings, a) ->
-| Apply (a, b) ->
-| Function (_, _, a) ->*)
+and getshow_bindings bs =
+  getshow_first (List.map snd bs)
 
+and getshow_t' = function
+  Int _ | Bool _ | Var _ -> None
+| Function (_, _, a) -> getshow_t a
+| Apply (a, b)
+| Equals (a, b)
+| Op (_, a, b) -> getshow_of_two a b
+| Struct items -> getshow_first items
+| If (a, b, c) -> getshow_of_three a b c
+| Let (_, bindings, a) ->
+    begin match getshow_bindings bindings with
+      None -> getshow_t a
+    | Some x -> Some x
+    end
+| LetDef (_, bindings) -> getshow_bindings bindings
 
 (* Show a step, unless -show-annot prevents us *)
 let show p =
@@ -439,8 +449,6 @@ let load_code () =
   | None -> None
 
 let step = ref false
-
-
 
 let argspec =
   [("-e", Arg.String settext, " Evaluate the program text given");
