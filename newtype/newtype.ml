@@ -102,7 +102,8 @@ and of_tinyocaml_many env = function
     of_tinyocaml env e::of_tinyocaml_many env es
 
 and of_tinyocaml_binding env = function
-    (PatVar v, t) -> (v, of_tinyocaml env t)
+    PatVar v, t -> (v, of_tinyocaml env t)
+  | PatAny, t -> ("_", of_tinyocaml env t)
   | _ -> failwith "unknown pattern in of_tinyocaml_binding"
 
 let of_tinyocaml x = of_tinyocaml [] x
