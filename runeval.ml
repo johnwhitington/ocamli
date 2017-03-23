@@ -20,13 +20,13 @@ type mode =
   FromFile of string
 | FromText of string
 
-let source = ref None
+let source = ref []
 
 let setfile s =
-  source := Some (FromFile s)
+  source := FromFile s::!source
 
 let settext s =
-  source := Some (FromText s)
+  source := FromText s::!source
 
 let remove_recs = ref []
 
@@ -35,11 +35,16 @@ let add_remove_rec x =
 
 let remove_rec_all = ref false
 
+(* Load, appending, code from each source file or -e use. *)
+let rec load_code = function
+    FromFile s::r -> load_file s ^ " " ^ load_code r
+  | FromText s::r -> s ^ " " ^ load_code r
+  | [] -> ""
+
 let load_code () =
-  match !source with
-    Some (FromFile s) -> Some (load_file s)
-  | Some (FromText s) -> Some s
-  | None -> None
+  match !source with 
+    [] -> None
+  | _ -> Some (load_code (List.rev !source)) 
 
 let string_of_tiny ~preamble ?(codes=true) x =
   let x = Tinyocamlutil.remove_named_recursive_functions !remove_rec_all !remove_recs x in

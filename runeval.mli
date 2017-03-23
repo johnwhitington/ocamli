@@ -12,7 +12,7 @@ val prompt : bool ref
 val step : float ref
 val fastcurry : bool ref
 type mode = FromFile of string | FromText of string
-val source : mode option ref
+val source : mode list ref
 val setfile : string -> unit
 val settext : string -> unit
 
