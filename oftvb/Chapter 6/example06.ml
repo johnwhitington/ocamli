@@ -13,6 +13,15 @@ let rec drop n l =
     match l with
       h::t -> drop (n - 1) t
 
+let rec merge cmp x y =
+  match x, y with
+    [], l -> l
+  | l, [] -> l
+  | hx::tx, hy::ty ->
+      if cmp hx hy
+        then hx :: merge cmp tx (hy :: ty)
+        else hy :: merge cmp (hx :: tx) ty
+
 let rec msort cmp l =
   match l with
     [] -> []
