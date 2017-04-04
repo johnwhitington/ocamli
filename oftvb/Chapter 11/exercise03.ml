@@ -1,3 +1,7 @@
+type 'a tree =
+  Lf
+| Br of 'a * 'a tree * 'a tree 
+
 let rec equal_shape tr tr2 =
   match tr, tr2 with
     Lf, Lf ->

@@ -1,3 +1,7 @@
+type 'a tree =
+  Lf
+| Br of 'a * 'a tree * 'a tree 
+
 let rec insert tr k v =
   match tr with
     Lf -> Br ((k, v), Lf, Lf)
