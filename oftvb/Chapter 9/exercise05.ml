@@ -11,5 +11,10 @@ let rec take n l =
 let truncate_l n l =
   if length l >= n then take n l else l
 
+let rec map f l =
+  match l with
+    [] -> []
+  | h::t -> f h :: map f t
+
 let truncate n ll =
   map (truncate_l n) ll
