@@ -1,3 +1,4 @@
+(*1*)
 type colour = Red | Green | Blue | Yellow
 
 let col = Blue
@@ -6,6 +7,7 @@ let cols = [Red; Red; Green; Yellow]
 
 let colpair = ('R', Red)
 
+(*2*)
 type colour =
   Red
 | Green
@@ -15,6 +17,7 @@ type colour =
 
 let cols = [Red; Red; Green; Yellow; RGB (150, 0, 255)]
 
+(*3*)
 let components c =
   match c with
     Red -> (255, 0, 0)
@@ -23,6 +26,7 @@ let components c =
   | Yellow -> (255, 255, 0)
   | RGB (r, g, b) -> (r, g, b)
 
+(*4*)
 let nothing = None
 
 let number = Some 50
@@ -31,11 +35,13 @@ let numbers = [Some 12; None; None; Some 2]
 
 let word = Some ['c'; 'a'; 'k'; 'e']
 
+(*5*)
 let rec lookup_opt x l =
   match l with
     [] -> None
   | (k, v)::t -> if x = k then Some v else lookup_opt x t
 
+(*6*)
 let rec length l =
   match l with
     [] -> 0
@@ -46,6 +52,7 @@ let rec append a b =
     [] -> b
   | h::t -> h :: append t b
 
+(*7*)
 type 'a sequence = Nil | Cons of 'a * 'a sequence
 
 let rec length s =
@@ -58,6 +65,7 @@ let rec append a b =
     Nil -> b
   | Cons (h, t) -> Cons (h, append t b)
 
+(*8*)
 type expr =
   Num of int
 | Add of expr * expr

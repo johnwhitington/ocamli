@@ -1,18 +1,22 @@
+(*1*)
 type rect =
     Square of int
   | Rectangle of int * int
 
+(*2*)
 let area r =
   match r with
     Square s -> s * s
   | Rectangle (w, h) -> w * h
 
+(*3*)
 let rotate r =
   match r with
     Rectangle (w, h) ->
       if w > h then Rectangle (h, w) else r
   | Square _ -> r
 
+(*4*)
 let width_of_rect r =
   match r with
     Square s -> s
@@ -42,6 +46,7 @@ let rec sort f l =
 let pack rs =
   sort rect_compare (map rotate rs)
 
+(*5*)
 type 'a sequence = Nil | Cons of 'a * 'a sequence
 
 let rec take n l =
@@ -61,6 +66,30 @@ let rec map f l =
     Nil -> Nil
   | Cons (h, t) -> Cons (f h, map f t)
 
+(*6*)
+let rec power x n =
+  if n = 0 then 1 else
+    if n = 1 then x else
+      x * power x (n - 1)
+
+type expr =
+    Num of int
+  | Add of expr * expr
+  | Subtract of expr * expr
+  | Multiply of expr * expr
+  | Divide of expr * expr
+  | Power of expr * expr
+
+let rec evaluate e =
+  match e with
+    Num x -> x
+  | Add (e, e') -> evaluate e + evaluate e'
+  | Subtract (e, e') -> evaluate e - evaluate e'
+  | Multiply (e, e') -> evaluate e * evaluate e'
+  | Divide (e, e') -> evaluate e / evaluate e'
+  | Power (e, e') -> power (evaluate e) (evaluate e')
+
+(*7*)
 let rec power x n =
   if n = 0 then 1 else
     if n = 1 then x else
