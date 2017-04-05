@@ -1,0 +1,2 @@
+let concat =
+  String.concat ""
