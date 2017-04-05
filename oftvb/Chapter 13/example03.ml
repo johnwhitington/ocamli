@@ -1,18 +1,3 @@
-(*1*)
-let swap a b =
-  let t = !a in
-    a := !b; b := t
-
-(*2*)
-let smallest_pow2 x =
-  let t = ref 1 in
-    while !t < x do
-      t := !t * 2
-    done;
-    !t
-
-
-(*3*)
 (* Final version of word counter *)
 let print_histogram arr =
   print_string "Character frequencies:";
