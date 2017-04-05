@@ -1,3 +1,4 @@
+(*1*)
 let rec iter f l =
   match l with
     [] -> ()
@@ -19,6 +20,7 @@ let print_integers l =
   print_integers_inner l;
   print_string "]"
 
+(*2*)
 let rec read_three () =
   try
     print_string "Type three integers, pressing Enter after each";
@@ -33,6 +35,8 @@ let rec read_three () =
       print_newline ();
       read_three ()
 
+
+(*3*)
 let rec read_dict_number n =
   if n = 0 then [] else
     try
@@ -65,6 +69,7 @@ let rec read_dict () =
       print_newline ();
       read_dict ()
 
+(*4*)
 let rec numlist n =
   match n with
     0 -> []
@@ -97,6 +102,7 @@ let table filename n =
     with
       _ -> raise FileProblem
 
+(*5*)
 let rec countlines_channel ch =
   try
     let _ = input_line ch in
@@ -113,6 +119,7 @@ let countlines file =
   with
     _ -> raise (Failure "countlines")
 
+(*6*)
 let rec copy_file_ch from_ch to_ch =
   try
     output_string to_ch (input_line from_ch);
