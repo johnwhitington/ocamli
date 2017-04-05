@@ -8,6 +8,11 @@ let rec map f l =
     [] -> []
   | h::t -> f h :: map f t
 
+let rec iter f l =
+  match l with
+    [] -> ()
+  | h::t -> f h; iter f t
+
 let write_table_channel ch n =
   iter
     (fun x ->
