@@ -458,40 +458,36 @@ let percent_string_unsafe_get =
     (function [String s; Int i] -> Char s.[i]
      | _ -> failwith "percent_string_unsafe_get")
 
+external percent_boolnot : bool -> bool = "%boolnot"
+
+external percent_negint : int -> int = "%negint"
+
+let percent_boolnot =
+  mk "%boolnot"
+    (function [Bool b] -> Bool (percent_boolnot b)
+     | _ -> failwith "%boolnot")
+
+let percent_negint =
+  mk "%negint"
+    (function [Int i] -> Int (percent_negint i)
+     | _ -> failwith "%negint")
+
 let unix_fork =
   mk "unix_fork"
     (function [Unit] -> Int (Unix.fork ())
      | _ -> failwith "unix_fork")
 
 let builtin_primitives = [
-  percent_bytes_to_string;
-  percent_backend_type;
-  unix_fork;
-  percent_string_unsafe_get;
-  percent_string_safe_get;
-  unix_gettimeofday;
-  thread_initialize;
-  percent_andint;
-  percent_lslint;
-  percent_xorint;
   caml_md5_string;
   caml_blit_string;
-  percent_modint;
-  percent_array_safe_set;
-  percent_array_length;
   caml_sys_random_seed;
   caml_sys_getenv;
-  percent_string_safe_get;
-  percent_string_safe_set;
   caml_weak_create;
   caml_ba_init;
   caml_fill_string;
   caml_make_vect;
-  percent_nativeint_sub;
-  percent_nativeint_lsl;
   caml_obj_block;
   caml_obj_tag;
-  percent_obj_field;
   caml_ml_open_descriptor_in;
   caml_ml_open_descriptor_out;
   caml_sys_get_argv;
@@ -506,6 +502,28 @@ let builtin_primitives = [
   caml_create_string;
   caml_create_bytes;
   caml_int64_float_of_bits;
+
+  unix_fork;
+  unix_gettimeofday;
+  unix_inet_addr_of_string;
+
+  thread_initialize;
+
+  percent_andint;
+  percent_lslint;
+  percent_xorint;
+  percent_string_unsafe_get;
+  percent_string_safe_get;
+  percent_bytes_to_string;
+  percent_backend_type;
+  percent_modint;
+  percent_array_safe_set;
+  percent_array_length;
+  percent_string_safe_get;
+  percent_string_safe_set;
+  percent_nativeint_sub;
+  percent_nativeint_lsl;
+  percent_obj_field;
   percent_max_wosize;
   percent_word_size;
   percent_int_size;
@@ -528,8 +546,50 @@ let builtin_primitives = [
   percent_ostype_win32;
   percent_ostype_cygwin;
   percent_lsrint;
-  unix_inet_addr_of_string;
- (*"%identity"
+  percent_negint;
+  percent_boolnot;
+]
+
+(* For %identity, we need to annotate the output type, so that eval.ml can do
+the coercion at runtime. *)
+
+(* e.g for x -> y -> z return z *)
+let rec final_type t =
+  match t.ptyp_desc with
+    Ptyp_arrow (_, _, next) -> final_type next
+  | _ -> t
+
+(* e.g convert Ptyp_constr Int to TypInt *)
+let our_type = function
+  {ptyp_desc = Ptyp_constr ({txt = Longident.Lident "char"}, _)} -> Some TypChar
+| {ptyp_desc = Ptyp_constr ({txt = Longident.Lident "int"}, _)} -> Some TypInt
+| {ptyp_desc = Ptyp_constr ({txt = Longident.Lident x}, _)} ->
+    if !debug then Printf.printf "missing our_type %s\n" x; None
+| _ ->
+    if !debug then Printf.printf "missing our_type2\n"; None
+
+(* insert the type into the CallBuiltIn *)
+let rec really_add_type typ = function
+  Fun (x, y, z, e) -> Fun (x, y, really_add_type typ z, e)
+| CallBuiltIn (_, a, b, c) -> CallBuiltIn (typ, a, b, c)
+| _ -> failwith "unexpecetd: really_add_type"
+
+let add_type typ (name, implementation) =
+  if name = "%identity" then
+    really_add_type (our_type (final_type typ)) implementation
+  else
+    implementation
+
+let lookup_primitive typ n =
+  try add_type typ (n, (List.assoc n builtin_primitives)) with
+    Not_found ->
+      snd
+        (mk n
+          (function
+             [e] -> Raise ("UnknownPrimitive: " ^ n, None)
+             | _ -> failwith "unknown unknown primitive"))
+ 
+(*"%identity"
   "%ignore"
   "%field0"
   "%field1"
@@ -550,7 +610,7 @@ let builtin_primitives = [
   "%ostype_unix"
   "%ostype_win32"
   "%ostype_cygwin"
-  "%negint"
+
   "%succint"
   "%predint"
   "%addint"
@@ -1021,43 +1081,3 @@ let builtin_primitives = [
   "caml_weak_get";
   "caml_weak_get_copy";
   "caml_weak_set";*)
-]
-
-(* For %identity, we need to annotate the output type, so that eval.ml can do
-the coercion at runtime. *)
-
-(* e.g for x -> y -> z return z *)
-let rec final_type t =
-  match t.ptyp_desc with
-    Ptyp_arrow (_, _, next) -> final_type next
-  | _ -> t
-
-(* e.g convert Ptyp_constr Int to TypInt *)
-let our_type = function
-  {ptyp_desc = Ptyp_constr ({txt = Longident.Lident "char"}, _)} -> Some TypChar
-| {ptyp_desc = Ptyp_constr ({txt = Longident.Lident "int"}, _)} -> Some TypInt
-| {ptyp_desc = Ptyp_constr ({txt = Longident.Lident x}, _)} ->
-    if !debug then Printf.printf "missing our_type %s\n" x; None
-| _ ->
-    if !debug then Printf.printf "missing our_type2\n"; None
-
-(* insert the type into the CallBuiltIn *)
-let rec really_add_type typ = function
-  Fun (x, y, z, e) -> Fun (x, y, really_add_type typ z, e)
-| CallBuiltIn (_, a, b, c) -> CallBuiltIn (typ, a, b, c)
-| _ -> failwith "unexpecetd: really_add_type"
-
-let add_type typ (name, implementation) =
-  if name = "%identity" then
-    really_add_type (our_type (final_type typ)) implementation
-  else
-    implementation
-
-let lookup_primitive typ n =
-  try add_type typ (n, (List.assoc n builtin_primitives)) with
-    Not_found ->
-      snd
-        (mk n
-          (function
-             [e] -> Raise ("UnknownPrimitive: " ^ n, None)
-             | _ -> failwith "unknown unknown primitive"))
