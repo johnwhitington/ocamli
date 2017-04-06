@@ -1,3 +1,8 @@
+let rec rev l =
+  match l with
+    [] -> []
+  | h::t -> rev t @ [h]
+
 let rec drop_last l =
   match l with
     [] -> []
