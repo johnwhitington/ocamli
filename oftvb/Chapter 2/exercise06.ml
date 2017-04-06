@@ -1,2 +1,1 @@
-let isvowel c =
-  c = 'a' || c = 'e' || c = 'i' || c = 'o' || c = 'u'
+let x = 1 in let x = 2 in x + x
