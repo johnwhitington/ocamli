@@ -4,4 +4,9 @@ let isupper c =
   | _ -> false
 
 let islower c =
+  match c with
+    'a'..'z' -> true
+  | _ -> false
+
+let islower' c =
   not (isupper c)
