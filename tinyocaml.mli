@@ -14,6 +14,7 @@ type pattern =
   PatAny
 | PatVar of string
 | PatInt of int
+| PatBool of bool
 | PatInt32 of Int32.t
 | PatInt64 of Int64.t
 | PatNativeInt of Nativeint.t

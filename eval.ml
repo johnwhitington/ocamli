@@ -202,6 +202,7 @@ let rec matches expr pattern rhs =
       _, PatAny -> yes
     | x, PatConstraint (p, _) -> matches x p rhs
     | Unit, PatUnit -> yes
+    | Bool b, PatBool b' when b = b' -> yes
     | Int i, PatInt i' when i = i' -> yes
     | Int32 i, PatInt32 i' when i = i' -> yes
     | Int64 i, PatInt64 i' when i = i' -> yes

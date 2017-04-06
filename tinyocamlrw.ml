@@ -145,6 +145,8 @@ and of_real_ocaml_pattern env = function
 | Ppat_array patterns ->
     PatArray
       (Array.of_list (List.map (of_real_ocaml_pattern env) (List.map (fun x -> x.ppat_desc) patterns)))
+| Ppat_construct ({txt = Lident "true"}, _) -> PatBool true
+| Ppat_construct ({txt = Lident "false"}, _) -> PatBool false
 | Ppat_construct ({txt = Lident "[]"}, _) -> PatNil
 | Ppat_construct ({txt = Lident "()"}, _) -> PatUnit
 | Ppat_construct ({txt = Lident "::"}, Some ({ppat_desc = Ppat_tuple [a; b]})) ->

@@ -14,6 +14,7 @@ type pattern =
   PatAny
 | PatVar of string
 | PatInt of int
+| PatBool of bool
 | PatInt32 of Int32.t
 | PatInt64 of Int64.t
 | PatNativeInt of Nativeint.t
@@ -382,6 +383,7 @@ and to_string_pat = function
   PatAny -> "_"
 | PatVar v -> v
 | PatInt i -> string_of_int i
+| PatBool b -> string_of_bool b
 | PatInt32 i -> Int32.to_string i
 | PatInt64 i -> Int64.to_string i
 | PatNativeInt i -> Nativeint.to_string i
@@ -464,6 +466,7 @@ let rec bound_in_pattern = function
   PatAny -> []
 | PatVar v -> [v]
 | PatInt _ -> []
+| PatBool _ -> []
 | PatString _ -> []
 | PatChar _ -> []
 | PatCharRange (_, _) -> []

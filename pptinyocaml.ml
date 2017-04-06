@@ -603,6 +603,8 @@ and print_pattern f isleft parent pat label =
             print_tiny_inner f false parent e;
             str ")"
         end
+    | PatBool b ->
+        str (string_of_bool b)
     | PatInt i ->
         str (string_of_int i)
     | PatInt32 i ->
