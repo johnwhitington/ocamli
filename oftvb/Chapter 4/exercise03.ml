@@ -1,6 +1,11 @@
-let rec count_true l =
+let rec rev l =
   match l with
-    [] -> 0
-  | true::t -> 1 + count_true t
-  | false::t -> count_true t
+    [] -> []
+  | h::t -> rev t @ [h]
+
+let mk_palindrome l =
+  l @ rev l
+
+let is_palindrome l = 
+  l = rev l
 

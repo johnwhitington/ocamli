@@ -1,11 +1,4 @@
-let rec rev l =
+let rec member e l =
   match l with
-    [] -> []
-  | h::t -> rev t @ [h]
-
-let mk_palindrome l =
-  l @ rev l
-
-let is_palindrome l = 
-  l = rev l
-
+    [] -> false
+  | h::t -> h = e || member e t

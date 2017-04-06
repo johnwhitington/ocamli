@@ -1,14 +1,7 @@
-let rec rev l =
+let rec rev_inner a l =
   match l with
-    [] -> []
-  | h::t -> rev t @ [h]
+    [] -> a
+  | h::t -> rev_inner (h :: a) t
 
-let rec drop_last_inner a l =
-  match l with
-    [] -> rev a
-  | [_] -> rev a
-  | h::t -> drop_last_inner (h :: a) t
-
-let drop_last l =
-  drop_last_inner [] l
-
+let rev l =
+  rev_inner [] l

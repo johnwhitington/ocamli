@@ -1,9 +1,14 @@
-let rec count_true_inner n l =
+let rec drop_last l =
   match l with
-    [] -> n
-  | true::t -> count_true_inner (n + 1) t
-  | false::t -> count_true_inner n t
+    [] -> []
+  | [_] -> []
+  | h::t -> h :: drop_last t
 
-let count_true l =
-  count_true_inner 0 l
+let rec drop_last_inner a l =
+  match l with
+    [] -> rev a
+  | [_] -> rev a
+  | h::t -> drop_last_inner (h :: a) t
 
+let drop_last' l =
+  drop_last_inner [] l
