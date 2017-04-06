@@ -477,6 +477,43 @@ let unix_fork =
     (function [Unit] -> Int (Unix.fork ())
      | _ -> failwith "unix_fork")
 
+external percent_greaterthan : 'a -> 'a -> bool = "%greaterthan"
+external percent_greaterequal : 'a -> 'a -> bool = "%greaterequal"
+external percent_lessthan : 'a -> 'a -> bool = "%lessthan"
+external percent_lessequal : 'a -> 'a -> bool = "%lessequal"
+external percent_notequal : 'a -> 'a -> bool = "%notequal"
+external percent_equal : 'a -> 'a -> bool = "%equal"
+
+let percent_greaterthan =
+  mk2 "%greaterthan"
+    (function [x; y] -> Bool (x > y)
+     | _ -> failwith "percent_greaterthan")
+
+let percent_greaterequal =
+  mk2 "%greaterequal"
+    (function [x; y] -> Bool (x >= y)
+     | _ -> failwith "percent_greaterequal")
+
+let percent_lessthan =
+  mk2 "%lessthan"
+    (function [x; y] -> Bool (x < y)
+     | _ -> failwith "percent_lessthan")
+
+let percent_lessequal =
+  mk2 "%lessequal"
+    (function [x; y] -> Bool (x <= y)
+     | _ -> failwith "percent_lessequal")
+
+let percent_notequal =
+  mk2 "%notequal"
+    (function [x; y] -> Bool (x <> y)
+     | _ -> failwith "percent_notequal")
+
+let percent_equal =
+  mk2 "%equal"
+    (function [x; y] -> Bool (x = y)
+     | _ -> failwith "percent_equal")
+
 let builtin_primitives = [
   caml_md5_string;
   caml_blit_string;
@@ -508,6 +545,13 @@ let builtin_primitives = [
   unix_inet_addr_of_string;
 
   thread_initialize;
+
+  percent_greaterthan;
+  percent_greaterequal;
+  percent_lessthan;
+  percent_lessequal;
+  percent_notequal;
+  percent_equal;
 
   percent_andint;
   percent_lslint;
