@@ -292,7 +292,9 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Control (_, x) -> eval peek env x
 | Op (op, Int a, Int b) ->
     last := Arith::!last;
-    Int (calc op a b)
+    begin try Int (calc op a b) with
+      Division_by_zero -> Raise ("Division_by_zero", None)
+    end
 | Op (op, Int a, b) -> Op (op, Int a, eval peek env b)
 | Op (op, a, b) -> Op (op, eval peek env a, b)
 | And (Bool false, _) ->

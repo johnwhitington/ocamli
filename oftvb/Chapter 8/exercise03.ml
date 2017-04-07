@@ -1,6 +1,6 @@
-let rec mklists l =
-  match l with
-    [] -> ([], [])
-  | (k, v)::more ->
-      match mklists more with
-        (ks, vs) -> (k :: ks, v :: vs)
+let rec mkdict keys values =
+  match keys, values with
+    [], [] -> []
+  | _, [] -> raise (Invalid_argument "mkdict")
+  | [], _ -> raise (Invalid_argument "mkdict")
+  | k::ks, v::vs -> (k, v) :: mkdict ks vs

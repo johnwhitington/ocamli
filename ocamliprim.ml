@@ -514,6 +514,32 @@ let percent_equal =
     (function [x; y] -> Bool (x = y)
      | _ -> failwith "percent_equal")
 
+external percent_divfloat : float -> float -> float = "%divfloat"
+external percent_mulfloat : float -> float -> float = "%mulfloat"
+external percent_subloat : float -> float -> float = "%subfloat"
+external percent_addfloat : float -> float -> float = "%addfloat"
+
+let percent_divfloat =
+  mk2 "%divfloat"
+    (function [Float x; Float y] -> Float (x /. y)
+     | _ -> failwith "divfloat")
+
+let percent_mulfloat =
+  mk2 "%mulfloat"
+    (function [Float x; Float y] -> Float (x *. y)
+     | _ -> failwith "mulfloat")
+
+let percent_subfloat =
+  mk2 "%subfloat"
+    (function [Float x; Float y] -> Float (x -. y)
+     | _ -> failwith "subfloat")
+
+let percent_addfloat =
+  mk2 "%addfloat"
+    (function [Float x; Float y] -> Float (x +. y)
+     | _ -> failwith "addfloat")
+
+
 let builtin_primitives = [
   caml_md5_string;
   caml_blit_string;
@@ -546,13 +572,16 @@ let builtin_primitives = [
 
   thread_initialize;
 
+  percent_addfloat;
+  percent_subfloat;
+  percent_divfloat;
+  percent_mulfloat;
   percent_greaterthan;
   percent_greaterequal;
   percent_lessthan;
   percent_lessequal;
   percent_notequal;
   percent_equal;
-
   percent_andint;
   percent_lslint;
   percent_xorint;

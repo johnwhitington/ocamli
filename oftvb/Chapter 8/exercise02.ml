@@ -1,6 +1,7 @@
-let rec mkdict keys values =
-  match keys, values with
-    [], [] -> []
-  | _, [] -> raise (Invalid_argument "mkdict")
-  | [], _ -> raise (Invalid_argument "mkdict")
-  | k::ks, v::vs -> (k, v) :: mkdict ks vs
+let rec replace k v l =
+  match l with
+    [] -> raise Not_found
+  | (k', v')::t ->
+      if k = k'
+        then (k, v) :: t
+        else (k', v') :: replace k v t

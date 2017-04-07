@@ -302,7 +302,7 @@ let go () =
          let expstr =
            match payload with None -> "" | Some p -> Pptinyocaml.to_string p
          in
-           prerr_string (Printf.sprintf "Exception: %s %s.\n" n expstr)
+           prerr_string (Printf.sprintf "Exception: %s%s.\n" n (if expstr = "" then "" else " " ^ expstr))
      | Exit ->
          if !debug then reraise Exit;
          exit 0

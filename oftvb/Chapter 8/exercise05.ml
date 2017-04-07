@@ -1,12 +1,15 @@
-let rec add k v d =
-  match d with
-    [] -> [(k, v)]
-  | (k', v')::t ->
-      if k = k'
-        then (k, v) :: t
-        else (k', v') :: add k v t
+let rec member x l =
+  match l with
+    [] -> false
+  | h::t -> x = h || member x t
 
-let rec union a b =
-  match a with
-    [] -> b
-  | (k, v)::t -> add k v (union t b)
+let rec dictionary_of_pairs_inner keys_seen l =
+  match l with
+    [] -> []
+  | (k, v)::t ->
+      if member k keys_seen
+        then dictionary_of_pairs_inner keys_seen t
+        else (k, v) :: dictionary_of_pairs_inner (k :: keys_seen) t
+
+let dictionary_of_pairs l =
+  dictionary_of_pairs_inner [] l
