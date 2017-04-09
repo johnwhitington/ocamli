@@ -586,7 +586,32 @@ let caml_sys_open =
        Int (caml_sys_open filename (convert_flags flags) perm)
      | _ -> failwith "caml_sys_open")
 
+external caml_ml_set_channel_name : out_channel -> string -> int = "caml_ml_set_channel_name"
+external caml_ml_set_channel_name' : in_channel -> string -> int = "caml_ml_set_channel_name"
+
+let debug_args =
+  List.iter (fun x -> print_string (Tinyocaml.to_string x); print_string "\n")
+
+let caml_ml_set_channel_name =
+  mk2 "caml_ml_set_channel_name"
+    (function
+       [OutChannel x; String y] -> Int (caml_ml_set_channel_name x y)
+     | [InChannel x; String y] -> Int (caml_ml_set_channel_name' x y)
+     | x -> debug_args x; failwith "caml_ml_set_channel_name")
+
+external caml_ml_close_channel : out_channel -> unit = "caml_ml_close_channel"
+external caml_ml_close_channel' : in_channel -> unit = "caml_ml_close_channel"
+
+let caml_ml_close_channel =
+  mk "caml_ml_close_channel"
+    (function
+       [OutChannel i] -> caml_ml_close_channel i; Unit
+     | [InChannel i] -> caml_ml_close_channel' i; Unit
+     | x -> debug_args x; failwith "caml_ml_close_channel")
+
 let builtin_primitives = [
+  caml_ml_close_channel;
+  caml_ml_set_channel_name;
   caml_sys_open;
   caml_ml_flush;
   caml_ml_output_char;
@@ -710,7 +735,8 @@ let lookup_primitive typ n =
           (function
              [e] -> Raise ("UnknownPrimitive: " ^ n, None)
              | _ -> failwith "unknown unknown primitive"))
- 
+
+
 (*"%identity"
   "%ignore"
   "%field0"
