@@ -539,8 +539,57 @@ let percent_addfloat =
     (function [Float x; Float y] -> Float (x +. y)
      | _ -> failwith "addfloat")
 
+external caml_ml_output_char : out_channel -> char -> unit = "caml_ml_output_char"
+
+let caml_ml_output_char =
+  mk2 "caml_ml_output_char"
+    (function [OutChannel ch; Char c] ->
+       caml_ml_output_char ch c; Unit
+     | _ -> failwith "caml_ml_output_char")
+
+external caml_ml_flush : out_channel -> unit = "caml_ml_flush"
+
+let caml_ml_flush =
+  mk "caml_ml_flush"
+    (function [OutChannel ch] ->
+       caml_ml_flush ch; Unit
+     | _ -> failwith "caml_ml_flush")
+
+
+(* These convert the result of caml_sys_open to an in_channel or out_channel *)
+(*external open_descriptor_out : int -> out_channel = "caml_ml_open_descriptor_out"
+external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"*)
+
+external caml_sys_open : string -> open_flag list -> int -> int = "caml_sys_open"
+
+(* Convert from Cons (Constr ("Open_rdonly", Nil)) ---> [Open_rdonly] *)
+let flag_of_string = function
+  "Open_rdonly" -> Open_rdonly
+| "Open_wronly" -> Open_wronly
+| "Open_append" -> Open_append
+| "Open_creat" -> Open_creat
+| "Open_trunc" -> Open_trunc
+| "Open_excl" -> Open_excl
+| "Open_binary" -> Open_binary
+| "Open_text" -> Open_text
+| "Open_nonblock" -> Open_nonblock
+| _ -> failwith "Ocamliprim.flag_of_string"
+
+let rec convert_flags = function
+  | Nil -> []
+  | Cons (Constr (x, None), more) -> flag_of_string x::convert_flags more
+  | _ -> failwith "Ocamliprim.convert_flags"
+
+let caml_sys_open =
+  mk3 "caml_sys_open"
+    (function [String filename; flags; Int perm] ->
+       Int (caml_sys_open filename (convert_flags flags) perm)
+     | _ -> failwith "caml_sys_open")
 
 let builtin_primitives = [
+  caml_sys_open;
+  caml_ml_flush;
+  caml_ml_output_char;
   caml_md5_string;
   caml_blit_string;
   caml_sys_random_seed;
