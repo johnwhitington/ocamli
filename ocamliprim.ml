@@ -609,6 +609,51 @@ let caml_ml_close_channel =
      | [InChannel i] -> caml_ml_close_channel' i; Unit
      | x -> debug_args x; failwith "caml_ml_close_channel")
 
+external caml_sqrt_float : float -> float = "caml_sqrt_float"
+
+let caml_sqrt_float =
+  mk "caml_sqrt_float"
+    (function
+       [Float x] -> Float (caml_sqrt_float x)
+     | _ -> failwith "caml_sqrt_float")
+
+external caml_ceil_float : float -> float = "caml_ceil_float"
+
+let caml_ceil_float =
+  mk "caml_ceil_float"
+    (function
+       [Float x] -> Float (caml_ceil_float x)
+     | _ -> failwith "caml_ceil_float")
+
+external caml_floor_float : float -> float = "caml_floor_float"
+
+let caml_floor_float =
+  mk "caml_floor_float"
+    (function
+       [Float x] -> Float (caml_floor_float x)
+     | _ -> failwith "caml_floor_float")
+
+external percent_negfloat : float -> float = "%negfloat"
+
+let percent_negfloat =
+  mk "%negfloat"
+    (function [Float x] -> Float (percent_negfloat x)
+     | _ -> failwith "percent_negfloat")
+
+external percent_intoffloat : float -> int = "%intoffloat"
+
+let percent_intoffloat =
+  mk "%intoffloat"
+    (function [Float x] -> Int (percent_intoffloat x)
+     | _ -> failwith "percent_intoffloat")
+
+external caml_sin_float : float -> float = "caml_sin_float"
+
+let caml_sin_float =
+  mk "caml_sin_float"
+    (function [Float x] -> Float (caml_sin_float x)
+     | _ -> failwith "caml_sin_float")
+
 let builtin_primitives = [
   caml_ml_close_channel;
   caml_ml_set_channel_name;
@@ -639,6 +684,10 @@ let builtin_primitives = [
   caml_create_string;
   caml_create_bytes;
   caml_int64_float_of_bits;
+  caml_sqrt_float;
+  caml_ceil_float;
+  caml_floor_float;
+  caml_sin_float;
 
   unix_fork;
   unix_gettimeofday;
@@ -646,6 +695,8 @@ let builtin_primitives = [
 
   thread_initialize;
 
+  percent_intoffloat;
+  percent_negfloat;
   percent_addfloat;
   percent_subfloat;
   percent_divfloat;
@@ -1171,7 +1222,6 @@ let lookup_primitive typ n =
   "caml_set_parser_trace";
   "caml_sin_float";
   "caml_sinh_float";
-  "caml_sqrt_float";
   "caml_static_alloc";
   "caml_static_free";
   "caml_static_release_bytecode";
