@@ -654,7 +654,31 @@ let caml_sin_float =
     (function [Float x] -> Float (caml_sin_float x)
      | _ -> failwith "caml_sin_float")
 
+external percent_bytes_of_string : string -> bytes = "%bytes_of_string"
+
+let percent_bytes_of_string =
+  mk "%bytes_of_string"
+    (function [String x] -> String x
+     | _ -> failwith "percent_bytes_of_string")
+
+external bytes_length : bytes -> int = "%bytes_length"
+
+let percent_bytes_length =
+  mk "%bytes_length"
+    (function [String x] -> Int (String.length x)
+     | _ -> failwith "percent_bytes_length")
+
+external caml_blit_bytes : bytes -> int -> bytes -> int -> int -> unit = "caml_blit_bytes"
+
+let caml_blit_bytes =
+  mk5 "caml_blit_bytes"
+    (function [String x; Int a; String y; Int b; Int c] ->
+       caml_blit_bytes (Obj.magic x : bytes) a (Obj.magic y : bytes) b c;
+       Unit
+     | _ -> failwith "caml_blit_bytes")
+
 let builtin_primitives = [
+  caml_blit_bytes;
   caml_ml_close_channel;
   caml_ml_set_channel_name;
   caml_sys_open;
@@ -695,6 +719,8 @@ let builtin_primitives = [
 
   thread_initialize;
 
+  percent_bytes_length;
+  percent_bytes_of_string;
   percent_intoffloat;
   percent_negfloat;
   percent_addfloat;
