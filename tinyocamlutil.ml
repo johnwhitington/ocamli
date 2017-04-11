@@ -175,7 +175,13 @@ and underline_first_non_value = function
       else underline_redex h::t
 
 and underline_first_non_value_array x =
-  Array.of_list (underline_first_non_value (Array.to_list x))
+  let rec loop p =
+    if p >= Array.length x then ()
+    else if is_value x.(p) then loop (p + 1)
+    else x.(p) <- underline_redex x.(p)
+  in
+    loop 0;
+    x
 
 and underline_first_non_value_binding = function
   [] -> []

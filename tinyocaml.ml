@@ -136,7 +136,7 @@ let rec read_untyped v typ =
   | UDouble d, Ptyp_constr ({txt = Longident.Lident "float"}, _) ->
       Float d
   | UBlock (0, vs), Ptyp_tuple ts when Array.length vs = List.length ts ->
-      Tuple (List.map2 read_untyped (Array.to_list vs) ts)
+      Tuple (List.map2 read_untyped (Array.to_list vs) ts) (* FIXME: Check no array duplication here *)
   | UBlock (0, [|h; t|]), Ptyp_constr ({txt = Longident.Lident "list"}, [elt_typ]) ->
       Cons (read_untyped h elt_typ, read_untyped t typ)
   | _ -> failwith "read_untyped: unimplemented"

@@ -141,7 +141,7 @@ let rec lookup_value_in_binding v b =
         (List.map2 (fun p v -> (p, v)) ps vs)
   | PatArray ps, Array vs ->
       lookup_value_in_bindings v
-        (List.map2 (fun p v -> (p, v)) (Array.to_list ps) (Array.to_list vs))
+        (Array.to_list (Array.map2 (fun p v -> (p, v)) ps vs))
   | PatConstraint (p, _), data -> lookup_value_in_binding v (p, data)
   (*| PatCons (p, p), Cons (vv, vv') ->
   | PatAlias (n, p), v ->
@@ -467,7 +467,8 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Tuple ls ->
     Tuple (eval_first_non_value_item peek env [] ls)
 | Array items ->
-    Array (Array.of_list (eval_first_non_value_item peek env [] (Array.to_list items)))
+    eval_first_non_value_item_array peek env items;
+    Array (items)
 | Field (Record items, n) -> !(List.assoc n items)
 | Field (e, n) -> Field (eval peek env e, n)
 | SetField (Record items, n, e) ->
@@ -732,6 +733,14 @@ and eval_first_non_value_item peek (env : env) r = function
         eval_first_non_value_item peek env' (h::r) t
     else
       List.rev r @ [eval peek env h] @ t
+
+and eval_first_non_value_item_array peek (env : env) items =
+  let rec loop p =
+    if p > Array.length items - 1 then ()
+    else if is_value items.(p) then loop (p + 1)
+    else items.(p) <- eval peek env items.(p)
+  in
+    loop 0
 
 and eval_first_non_value_binding
   peek recflag (env : env) r (bs : binding list)
