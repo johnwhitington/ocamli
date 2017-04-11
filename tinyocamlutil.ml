@@ -195,7 +195,9 @@ and underline_first_non_value_binding = function
 
 and underline_first_non_value_ref items =
   try
-    List.iter (fun (_, v) -> if not (is_value !v) then v := underline_redex !v) items
+    List.iter
+      (fun (_, v) -> if not (is_value !v) then begin v := underline_redex !v; raise Exit end)
+      items
   with
     Exit -> ()
 
