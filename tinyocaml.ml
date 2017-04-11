@@ -169,7 +169,9 @@ let rec recurse f exp =
   | For (v, a, x, b, c, copy) -> For (v, f a, x, f b, f c, f copy) 
   | Control (c, x) -> Control (c, f x)
   | Annot (n, x, y) -> Annot (n, f x, f y)
-  | Array xs -> Array (Array.map f xs)
+  | Array xs ->
+      Array.iteri (fun n c -> xs.(n) <- f c) xs;
+      Array xs
   | Record items ->
       List.iter (fun (k, v) -> v := f !v) items;
       Record items

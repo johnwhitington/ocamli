@@ -133,7 +133,11 @@ let rec underline_redex e =
     | Array items ->
         if Array.for_all is_value items
           then failwith "tuple already a value"
-          else Array (underline_first_non_value_array items)
+          else
+            begin
+              underline_first_non_value_array items;
+              Array items
+            end
     | Constr (n, Some t) ->
         if is_value t
           then failwith "constr already a value"
@@ -180,8 +184,7 @@ and underline_first_non_value_array x =
     else if is_value x.(p) then loop (p + 1)
     else x.(p) <- underline_redex x.(p)
   in
-    loop 0;
-    x
+    loop 0
 
 and underline_first_non_value_binding = function
   [] -> []
