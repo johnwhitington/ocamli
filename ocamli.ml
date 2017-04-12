@@ -47,6 +47,12 @@ let make_regexp reference str =
 
 let times = ref 1
 
+let _ =
+  Ocamliprim.exe := "-e"
+
+let argv str =
+  Ocamliprim.argv := Array.of_list (Array.to_list !Ocamliprim.argv @ [str])
+
 let argspec =
   [("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
    ("-regexp", Arg.Set regexp, " Search terms are regular expressions rather than the built-in system");
@@ -87,7 +93,8 @@ let argspec =
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs");
-   ("-times", Arg.Set_int times, " Do many times")]
+   ("-times", Arg.Set_int times, " Do many times");
+   ("--", Arg.Rest argv, "")]
 
 let linecount = ref 0
 
@@ -225,7 +232,8 @@ external reraise : exn -> 'a = "%reraise"
 
 let go () =
   Arg.parse argspec setfile
-    "Syntax: eval <filename | -e program>\n";
+    "Syntax: eval <filename | -e program> [-- arg1 arg2 ...]\n";
+  Ocamliprim.argv := Array.of_list (!Ocamliprim.exe::Array.to_list !Ocamliprim.argv);
   Eval.fastcurry := !fastcurry;
   Tinyocamlutil.fastcurry := !fastcurry;
   Pptinyocaml.fastcurry := !fastcurry;

@@ -243,7 +243,7 @@ and match_many_binders es ps rhs =
         None -> None
       | Some rhs' -> match_many_binders et pt rhs'
       end
-  | _ -> failwith "match_many_binders"
+  | _ -> None
 
 (* Remove any binding in [bs] which binds a variable found in [pat]. FIXME this
 whole thing is wrong. e.g let x, y, z = ... should go to let x, y, _ if we

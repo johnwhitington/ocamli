@@ -23,7 +23,8 @@ type mode =
 let source = ref []
 
 let setfile s =
-  source := FromFile s::!source
+  source := FromFile s::!source;
+  Ocamliprim.exe := s
 
 let settext s =
   source := FromText s::!source

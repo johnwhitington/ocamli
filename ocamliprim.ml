@@ -2,6 +2,9 @@ open Tinyocaml
 open Ocamliutil
 open Parsetree
 
+let exe = ref ""
+let argv = ref [||]
+
 let debug = ref false
 
 let mk name f =
@@ -196,13 +199,12 @@ let caml_int_of_string =
     (function [String s] -> Int (int_of_string s)
      | _ -> failwith "caml_int_of_string")
 
-external get_argv: unit -> string * string array = "caml_sys_get_argv"
+(*external get_argv: unit -> string * string array = "caml_sys_get_argv"*)
 
 let caml_sys_get_argv =
   mk "caml_sys_get_argv"
     (function [Unit] ->
-       let exe, args = get_argv () in
-         Tuple [String exe; Array (Array.map (fun x -> String x) args)]
+       Tuple [String !exe; Array (Array.map (fun x -> String x) !argv)]
      | _ -> failwith "caml_sys_get_argv")
 
 external get_config: unit -> string * int * bool = "caml_sys_get_config"
