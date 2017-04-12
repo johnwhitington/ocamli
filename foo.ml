@@ -1,8 +1,7 @@
 let n = ref 0
 
-let _ = (fun x -> n := 32) ()
+let p =
+  let n = ref 0 in (fun x -> n := 32); !n
 
 let x = n
 
-(*let _ = x := 42
-let _ = n := 10*)
