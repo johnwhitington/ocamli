@@ -9,3 +9,6 @@ val load_stdlib : bool ref
 val load_library : unit -> unit
 
 val showstdlibinit : bool ref
+
+val load_library_modules : (string * string) list -> Tinyocaml.env
+

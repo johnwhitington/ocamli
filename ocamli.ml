@@ -53,6 +53,15 @@ let _ =
 let argv str =
   Ocamliprim.argv := Array.of_list (Array.to_list !Ocamliprim.argv @ [str])
 
+let ename = ref ""
+
+let setename s =
+  ename := s
+
+let settext s =
+  Runeval.settext ~modname:!ename s;
+  ename := ""
+
 let argspec =
   [("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
    ("-regexp", Arg.Set regexp, " Search terms are regular expressions rather than the built-in system");
@@ -77,6 +86,7 @@ let argspec =
    ("-pp", Arg.Set_string printer, " Set the prettyprinter");
    ("-width", Arg.Set_int width, " Set the output width");
    ("-e", Arg.String settext, " Evaluate the program text given");
+   ("-e-name", Arg.String setename, " Set the module name for the next -e instance");
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");

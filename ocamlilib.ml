@@ -81,6 +81,14 @@ and load_module (name : string) (env : Tinyocaml.env) (file : string) : Tinyocam
       if !debug then Printf.printf "done\n%!";
       r
 
+and load_module_from_text (name : string) (env : Tinyocaml.env) (text : string) : Tinyocaml.env =
+  if !debug then Printf.printf "Loading module %s...%!" name;
+    let themod = Tinyocamlrw.of_real_ocaml env (ast text) in
+      if !debug then Printf.printf "read...%!";
+      let r = load_module_from_struct name env themod in
+      if !debug then Printf.printf "done\n%!";
+      r
+
 let otherlib_modules () =
   [("Unix",                    !otherlibs, "unix.ml");
    (*("Num",                     !otherlibs, "num.ml");*) (* Not_found *)
@@ -157,6 +165,13 @@ let load_library () =
     Ocamliutil.typecheck := false;
     if !load_stdlib then Eval.lib := loadlib ();
     Ocamliutil.typecheck := t
+
+(* Load some modules, given a module name and a string for each *)
+let load_library_modules modules =
+  List.fold_left
+    (fun libs (n, text) -> load_module_from_text n libs text)
+    !Eval.lib (* <- initial libs from standard library which has already been loaded *)
+    modules
 
 let print_binding (pat, e) =
   Printf.printf "%s = %s\n" (to_string_pat pat) (Pptinyocaml.to_string e)

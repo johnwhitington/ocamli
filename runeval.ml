@@ -22,12 +22,20 @@ type mode =
 
 let source = ref []
 
+let modname_of_filename s =
+  let stem = Bytes.of_string (Filename.remove_extension (Filename.basename s)) in
+    if Bytes.length stem = 0 then "" else
+      begin
+        Bytes.set stem 0 (Char.uppercase_ascii (Bytes.get stem 0));
+        Bytes.to_string stem
+      end
+
 let setfile s =
-  source := FromFile s::!source;
+  source := (modname_of_filename s, FromFile s)::!source;
   Ocamliprim.exe := s
 
-let settext s =
-  source := FromText s::!source
+let settext ?(modname="") s =
+  source := (modname, FromText s)::!source
 
 let remove_recs = ref []
 
@@ -38,14 +46,24 @@ let remove_rec_all = ref false
 
 (* Load, appending, code from each source file or -e use. *)
 let rec load_code = function
-    FromFile s::r -> load_file s ^ " " ^ load_code r
-  | FromText s::r -> s ^ " " ^ load_code r
+    (_, FromFile s)::r -> load_file s ^ " " ^ load_code r
+  | (_, FromText s)::r -> s ^ " " ^ load_code r
   | [] -> ""
 
+(* load_code should (A) Load all-but-the-last thing as modules, on top of the
+ * stdlib (if present) and (B) Return the text of the top-level module,
+ * disregarding its name. *)
+let load_modules mods =
+  Eval.lib :=
+    Ocamlilib.load_library_modules
+    (List.map (function (n, FromFile s) -> (n, load_file s) | (n, FromText s) -> (n, s)) mods)
+
 let load_code () =
-  match !source with 
+  match !source with
     [] -> None
-  | _ -> Some (load_code (List.rev !source)) 
+  | h::t ->
+      load_modules (List.rev t);
+      Some (load_code [h])
 
 let string_of_tiny ~preamble ?(codes=true) x =
   let x = Tinyocamlutil.remove_named_recursive_functions !remove_rec_all !remove_recs x in

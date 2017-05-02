@@ -12,9 +12,9 @@ val prompt : bool ref
 val step : float ref
 val fastcurry : bool ref
 type mode = FromFile of string | FromText of string
-val source : mode list ref
+val source : (string * mode) list ref
 val setfile : string -> unit
-val settext : string -> unit
+val settext : ?modname:string -> string -> unit
 
 val remove_recs : string list ref
 val add_remove_rec : string -> unit
