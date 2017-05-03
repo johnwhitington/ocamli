@@ -38,10 +38,19 @@ val load_file : string -> string
 
 val env : Env.t
 
-val ast : string -> Parsetree.structure
+val ast : ?filename:string -> string -> Parsetree.structure
 
 val open_module : string -> Tinyocaml.env -> Tinyocaml.env
 
 val alias_module : string -> string -> Tinyocaml.env -> Tinyocaml.env
 
 val open_struct_as_module : string -> Tinyocaml.t list -> Tinyocaml.env -> Tinyocaml.env
+
+val filename_of_modname : string -> string
+
+val modname_of_filename : string -> string
+
+val explode : string -> char list
+
+val implode : char list -> string
+

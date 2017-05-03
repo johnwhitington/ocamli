@@ -22,13 +22,6 @@ type mode =
 
 let source = ref []
 
-let modname_of_filename s =
-  let stem = Bytes.of_string (Filename.remove_extension (Filename.basename s)) in
-    if Bytes.length stem = 0 then "" else
-      begin
-        Bytes.set stem 0 (Char.uppercase_ascii (Bytes.get stem 0));
-        Bytes.to_string stem
-      end
 
 let setfile s =
   source := (modname_of_filename s, FromFile s)::!source;
@@ -46,9 +39,8 @@ let remove_rec_all = ref false
 
 (* Load, appending, code from each source file or -e use. *)
 let rec load_code = function
-    (_, FromFile s)::r -> load_file s ^ " " ^ load_code r
-  | (_, FromText s)::r -> s ^ " " ^ load_code r
-  | [] -> ""
+    (_, FromFile s) -> load_file s
+  | (_, FromText s) -> s
 
 (* load_code should (A) Load all-but-the-last thing as modules, on top of the
  * stdlib (if present) and (B) Return the text of the top-level module,
@@ -63,7 +55,7 @@ let load_code () =
     [] -> None
   | h::t ->
       load_modules (List.rev t);
-      Some (load_code [h])
+      Some (load_code h)
 
 let string_of_tiny ~preamble ?(codes=true) x =
   let x = Tinyocamlutil.remove_named_recursive_functions !remove_rec_all !remove_recs x in
@@ -104,8 +96,8 @@ let print_string x =
   flush stdout
 
 (* Evaluate a phrase to a string *)
-let eval s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast s)) in (* FIXME ENV *)
+(*let eval ?(filename="") s =
+  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast ~filename:filename s)) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
       | Next state -> eval_inner state
@@ -115,14 +107,14 @@ let eval s =
       | Unimplemented s ->
           failwith "unimplemented"
     in
-      eval_inner state
+      eval_inner state*)
 
 let extract_expression = function
   [{pstr_desc = Pstr_eval (e, _)}] -> e
 | _ -> failwith "extract_expression"
 
 (* Structure to structure/expression *)
-let eval_ast structure =
+(*let eval_ast structure =
   let state = Eval.init structure in
     let rec eval_inner state =
       match Eval.next state with
@@ -133,15 +125,15 @@ let eval_ast structure =
       | Malformed _ | Unimplemented _ ->
           failwith "evaluation failed"
     in
-      eval_inner state
+      eval_inner state*)
 
 let extract_tiny = function
   Tinyocaml.Struct (_, [x]) -> x
 | _ -> failwith "extract_tiny"
 
 (* String to Tinyocaml.t result *)
-let eval_string s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast s)) in (* FIXME ENV *)
+(*let eval_string ?(filename="") s =
+  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast ~filename s)) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
       | Next state ->
@@ -153,8 +145,8 @@ let eval_string s =
     in
       eval_inner state
     
-let eval_string_to_ast s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast s)) in (* FIXME ENV *)
+let eval_string_to_ast ?(filename="") s =
+  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast ~filename s)) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
       | Next state ->
@@ -164,4 +156,4 @@ let eval_string_to_ast s =
       | Malformed _ | Unimplemented _ ->
           failwith "evaluation failed"
     in
-      eval_inner state
+      eval_inner state*)

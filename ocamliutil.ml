@@ -4,6 +4,38 @@ open Asttypes
 open Tinyocaml
 (*open Slist*)
 
+(* Make a list of characters from a string, preserving order. *)
+let explode s =
+  let l = ref [] in
+    for p = String.length s downto 1 do
+      l := String.unsafe_get s (p - 1)::!l
+    done;
+    !l
+
+(* Make a string from a list of characters, preserving order. *)
+let implode l =
+  let s = Bytes.create (List.length l) in
+    let rec list_loop x = function
+       [] -> ()
+     | i::t -> Bytes.unsafe_set s x i; list_loop (x + 1) t
+    in
+      list_loop 0 l;
+      Bytes.to_string s
+
+let modname_of_filename s =
+  let stem = Bytes.of_string (Filename.remove_extension (Filename.basename s)) in
+    if Bytes.length stem = 0 then "" else
+      begin
+        Bytes.set stem 0 (Char.uppercase_ascii (Bytes.get stem 0));
+        Bytes.to_string stem
+      end
+
+let filename_of_modname = function
+  "" -> ""
+| x ->
+    let chars = explode x in
+      implode (Char.lowercase_ascii (List.hd chars)::(List.tl chars)) ^ ".ml"
+
 let typecheck = ref true
 
 let load_file f =
@@ -18,11 +50,20 @@ let env =
   Compmisc.init_path false;
   Compmisc.initial_env ()
 
-let ast code =
-  let ast = code |> Lexing.from_string |> Parse.implementation in
+let ast ?(filename="") code =
+  let ast =
+    let lexer = Lexing.from_string code in
+    Location.init lexer filename;
+    Parse.implementation lexer
+  in
     if not !typecheck then ast else
-      let _, _ = Typemod.type_implementation "example.ml" "" "example" env ast in
+      try
+        let _, _ = Typemod.type_implementation "foo.ml" "" "example" env ast in
         ast
+      with
+        e ->
+          Location.report_exception Format.std_formatter e;
+          exit 2
 
 type 'a result =
     Next of 'a

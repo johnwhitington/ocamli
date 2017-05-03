@@ -8,6 +8,8 @@ let showstdlibinit = ref false
 (* Beginning of what was ocamilib.ml *)
 let load_stdlib = ref true
 
+
+
 let stdlib_dir =
   let tname = Filename.temp_file "ocaml" "ocamli" in
     ignore (Sys.command ("ocamlc -config >" ^ tname));
@@ -75,15 +77,15 @@ and load_module_from_struct name (env : Tinyocaml.env) themod : Tinyocaml.env =
 
 and load_module (name : string) (env : Tinyocaml.env) (file : string) : Tinyocaml.env =
   if !debug then Printf.printf "Loading module %s...%!" name;
-    let themod = Tinyocamlrw.of_real_ocaml env (ast (load_file file)) in
+    let themod = Tinyocamlrw.of_real_ocaml env (ast ~filename:(filename_of_modname name) (load_file file)) in
       if !debug then Printf.printf "read...%!";
       let r = load_module_from_struct name env themod in
       if !debug then Printf.printf "done\n%!";
       r
 
 and load_module_from_text (name : string) (env : Tinyocaml.env) (text : string) : Tinyocaml.env =
-  if !debug then Printf.printf "Loading module %s...%!" name;
-    let themod = Tinyocamlrw.of_real_ocaml env (ast text) in
+  if !debug then Printf.printf "Loading module from text %s...%!" name;
+    let themod = Tinyocamlrw.of_real_ocaml env (ast ~filename:(filename_of_modname name) text) in
       if !debug then Printf.printf "read...%!";
       let r = load_module_from_struct name env themod in
       if !debug then Printf.printf "done\n%!";

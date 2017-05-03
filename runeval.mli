@@ -29,8 +29,4 @@ val show_this_pervasive_stage : Ocamliutil.last_op list -> bool
 val skipped : bool ref
 val wait_for_enter : unit -> unit
 val print_string : string -> unit
-val eval : string -> string
-val eval_ast : Tinyocaml.t -> Parsetree.expression
-val eval_string : string -> Tinyocaml.t
-val eval_string_to_ast : string -> Parsetree.expression
 

@@ -1,3 +1,5 @@
+blah
+
 let stats_from_channel () =
   let histogram = Array.make 256 0 in
     try

@@ -1,4 +1,5 @@
 open Runeval
+open Ocamliutil
 
 let setdebug () =
   Runeval.debug := true;
@@ -58,30 +59,12 @@ let ename = ref ""
 let setename s =
   ename := s
 
-(* Make a list of characters from a string, preserving order. *)
-let explode s =
-  let l = ref [] in
-    for p = String.length s downto 1 do
-      l := String.unsafe_get s (p - 1)::!l
-    done;
-    !l
-
-(* Make a string from a list of characters, preserving order. *)
-let implode l =
-  let s = String.create (List.length l) in
-    let rec list_loop x = function
-       [] -> ()
-     | i::t -> String.unsafe_set s x i; list_loop (x + 1) t
-    in
-      list_loop 0 l;
-      s
-
 (* For "Mod" check for Mod.cmi and mod.cmi. If neither exists, create Mod.cmi,Mod.cmo *)
 let create_cmi_cmo (ename : string) (text : string) =
   if ename = "" then raise (Invalid_argument "create_cmi");
   let uncap =
     let chars = explode ename in
-      Bytes.to_string (implode (Char.lowercase_ascii (List.hd chars)::(List.tl chars)))
+      implode (Char.lowercase_ascii (List.hd chars)::(List.tl chars))
   in
     if not (Sys.file_exists (ename ^ ".ml")) && not (Sys.file_exists (uncap ^ ".ml")) then
       begin
@@ -93,7 +76,7 @@ let create_cmi_cmo (ename : string) (text : string) =
 
 let settext s =
   Runeval.settext ~modname:!ename s;
-  if !ename <> "" then create_cmi !ename s;
+  if !ename <> "" then create_cmi_cmo !ename s;
   ename := ""
 
 let argspec =
@@ -274,6 +257,12 @@ let print_line newline preamble tiny =
 
 external reraise : exn -> 'a = "%reraise"
 
+let mainfile = ref ""
+
+let setfile x =
+  mainfile := x;
+  setfile x
+
 let go () =
   Arg.parse argspec setfile
     "Syntax: eval <filename | -e program> [-- arg1 arg2 ...]\n";
@@ -327,7 +316,7 @@ let go () =
    let run code =
     if !printer = "simple" then Pptinyocaml.simple := true;
     Pptinyocaml.width := !width;
-    let state = Eval.init (Tinyocamlrw.of_real_ocaml !Eval.lib (Ocamliutil.ast code)) in
+    let state = Eval.init (Tinyocamlrw.of_real_ocaml !Eval.lib (Ocamliutil.ast ~filename:!mainfile code)) in
        if !debugtiny then
          begin
            print_string (Tinyocaml.to_string (Eval.tiny state));
