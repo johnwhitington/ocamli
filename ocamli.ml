@@ -58,8 +58,42 @@ let ename = ref ""
 let setename s =
   ename := s
 
+(* Make a list of characters from a string, preserving order. *)
+let explode s =
+  let l = ref [] in
+    for p = String.length s downto 1 do
+      l := String.unsafe_get s (p - 1)::!l
+    done;
+    !l
+
+(* Make a string from a list of characters, preserving order. *)
+let implode l =
+  let s = String.create (List.length l) in
+    let rec list_loop x = function
+       [] -> ()
+     | i::t -> String.unsafe_set s x i; list_loop (x + 1) t
+    in
+      list_loop 0 l;
+      s
+
+(* For "Mod" check for Mod.cmi and mod.cmi. If neither exists, create Mod.cmi,Mod.cmo *)
+let create_cmi_cmo (ename : string) (text : string) =
+  if ename = "" then raise (Invalid_argument "create_cmi");
+  let uncap =
+    let chars = explode ename in
+      Bytes.to_string (implode (Char.lowercase_ascii (List.hd chars)::(List.tl chars)))
+  in
+    if not (Sys.file_exists (ename ^ ".ml")) && not (Sys.file_exists (uncap ^ ".ml")) then
+      begin
+        let fh = open_out (ename ^ ".ml") in
+          output_string fh text;
+          close_out fh;
+        ignore (Sys.command ("ocamlc " ^ ename ^ ".ml"))
+      end
+
 let settext s =
   Runeval.settext ~modname:!ename s;
+  if !ename <> "" then create_cmi !ename s;
   ename := ""
 
 let argspec =
