@@ -260,8 +260,16 @@ external reraise : exn -> 'a = "%reraise"
 let mainfile = ref ""
 
 let setfile x =
-  mainfile := x;
-  setfile x
+  if not (Sys.file_exists x) then
+    begin
+      Printf.printf "File %s not found\n" x;
+      exit 1
+    end
+  else
+    begin
+      mainfile := x;
+      setfile x
+    end
 
 let go () =
   Arg.parse argspec setfile
