@@ -171,7 +171,8 @@ let load_library () =
 (* Load some modules, given a module name and a string for each *)
 let load_library_modules modules =
   List.fold_left
-    (fun libs (n, text) -> load_module_from_text n libs text)
+    (fun libs (n, text) ->
+      load_module_from_text n libs text @ libs)
     !Eval.lib (* <- initial libs from standard library which has already been loaded *)
     modules
 

@@ -2,7 +2,10 @@ rm -f programs/*.cm* programs/a.out
 rm -f stdlib/*.cm* stdlib/a.out
 rm -f *.cm* a.out
 rm -f ppx_eval/*.cm* ppx_eval/a.out
-rm -f Bar.ml
+rm -f Bar.* Bar2.*
+rm -f "oftvb/Chapter 16/*.cmi"
+rm -f "oftvb/Chapter 16/*.cmo"
+rm -f "oftvb/Chapter 16/a.out"
 make clean
 cd ppx_eval
 make clean
