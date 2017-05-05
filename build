@@ -1,0 +1,2 @@
+cd ppx_auto && make
+cd .. && make

@@ -13,7 +13,7 @@ OCAMLNCFLAGS = -safe-string -g -w -3 -w -40 -ppx ppx_auto/ppx_auto
 OCAMLBCFLAGS = -safe-string -g -w -3 -w -40 -ppx ppx_auto/ppx_auto
 OCAMLLDFLAGS = -g
 
-all : native-code native-code-library byte-code-library 
+all : ppx_auto native-code native-code-library byte-code-library 
 
 clean ::
 	rm -rf doc foo foo2 a.out eval.top
