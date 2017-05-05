@@ -2,6 +2,26 @@ open Tinyocaml
 open Ocamliutil
 open Parsetree
 
+(*
+
+We write:
+
+let percent_word_size = [%auto "external word_size : unit -> int = \"%word_size\""]
+
+Which generates:
+
+external word_size : unit -> int = "%word_size"
+
+let percent_word_size =
+  let f =
+    (function [Unit] -> Int (word_size ())
+     | _ -> failwith "percent_word_size")
+  in
+    ("%word_size", Fun (NoLabel, PatVar "*x", CallBuiltIn (None, name, [Var "*x"], f), []))
+*)
+
+let percent_word_size = [%auto {|external word_size : unit -> int = "%word_size"|}]
+
 let exe = ref ""
 let argv = ref [||]
 
