@@ -9,8 +9,8 @@ PACKS = str unix bigarray compiler-libs.common
 
 RESULT = ocamli
 
-OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
-OCAMLBCFLAGS = -safe-string -g -w -3 -w -40
+OCAMLNCFLAGS = -safe-string -g -w -3 -w -40 -ppx ppx_auto/ppx_auto
+OCAMLBCFLAGS = -safe-string -g -w -3 -w -40 -ppx ppx_auto/ppx_auto
 OCAMLLDFLAGS = -g
 
 all : native-code native-code-library byte-code-library 

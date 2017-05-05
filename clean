@@ -19,5 +19,6 @@ cd ../abstract-machine
 make clean
 cd ../secd
 make clean
-
+cd ../ppx_auto
+make clean
 
