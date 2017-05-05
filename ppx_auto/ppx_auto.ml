@@ -4,37 +4,44 @@ open Asttypes
 open Parsetree
 open Longident
 
-let blob_mapper argv =
-  (* Our blob_mapper only overrides the handling of expressions in the default mapper. *)
-  { default_mapper with
-    expr = fun mapper expr ->
-      match expr with
-      (* Is this an extension node? *)
-      | { pexp_desc =
-          (* Should have name "blob". *)
-          Pexp_extension ({ txt = "auto"; loc }, pstr)} ->
-        let error () =
-          raise (Location.Error (
-                  Location.error ~loc "[%auto] accepts a string, e.g. [%auto \"...\"]"))
-        in
-        begin match pstr with
-        | (* Should have a single structure item, which is evaluation of a constant string. *)
-          PStr [{ pstr_desc = Pstr_eval ({ pexp_loc = loc } as expr, _) }] ->
-            begin match Ast_convenience.get_str expr with
-            | Some sym ->
-              (* Replace with the contents of the file. *)
-              (* Have to use Ast_helper.with_default_loc to pass the location to Ast_convenience.str until
-                 https://github.com/alainfrisch/ppx_tools/pull/38 is released. *)
-              with_default_loc
-                loc
-                (fun () -> Ast_convenience.int 0)
-            | None -> error ()
-            end
-        | _ -> error ()
-        end
-      (* Delegate to the default mapper. *)
-      | x -> default_mapper.expr mapper x;
-  }
+(* Parse {|external word_size : unit -> int = "%word_size"|} returning:
+  
+  a) n = "word_size"
+  b) t_in = "Unit"
+  c) t_out = "Int"
+  d) nstr = "%word_size" *)
+let parse_external e =
+  match
+    Parse.implementation (Lexing.from_string e)
+  with
+    [structure_item] ->
+      (structure_item, "word_size", "Unit", "Int", "%word_size")
+  | _ -> failwith "parse_external"
 
-let () = register "blob" blob_mapper
+(* Convert type name e.g unit to Tinyocaml constructor name e.g Unit *)
+let tinyocaml_constructor_of_type = 0
+
+(* Build the auto itself *)
+let build_auto t_in t_out n nstr =
+  Ast_convenience.int 0
+
+(* Two structure items. First, the external, then the let percent_word_size = *)
+let build_all str =
+  Ast_convenience.int 0
+
+let auto_mapper argv =
+  {default_mapper with
+   structure_item =
+     fun mapper structitem ->
+       match structitem with
+         {pstr_desc = Pstr_extension (({txt = "auto"},
+                        PStr [{pstr_desc =
+                          Pstr_eval ({pexp_desc =
+                            Pexp_constant (Pconst_string (s, _))}, _)}]), _)} ->
+             let parsed, _, _, _, _ = parse_external s in
+               parsed
+     | x ->
+         default_mapper.structure_item mapper structitem}
+
+let _ = register "auto" auto_mapper
 
