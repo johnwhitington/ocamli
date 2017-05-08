@@ -241,12 +241,12 @@ let percent_big_endian =
     (function [Unit] -> Bool (big_endian ())
      | _ -> failwith "percent_big_endian")
 
-external word_size : unit -> int = "%word_size"
+(*external word_size : unit -> int = "%word_size"
 
 let percent_word_size =
   mk "%word_size"
     (function [Unit] -> Int (word_size ())
-     | _ -> failwith "percent_word_size")
+     | _ -> failwith "percent_word_size")*)
 
 external int_size : unit -> int = "%int_size"
 
