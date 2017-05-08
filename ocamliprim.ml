@@ -2,9 +2,7 @@ open Tinyocaml
 open Ocamliutil
 open Parsetree
 
-(*
-
-We write:
+(* We write, for example:
 
 [%%auto {|external word_size : unit -> int = "%word_size"|}]
 
@@ -21,6 +19,30 @@ let percent_word_size =
 *)
 
 [%%auto {|external word_size : unit -> int = "%word_size"|}]
+[%%auto {|external int_size : unit -> int = "%int_size"|}]
+[%%auto {|external max_wosize : unit -> int = "%max_wosize"|}]
+[%%auto {|external big_endian : unit -> bool = "%big_endian"|}]
+[%%auto {|external unix : unit -> bool = "%ostype_unix"|}]
+[%%auto {|external win32 : unit -> bool = "%ostype_win32"|}]
+[%%auto {|external cygwin : unit -> bool = "%ostype_cygwin"|}]
+[%%auto {|external percent_boolnot : bool -> bool = "%boolnot"|}]
+[%%auto {|external percent_negint : int -> int = "%negint"|}]
+[%%auto {|external caml_ml_input_scan_line : in_channel -> int = "caml_ml_input_scan_line"|}]
+[%%auto {|external caml_create_string : int -> string = "caml_create_string"|}]
+[%%auto {|external caml_create_bytes : int -> bytes = "caml_create_bytes"|}]
+[%%auto {|external caml_int64_float_of_bits : int64 -> float = "caml_int64_float_of_bits"|}]
+[%%auto {|external ignore : 'a -> unit = "%ignore"|}]
+[%%auto {|external caml_ml_input_char : in_channel -> char = "caml_ml_input_char"|}]
+[%%auto {|external open_descriptor_out : int -> out_channel = "caml_ml_open_descriptor_out"|}]
+[%%auto {|external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"|}]
+[%%auto {|external caml_ba_init : unit -> unit = "caml_ba_init"|}]
+[%%auto {|external caml_ml_flush : out_channel -> unit = "caml_ml_flush"|}]
+[%%auto {|external caml_sqrt_float : float -> float = "caml_sqrt_float"|}]
+[%%auto {|external caml_ceil_float : float -> float = "caml_ceil_float"|}]
+[%%auto {|external caml_floor_float : float -> float = "caml_floor_float"|}]
+[%%auto {|external percent_negfloat : float -> float = "%negfloat"|}]
+[%%auto {|external percent_intoffloat : float -> int = "%intoffloat"|}]
+[%%auto {|external caml_sin_float : float -> float = "caml_sin_float"|}]
 
 let exe = ref ""
 let argv = ref [||]
@@ -64,28 +86,6 @@ let caml_register_named_value =
 
 external unsafe_output_string : out_channel -> string -> int -> int -> unit
                               = "caml_ml_output"
-
-external input_scan_line : in_channel -> int = "caml_ml_input_scan_line"
-
-let caml_ml_input_scan_line =
-  mk "caml_ml_input_scan_line"
-    (function [InChannel i] -> Int (input_scan_line i)
-     | _ -> failwith "caml_ml_input_scan_line")
-
-
-external string_create : int -> string = "caml_create_string"
-
-let caml_create_string =
-  mk "caml_create_string"
-    (function [Int i] -> String (string_create i)
-     | _ -> failwith "caml_create_string")
-
-external bytes_create : int -> bytes = "caml_create_bytes"
-
-let caml_create_bytes =
-  mk "caml_create_bytes"
-    (function [Int i] -> String (string_create i)
-     | _ -> failwith "caml_create_bytes")
 
 external bytes_to_string : bytes -> string = "%bytes_to_string"
 
@@ -184,24 +184,13 @@ let percent_array_safe_get =
     (function [Array x; Int i] -> x.(i)
      | _ -> failwith "percent_array_safe_get")
 
-external ignore : 'a -> unit = "%ignore"
 
-let percent_ignore =
-  mk "%ignore"
-    (function [_] -> Unit
-     | _ -> failwith "percent_ignore")
 
 let percent_identity =
   mk "%identity"
     (function [x] -> x
      | _ -> failwith "percent_identity")
 
-external input_char : in_channel -> char = "caml_ml_input_char"
-
-let caml_ml_input_char =
-  mk "caml_ml_input_char"
-    (function [InChannel i] -> Char (input_char i)
-     | _ -> failwith "caml_ml_input_char")
 
 external inet_addr_of_string : string -> Unix.inet_addr
                                     = "unix_inet_addr_of_string"
@@ -234,78 +223,14 @@ let caml_sys_get_config =
          Tuple [String s; Int i; Bool b]
      | _ -> failwith "caml_sys_get_config")
  
-external big_endian : unit -> bool = "%big_endian"
-
-let percent_big_endian =
-  mk "%big_endian"
-    (function [Unit] -> Bool (big_endian ())
-     | _ -> failwith "percent_big_endian")
-
-(*external word_size : unit -> int = "%word_size"
-
-let percent_word_size =
-  mk "%word_size"
-    (function [Unit] -> Int (word_size ())
-     | _ -> failwith "percent_word_size")*)
-
-external int_size : unit -> int = "%int_size"
-
-let percent_int_size =
-  mk "%int_size"
-    (function [Unit] -> Int (int_size ())
-     | _ -> failwith "percent_int_size")
-
-external unix : unit -> bool = "%ostype_unix"
-external win32 : unit -> bool = "%ostype_win32"
-external cygwin : unit -> bool = "%ostype_cygwin"
-
-let percent_ostype_unix =
-  mk "%ostype_unix"
-    (function [Unit] -> Bool (unix ())
-     | _ -> failwith "percent_ostype_unix")
-
-let percent_ostype_win32 =
-  mk "%ostype_win32"
-    (function [Unit] -> Bool (win32 ())
-     | _ -> failwith "percent_ostype_win32")
-
-let percent_ostype_cygwin =
-  mk "%ostype_cygwin"
-    (function [Unit] -> Bool (cygwin ())
-     | _ -> failwith "percent_ostype_cygwin")
-
-external max_wosize : unit -> int = "%max_wosize"
-
-let percent_max_wosize =
-  mk "%max_wosize"
-    (function [Unit] -> Int (max_wosize ())
-     | _ -> failwith "percent_max_wosize")
 
 let percent_lsrint =
   mk2 "%lsrint"
     (function [Int a; Int b] -> Int (a lsr b)
      | l -> failwith "percent_lsrint")
 
-external float_of_bits : int64 -> float = "caml_int64_float_of_bits"
 
-let caml_int64_float_of_bits =
-  mk "caml_int64_float_of_bits"
-    (function [Int64 i] -> Float (float_of_bits i)
-     | _ -> failwith "caml_int64_float_of_bits")
 
-external open_descriptor_out : int -> out_channel
-                             = "caml_ml_open_descriptor_out"
-external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"
-
-let caml_ml_open_descriptor_out =
-  mk "caml_ml_open_descriptor_out"
-    (function [Int i] -> OutChannel (open_descriptor_out i)
-     | _ -> failwith "caml_ml_open_descriptor_out")
-
-let caml_ml_open_descriptor_in =
-  mk "caml_ml_open_descriptor_in"
-    (function [Int i] -> InChannel (open_descriptor_in i)
-     | _ -> failwith "caml_ml_open_descriptor_in")
 
 let caml_obj_tag =
   mk "caml_obj_tag"
@@ -348,13 +273,6 @@ let caml_fill_string =
        [String b; Int x; Int y; Char c] -> unsafe_fill (Bytes.unsafe_of_string b) x y c; Unit
      | _ -> failwith "caml_fill_string")
 
-external caml_ba_init : unit -> unit = "caml_ba_init"
-
-let caml_ba_init =
-  mk "caml_ba_init"
-    (function
-        [Unit] -> caml_ba_init (); Unit
-      | _ -> failwith "caml_ba_init")
 
 type 'a w
 
@@ -478,19 +396,7 @@ let percent_string_unsafe_get =
     (function [String s; Int i] -> Char s.[i]
      | _ -> failwith "percent_string_unsafe_get")
 
-external percent_boolnot : bool -> bool = "%boolnot"
 
-external percent_negint : int -> int = "%negint"
-
-let percent_boolnot =
-  mk "%boolnot"
-    (function [Bool b] -> Bool (percent_boolnot b)
-     | _ -> failwith "%boolnot")
-
-let percent_negint =
-  mk "%negint"
-    (function [Int i] -> Int (percent_negint i)
-     | _ -> failwith "%negint")
 
 let unix_fork =
   mk "unix_fork"
@@ -567,13 +473,7 @@ let caml_ml_output_char =
        caml_ml_output_char ch c; Unit
      | _ -> failwith "caml_ml_output_char")
 
-external caml_ml_flush : out_channel -> unit = "caml_ml_flush"
 
-let caml_ml_flush =
-  mk "caml_ml_flush"
-    (function [OutChannel ch] ->
-       caml_ml_flush ch; Unit
-     | _ -> failwith "caml_ml_flush")
 
 
 (* These convert the result of caml_sys_open to an in_channel or out_channel *)
@@ -629,50 +529,7 @@ let caml_ml_close_channel =
      | [InChannel i] -> caml_ml_close_channel' i; Unit
      | x -> debug_args x; failwith "caml_ml_close_channel")
 
-external caml_sqrt_float : float -> float = "caml_sqrt_float"
 
-let caml_sqrt_float =
-  mk "caml_sqrt_float"
-    (function
-       [Float x] -> Float (caml_sqrt_float x)
-     | _ -> failwith "caml_sqrt_float")
-
-external caml_ceil_float : float -> float = "caml_ceil_float"
-
-let caml_ceil_float =
-  mk "caml_ceil_float"
-    (function
-       [Float x] -> Float (caml_ceil_float x)
-     | _ -> failwith "caml_ceil_float")
-
-external caml_floor_float : float -> float = "caml_floor_float"
-
-let caml_floor_float =
-  mk "caml_floor_float"
-    (function
-       [Float x] -> Float (caml_floor_float x)
-     | _ -> failwith "caml_floor_float")
-
-external percent_negfloat : float -> float = "%negfloat"
-
-let percent_negfloat =
-  mk "%negfloat"
-    (function [Float x] -> Float (percent_negfloat x)
-     | _ -> failwith "percent_negfloat")
-
-external percent_intoffloat : float -> int = "%intoffloat"
-
-let percent_intoffloat =
-  mk "%intoffloat"
-    (function [Float x] -> Int (percent_intoffloat x)
-     | _ -> failwith "percent_intoffloat")
-
-external caml_sin_float : float -> float = "caml_sin_float"
-
-let caml_sin_float =
-  mk "caml_sin_float"
-    (function [Float x] -> Float (caml_sin_float x)
-     | _ -> failwith "caml_sin_float")
 
 external percent_bytes_of_string : string -> bytes = "%bytes_of_string"
 
@@ -712,7 +569,7 @@ external caml_sys_exit : int -> 'a = "caml_sys_exit"
 
 let caml_sys_exit =
   mk "caml_sys_exit"
-    (function [Int i] -> exit i
+    (function [Int i] -> caml_sys_exit i
      | _ -> failwith "caml_sys_exit")
 
 let builtin_primitives = [

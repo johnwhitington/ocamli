@@ -4,25 +4,67 @@ open Asttypes
 open Parsetree
 open Longident
 
+(* Make a list of characters from a string, preserving order. *)
+let explode s =
+  let l = ref [] in
+    for p = String.length s downto 1 do
+      l := String.unsafe_get s (p - 1)::!l
+    done;
+    !l
+
+(* Make a string from a list of characters, preserving order. *)
+let implode l =
+  let s = Bytes.create (List.length l) in
+    let rec list_loop x = function
+       [] -> ()
+     | i::t -> Bytes.unsafe_set s x i; list_loop (x + 1) t
+    in
+      list_loop 0 l;
+      Bytes.to_string s
+
 (* Parse {|external word_size : unit -> int = "%word_size"|} returning:
   
   a) n = "word_size"
   b) t_in = "Unit"
   c) t_out = "Int"
   d) nstr = "%word_size" *)
-let conv_type = function
+let conv_type_in = function
+  {ptyp_desc = Ptyp_constr ({txt = Lident "unit"}, _)} -> "Unit"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "int"}, _)} -> "Int x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "bool"}, _)} -> "Bool x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "int32"}, _)} -> "Int32 x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "int64"}, _)} -> "Int64 x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "float"}, _)} -> "Float x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "char"}, _)} -> "Char x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "nativeint"}, _)} -> "NativeInt x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "in_channel"}, _)} -> "InChannel x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "out_channel"}, _)} -> "OutChannel x"
+| {ptyp_desc = Ptyp_constr ({txt = Lident ("string" | "bytes")}, _)} -> "String x"
+| {ptyp_desc = Ptyp_var "a"} -> "a"
+| _ -> failwith "conv_type_in"
+
+let conv_type_out = function
   {ptyp_desc = Ptyp_constr ({txt = Lident "unit"}, _)} -> "Unit"
 | {ptyp_desc = Ptyp_constr ({txt = Lident "int"}, _)} -> "Int"
-| _ -> failwith "conv_type"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "bool"}, _)} -> "Bool"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "int32"}, _)} -> "Int32"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "int64"}, _)} -> "Int64"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "float"}, _)} -> "Float"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "char"}, _)} -> "Char"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "nativeint"}, _)} -> "NativeInt"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "in_channel"}, _)} -> "InChannel"
+| {ptyp_desc = Ptyp_constr ({txt = Lident "out_channel"}, _)} -> "OutChannel"
+| {ptyp_desc = Ptyp_constr ({txt = Lident ("string" | "bytes")}, _)} -> "String"
+| _ -> failwith "conv_type_out"
 
 let constr_of_type = function
   "Unit" -> "()"
-| _ -> failwith "constr_of_type"
+| _ -> "x"
 
 let parse_type = function
   {ptyp_desc = Ptyp_arrow (_, a, b)} ->
-    let a_t = conv_type a in
-    let b_t = conv_type b in
+    let a_t = conv_type_in a in
+    let b_t = conv_type_out b in
       a_t, constr_of_type a_t, b_t
 | _ -> failwith "parse_type: unknown type"
 
@@ -44,6 +86,11 @@ let getexpr = function
 let ast s =
   Parse.implementation (Lexing.from_string s)
 
+let convert_nstr s =
+  match explode s with
+    '%'::t -> "percent_" ^ implode t
+  | x -> s
+
 (* Build the auto itself:
 
 let percent_word_size =
@@ -63,17 +110,22 @@ let build_auto t_in t_in' t_out n nstr =
              nstr nstr))
     in
       let f =
-        getexpr
-          (ast
-            (Printf.sprintf
-               {|function [%s] -> %s (%s %s) | _ -> failwith "%s"|}
-               t_in t_out n t_in' nstr))
+        let out =
+          if t_out = "Unit"
+            then Printf.sprintf "%s %s; Unit" n t_in'
+            else Printf.sprintf "%s (%s %s)" t_out n t_in'
+        in
+          getexpr
+            (ast
+              (Printf.sprintf
+                 {|function [%s] -> %s | _ -> failwith "%s"|}
+                 t_in out nstr))
       in
         Exp.let_ Nonrecursive [Vb.mk (Pat.var {txt = "f"; loc = Location.none}) f] thetuple
   in
     let binding =
       Vb.mk
-        (Pat.var {txt = "percent_word_size"; loc = Location.none})
+        (Pat.var {txt = convert_nstr nstr; loc = Location.none})
         theletfin
     in
       Str.mk (Pstr_value (Nonrecursive, [binding]))
