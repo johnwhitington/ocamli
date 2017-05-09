@@ -64,6 +64,11 @@ let percent_word_size =
 [%%auto {|external unsafe_output_string : out_channel -> string -> int -> int -> unit = "caml_ml_output"|}]
 [%%auto {|external caml_blit_string : string -> int -> string -> int -> int -> unit = "caml_blit_string"|}]
 
+let percent_lsrint =
+  mk2 "%lsrint"
+    (function [Int a; Int b] -> Int (a lsr b)
+     | l -> failwith "percent_lsrint")
+
 let exe = ref ""
 let argv = ref [||]
 
@@ -106,8 +111,6 @@ let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
-
-
 (* bytes *)
 external bytes_to_string : bytes -> string = "%bytes_to_string"
 
@@ -115,8 +118,6 @@ let percent_bytes_to_string =
   mk "%bytes_to_string"
     (function [String x] -> String (String.copy x)
      | _ -> failwith "%bytes_to_string")
-
-
 
 let percent_string_length =
   mk "%string_length"
@@ -186,13 +187,10 @@ let percent_array_safe_get =
     (function [Array x; Int i] -> x.(i)
      | _ -> failwith "percent_array_safe_get")
 
-
-
 let percent_identity =
   mk "%identity"
     (function [x] -> x
      | _ -> failwith "percent_identity")
-
 
 external inet_addr_of_string : string -> Unix.inet_addr
                                     = "unix_inet_addr_of_string"
@@ -224,15 +222,6 @@ let caml_sys_get_config =
        let s, i, b = get_config () in
          Tuple [String s; Int i; Bool b]
      | _ -> failwith "caml_sys_get_config")
- 
-
-let percent_lsrint =
-  mk2 "%lsrint"
-    (function [Int a; Int b] -> Int (a lsr b)
-     | l -> failwith "percent_lsrint")
-
-
-
 
 let caml_obj_tag =
   mk "caml_obj_tag"
@@ -248,22 +237,18 @@ let caml_obj_block =
     (function [Int a; Int b] -> Int 0
      | _ -> failwith "caml_obj_block")
 
-
-
 let caml_make_vect =
   mk2 "caml_make_vect"
     (function [Int len; x] -> Array (Array.make len x)
      | _ -> failwith "caml_make_vect")
 
-external unsafe_fill : bytes -> int -> int -> char -> unit
-                     = "caml_fill_string" [@@noalloc]
+external unsafe_fill : bytes -> int -> int -> char -> unit = "caml_fill_string" [@@noalloc]
 
 let caml_fill_string =
   mk4 "caml_fill_string"
     (function
        [String b; Int x; Int y; Char c] -> unsafe_fill (Bytes.unsafe_of_string b) x y c; Unit
      | _ -> failwith "caml_fill_string")
-
 
 type 'a w
 
@@ -274,10 +259,6 @@ let caml_weak_create =
     (function
         [Int i] -> Unit (* FIXME*)
       | _ -> failwith "caml_weak_create")
-
-
-
-
 
 external getenv: string -> string = "caml_sys_getenv"
 
@@ -311,13 +292,6 @@ let percent_array_safe_set =
     (function [Array x; Int i; v] -> set x i v; Unit
      | _ -> failwith "percent_array_safe_set")
 
-
-
-
-
-
-
-
 (* FIXME *)
 let thread_initialize =
   mk "thread_initialize"
@@ -337,9 +311,6 @@ let percent_string_safe_get =
          Raise ("Invalid_argument", Some (String "index out of bounds"))
       end
      | _ -> failwith "percent_string_safe_get")
-
-
-
 
 let unix_fork =
   mk "unix_fork"
@@ -429,8 +400,6 @@ let caml_ml_close_channel =
      | [InChannel i] -> caml_ml_close_channel' i; Unit
      | x -> failwith "caml_ml_close_channel")
 
-
-
 external percent_bytes_of_string : string -> bytes = "%bytes_of_string"
 
 let percent_bytes_of_string =
@@ -464,8 +433,6 @@ let caml_ml_out_channels_list =
   mk "caml_ml_out_channels_list"
     (function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
      | _ -> failwith "caml_ml_out_channels_list")
-
-
 
 let builtin_primitives = [
   caml_sys_exit;
