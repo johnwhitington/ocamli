@@ -43,6 +43,19 @@ let percent_word_size =
 [%%auto {|external percent_negfloat : float -> float = "%negfloat"|}]
 [%%auto {|external percent_intoffloat : float -> int = "%intoffloat"|}]
 [%%auto {|external caml_sin_float : float -> float = "caml_sin_float"|}]
+[%%auto {|external percent_divfloat : float -> float -> float = "%divfloat"|}]
+[%%auto {|external percent_mulfloat : float -> float -> float = "%mulfloat"|}]
+[%%auto {|external percent_subloat : float -> float -> float = "%subfloat"|}]
+[%%auto {|external percent_addfloat : float -> float -> float = "%addfloat"|}]
+[%%auto {|external caml_format_int : string -> int -> string = "caml_format_int"|}]
+[%%auto {|external nativeint_sub: nativeint -> nativeint -> nativeint = "%nativeint_sub"|}]
+[%%auto {|external nativeint_lsl: nativeint -> int -> nativeint = "%nativeint_lsl"|}]
+[%%auto {|external string_safe_get : string -> int -> char = "%string_safe_get"|}]
+[%%auto {|external modint : int -> int -> int = "%modint"|}]
+[%%auto {|external caml_ml_output_char : out_channel -> char -> unit = "caml_ml_output_char"|}]
+[%%auto {|external xorint : int -> int -> int = "%xorint"|}]
+[%%auto {|external lslint : int -> int -> int = "%lslint"|}]
+[%%auto {|external andint : int -> int -> int = "%andint"|}]
 
 let exe = ref ""
 let argv = ref [||]
@@ -56,6 +69,7 @@ let mk2 name f =
   (name,
    Fun (NoLabel, PatVar "*x",
      Fun (NoLabel, PatVar "*y", CallBuiltIn (None, name, [Var "*x"; Var "*y"], f), []), []))
+
 
 let mk3 name f =
   (name,
@@ -108,13 +122,7 @@ let caml_ml_output =
       [OutChannel o; String s; Int p; Int l] -> unsafe_output_string o s p l; Unit
     | _ -> failwith "caml_ml_output")
 
-external format_int : string -> int -> string = "caml_format_int"
 
-let caml_format_int =
-  mk2 "caml_format_int"
-    (function
-     | [String s; Int i] -> String (format_int s i)
-     | _ -> failwith "caml_format_int")
 
 let percent_string_length =
   mk "%string_length"
@@ -246,18 +254,7 @@ let caml_obj_block =
     (function [Int a; Int b] -> Int 0
      | _ -> failwith "caml_obj_block")
 
-external sub: nativeint -> nativeint -> nativeint = "%nativeint_sub"
-external shift_left: nativeint -> int -> nativeint = "%nativeint_lsl"
 
-let percent_nativeint_lsl =
-  mk2 "%nativeint_lsl"
-    (function [NativeInt a; Int b] -> NativeInt (shift_left a b)
-     | _ -> failwith "percent_nativeint_lsl")
-
-let percent_nativeint_sub =
-  mk2 "%nativeint_sub"
-    (function [NativeInt a; NativeInt b] -> NativeInt (sub a b)
-     | _ -> failwith "percent_nativeint_sub")
 
 let caml_make_vect =
   mk2 "caml_make_vect"
@@ -284,15 +281,9 @@ let caml_weak_create =
         [Int i] -> Unit (* FIXME*)
       | _ -> failwith "caml_weak_create")
 
-external string_safe_get : string -> int -> char = "%string_safe_get"
+
 
 external string_safe_set : string -> int -> char -> unit = "%string_safe_set"
-
-let percent_string_safe_get =
-  mk2 "%string_safe_get"
-    (function
-       [String s; Int i] -> Char (s.[i])
-     | _ -> failwith "percent_string_safe_get")
 
 let percent_string_safe_set =
   mk3 "%string_safe_set"
@@ -332,12 +323,7 @@ let percent_array_safe_set =
     (function [Array x; Int i; v] -> set x i v; Unit
      | _ -> failwith "percent_array_safe_set")
 
-external modint: int -> int -> int = "%modint"
 
-let percent_modint =
-  mk2 "%modint"
-    (function [Int x; Int y] -> Int (modint x y)
-     | _ -> failwith "percent_modint")
 
 external caml_blit_string : string -> int -> string -> int -> int -> unit =
   "caml_blit_string"
@@ -356,20 +342,7 @@ let caml_md5_string =
        String (caml_md5_string s i j)
      | _ -> failwith "caml_md5_string")
 
-let percent_xorint =
-  mk2 "%xorint"
-    (function [Int i; Int j] -> Int (i lxor j)
-     | _ -> failwith "percent_xorint")
 
-let percent_lslint =
-  mk2 "%lslint"
-    (function [Int i; Int j] -> Int (i lsl j)
-     | _ -> failwith "percent_lslint")
-
-let percent_andint =
-  mk2 "%andint"
-    (function [Int i; Int j] -> Int (i land j)
-     | _ -> failwith "percent_andint")
 
 (* FIXME *)
 let thread_initialize =
@@ -440,38 +413,7 @@ let percent_equal =
     (function [x; y] -> Bool (x = y)
      | _ -> failwith "percent_equal")
 
-external percent_divfloat : float -> float -> float = "%divfloat"
-external percent_mulfloat : float -> float -> float = "%mulfloat"
-external percent_subloat : float -> float -> float = "%subfloat"
-external percent_addfloat : float -> float -> float = "%addfloat"
 
-let percent_divfloat =
-  mk2 "%divfloat"
-    (function [Float x; Float y] -> Float (x /. y)
-     | _ -> failwith "divfloat")
-
-let percent_mulfloat =
-  mk2 "%mulfloat"
-    (function [Float x; Float y] -> Float (x *. y)
-     | _ -> failwith "mulfloat")
-
-let percent_subfloat =
-  mk2 "%subfloat"
-    (function [Float x; Float y] -> Float (x -. y)
-     | _ -> failwith "subfloat")
-
-let percent_addfloat =
-  mk2 "%addfloat"
-    (function [Float x; Float y] -> Float (x +. y)
-     | _ -> failwith "addfloat")
-
-external caml_ml_output_char : out_channel -> char -> unit = "caml_ml_output_char"
-
-let caml_ml_output_char =
-  mk2 "caml_ml_output_char"
-    (function [OutChannel ch; Char c] ->
-       caml_ml_output_char ch c; Unit
-     | _ -> failwith "caml_ml_output_char")
 
 
 

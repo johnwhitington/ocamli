@@ -7,6 +7,9 @@ PACKS = ppx_tools
 
 RESULT = ppx_auto
 
+clean ::
+	rm -rf doc foo foo2 a.out eval.top
+
 OCAMLNCFLAGS = -g -w -3
 OCAMLBCFLAGS = -g -w -3
 OCAMLLDFLAGS = -g
