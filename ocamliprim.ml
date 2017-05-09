@@ -56,6 +56,13 @@ let percent_word_size =
 [%%auto {|external xorint : int -> int -> int = "%xorint"|}]
 [%%auto {|external lslint : int -> int -> int = "%lslint"|}]
 [%%auto {|external andint : int -> int -> int = "%andint"|}]
+[%%auto {|external caml_sys_exit : int -> 'a = "caml_sys_exit"|}]
+[%%auto {|external string_unsafe_get : string -> int -> char = "%string_unsafe_get"|}]
+[%%auto {|external string_safe_set : string -> int -> char -> unit = "%string_safe_set"|}]
+[%%auto {|external caml_md5_string : string -> int -> int -> string = "caml_md5_string"|}]
+[%%auto {|external unsafe_input : in_channel -> string -> int -> int -> int = "caml_ml_input"|}]
+[%%auto {|external unsafe_output_string : out_channel -> string -> int -> int -> unit = "caml_ml_output"|}]
+[%%auto {|external caml_blit_string : string -> int -> string -> int -> int -> unit = "caml_blit_string"|}]
 
 let exe = ref ""
 let argv = ref [||]
@@ -94,33 +101,20 @@ let mk5 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") ?(x5="p") name f =
              Fun (NoLabel, PatVar (star x5),
                CallBuiltIn (None, name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4); Var (star x5)], f), []), []), []), []), []))
 
+(* not implemented *)
 let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
-external unsafe_output_string : out_channel -> string -> int -> int -> unit
-                              = "caml_ml_output"
 
+
+(* bytes *)
 external bytes_to_string : bytes -> string = "%bytes_to_string"
 
 let percent_bytes_to_string =
   mk "%bytes_to_string"
     (function [String x] -> String (String.copy x)
      | _ -> failwith "%bytes_to_string")
-
-external unsafe_input : in_channel -> string -> int -> int -> int
-                      = "caml_ml_input"
-
-let caml_ml_input =
-  mk4 "caml_ml_input"
-    (function [InChannel i; String s; Int o; Int l] -> Int (unsafe_input i s o l)
-     | _ -> failwith "caml_ml_input")
-
-let caml_ml_output =
-  mk4 ~x1:"o" ~x2:"s" ~x3:"p" ~x4:"l" "caml_ml_output"
-    (function
-      [OutChannel o; String s; Int p; Int l] -> unsafe_output_string o s p l; Unit
-    | _ -> failwith "caml_ml_output")
 
 
 
@@ -283,13 +277,7 @@ let caml_weak_create =
 
 
 
-external string_safe_set : string -> int -> char -> unit = "%string_safe_set"
 
-let percent_string_safe_set =
-  mk3 "%string_safe_set"
-    (function
-       [String s; Int i; Char c] -> ignore (string_safe_set s i c); Unit
-     | _ -> failwith "percent_string_safe_set")
 
 external getenv: string -> string = "caml_sys_getenv"
 
@@ -325,22 +313,8 @@ let percent_array_safe_set =
 
 
 
-external caml_blit_string : string -> int -> string -> int -> int -> unit =
-  "caml_blit_string"
 
-let caml_blit_string =
-  mk5 "caml_blit_string"
-    (function [String s; Int x; String s'; Int y; Int z] ->
-       caml_blit_string s x s' y z; Unit
-     | _ -> failwith "caml_blit_string")
 
-external caml_md5_string : string -> int -> int -> string = "caml_md5_string"
-
-let caml_md5_string =
-  mk3 "caml_md5_string"
-    (function [String s; Int i; Int j] ->
-       String (caml_md5_string s i j)
-     | _ -> failwith "caml_md5_string")
 
 
 
@@ -364,10 +338,6 @@ let percent_string_safe_get =
       end
      | _ -> failwith "percent_string_safe_get")
 
-let percent_string_unsafe_get =
-  mk2 "%string_unsafe_get"
-    (function [String s; Int i] -> Char s.[i]
-     | _ -> failwith "percent_string_unsafe_get")
 
 
 
@@ -413,15 +383,6 @@ let percent_equal =
     (function [x; y] -> Bool (x = y)
      | _ -> failwith "percent_equal")
 
-
-
-
-
-
-(* These convert the result of caml_sys_open to an in_channel or out_channel *)
-(*external open_descriptor_out : int -> out_channel = "caml_ml_open_descriptor_out"
-external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"*)
-
 external caml_sys_open : string -> open_flag list -> int -> int = "caml_sys_open"
 
 (* Convert from Cons (Constr ("Open_rdonly", Nil)) ---> [Open_rdonly] *)
@@ -451,15 +412,12 @@ let caml_sys_open =
 external caml_ml_set_channel_name : out_channel -> string -> int = "caml_ml_set_channel_name"
 external caml_ml_set_channel_name' : in_channel -> string -> int = "caml_ml_set_channel_name"
 
-let debug_args =
-  List.iter (fun x -> print_string (Tinyocaml.to_string x); print_string "\n")
-
 let caml_ml_set_channel_name =
   mk2 "caml_ml_set_channel_name"
     (function
        [OutChannel x; String y] -> Int (caml_ml_set_channel_name x y)
      | [InChannel x; String y] -> Int (caml_ml_set_channel_name' x y)
-     | x -> debug_args x; failwith "caml_ml_set_channel_name")
+     | x -> failwith "caml_ml_set_channel_name")
 
 external caml_ml_close_channel : out_channel -> unit = "caml_ml_close_channel"
 external caml_ml_close_channel' : in_channel -> unit = "caml_ml_close_channel"
@@ -469,7 +427,7 @@ let caml_ml_close_channel =
     (function
        [OutChannel i] -> caml_ml_close_channel i; Unit
      | [InChannel i] -> caml_ml_close_channel' i; Unit
-     | x -> debug_args x; failwith "caml_ml_close_channel")
+     | x -> failwith "caml_ml_close_channel")
 
 
 
@@ -507,12 +465,7 @@ let caml_ml_out_channels_list =
     (function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
      | _ -> failwith "caml_ml_out_channels_list")
 
-external caml_sys_exit : int -> 'a = "caml_sys_exit"
 
-let caml_sys_exit =
-  mk "caml_sys_exit"
-    (function [Int i] -> caml_sys_exit i
-     | _ -> failwith "caml_sys_exit")
 
 let builtin_primitives = [
   caml_sys_exit;
