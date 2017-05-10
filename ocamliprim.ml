@@ -63,11 +63,13 @@ let percent_word_size =
 [%%auto {|external unsafe_input : in_channel -> string -> int -> int -> int = "caml_ml_input"|}]
 [%%auto {|external unsafe_output_string : out_channel -> string -> int -> int -> unit = "caml_ml_output"|}]
 [%%auto {|external caml_blit_string : string -> int -> string -> int -> int -> unit = "caml_blit_string"|}]
+[%%auto {|external lsrint : int -> int -> int = "%lsrint"|}]
+[%%auto {|external string_length : string -> int = "%string_length"|}]
+[%%auto {|external asrint : int -> int -> int = "%asrint"|}]
+[%%auto {|external addint : int -> int -> int = "%addint"|}]
+[%%auto {|external caml_int_of_string : string -> int = "caml_int_of_string"|}]
+[%%auto {|external bytes_length : bytes -> int = "%bytes_length"|}]
 
-let percent_lsrint =
-  mk2 "%lsrint"
-    (function [Int a; Int b] -> Int (a lsr b)
-     | l -> failwith "percent_lsrint")
 
 let exe = ref ""
 let argv = ref [||]
@@ -111,6 +113,11 @@ let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
+let percent_array_safe_get =
+  mk2 "%array_safe_get"
+    (function [Array x; Int i] -> x.(i)
+     | _ -> failwith "percent_array_safe_get")
+
 (* bytes *)
 external bytes_to_string : bytes -> string = "%bytes_to_string"
 
@@ -119,11 +126,6 @@ let percent_bytes_to_string =
     (function [String x] -> String (String.copy x)
      | _ -> failwith "%bytes_to_string")
 
-let percent_string_length =
-  mk "%string_length"
-    (function
-     | [String e] -> Int (String.length e)
-     | _ -> failwith "percent_string_length")
 
 let percent_backend_type =
   mk "%backend_type"
@@ -151,10 +153,10 @@ let percent_revapply =
     (function [a; f] -> App (f, a)
      | _ -> failwith "percent_revapply")
 
-let percent_asrint =
-  mk2 "%asrint"
-    (function [Int x; Int y] -> Int (x asr y)
-     | _ -> failwith "percent_asrint")
+let percent_identity =
+  mk "%identity"
+    (function [x] -> x
+     | _ -> failwith "percent_identity")
 
 let percent_makemutable =
   mk "%makemutable"
@@ -177,20 +179,7 @@ let percent_compare =
     (function [a; b] -> Int (compare a b)
      | _ -> failwith "percent_compare") (* Obviously not *) 
 
-let percent_addint =
-  mk2 "%addint"
-    (function [Int a; Int b] -> Int (a + b)
-     | _ -> failwith "percent_addint")
 
-let percent_array_safe_get =
-  mk2 "%array_safe_get"
-    (function [Array x; Int i] -> x.(i)
-     | _ -> failwith "percent_array_safe_get")
-
-let percent_identity =
-  mk "%identity"
-    (function [x] -> x
-     | _ -> failwith "percent_identity")
 
 external inet_addr_of_string : string -> Unix.inet_addr
                                     = "unix_inet_addr_of_string"
@@ -201,10 +190,6 @@ let unix_inet_addr_of_string =
     (function [String s] -> String (Obj.magic (inet_addr_of_string s))
      | _ -> failwith "unix_inet_addr_of_string")
 
-let caml_int_of_string =
-  mk "caml_int_of_string"
-    (function [String s] -> Int (int_of_string s)
-     | _ -> failwith "caml_int_of_string")
 
 (*external get_argv: unit -> string * string array = "caml_sys_get_argv"*)
 
@@ -407,12 +392,6 @@ let percent_bytes_of_string =
     (function [String x] -> String x
      | _ -> failwith "percent_bytes_of_string")
 
-external bytes_length : bytes -> int = "%bytes_length"
-
-let percent_bytes_length =
-  mk "%bytes_length"
-    (function [String x] -> Int (String.length x)
-     | _ -> failwith "percent_bytes_length")
 
 external caml_blit_bytes : bytes -> int -> bytes -> int -> int -> unit = "caml_blit_bytes"
 
@@ -434,8 +413,8 @@ let caml_ml_out_channels_list =
     (function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
      | _ -> failwith "caml_ml_out_channels_list")
 
-let builtin_primitives = [
-  caml_sys_exit;
+let builtin_primitives = []
+  (*caml_sys_exit;
   caml_ml_out_channels_list;
   caml_blit_bytes;
   caml_ml_close_channel;
@@ -531,7 +510,7 @@ let builtin_primitives = [
   percent_lsrint;
   percent_negint;
   percent_boolnot;
-]
+]*)
 
 (* For %identity, we need to annotate the output type, so that eval.ml can do
 the coercion at runtime. *)
