@@ -111,7 +111,6 @@ let function_of_tins_tout tins t_out nstr n =
 let build_auto tins t_out n nstr =
   let thetuple = mkmk (List.length tins) nstr in
   let f = function_of_tins_tout tins t_out nstr n in
-    Printf.printf "%s\n" f;
     let theletfin =
       Exp.let_ Nonrecursive [Vb.mk (Pat.var {txt = "f"; loc = Location.none}) (getexpr (ast f))] thetuple
     in

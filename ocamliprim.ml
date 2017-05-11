@@ -113,9 +113,19 @@ let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
+external array_safe_get : 'a array -> int -> 'a = "%array_safe_get"
+
+(* Build a Raise () from a native OCaml exn. *)
+let exception_from_ocaml e =
+  Raise ("exception_from_ocaml", None) (*FIXME*)
+
 let percent_array_safe_get =
   mk2 "%array_safe_get"
-    (function [Array x; Int i] -> x.(i)
+    (function [Array x; Int i] ->
+      (try
+         Tinyocaml.of_ocaml_value (array_safe_get (Tinyocaml.to_ocaml_value (Array x)) i) "int"
+       with
+         e -> exception_from_ocaml e)
      | _ -> failwith "percent_array_safe_get")
 
 (* bytes *)
@@ -413,8 +423,8 @@ let caml_ml_out_channels_list =
     (function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
      | _ -> failwith "caml_ml_out_channels_list")
 
-let builtin_primitives = []
-  (*caml_sys_exit;
+let builtin_primitives =
+  [caml_sys_exit;
   caml_ml_out_channels_list;
   caml_blit_bytes;
   caml_ml_close_channel;
@@ -510,7 +520,7 @@ let builtin_primitives = []
   percent_lsrint;
   percent_negint;
   percent_boolnot;
-]*)
+]
 
 (* For %identity, we need to annotate the output type, so that eval.ml can do
 the coercion at runtime. *)
