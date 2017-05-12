@@ -1,5 +1,4 @@
 (* Uses the tiny-ocaml simple AST *)
-(*open Slist*)
 open Tinyocaml
 open Ocamliutil
 open Tinyocamlutil
@@ -329,9 +328,9 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Cmp (op, a, b) when is_value a && is_value b -> Bool (comp op a b)
 | Cmp (op, a, b) when is_value b -> Cmp (op, eval peek env a, b)
 | Cmp (op, a, b) -> Cmp (op, a, eval peek env b)
-| If (Bool true, a, _) -> a
-| If (Bool false, _, None) -> Unit
-| If (Bool false, _, Some b) -> b
+| If (Bool true, a, _) -> last := IfBool::!last; a
+| If (Bool false, _, None) -> last := IfBool::!last; Unit
+| If (Bool false, _, Some b) -> last := IfBool::!last; b
 | If (cond, a, b) -> If (eval peek env cond, a, b)
 | Let (recflag, bindings, e) ->
     if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then

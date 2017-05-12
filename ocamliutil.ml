@@ -2,7 +2,6 @@
 open Parsetree
 open Asttypes
 open Tinyocaml
-(*open Slist*)
 
 (* Make a list of characters from a string, preserving order. *)
 let explode s =

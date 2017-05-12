@@ -114,6 +114,7 @@ let argspec =
    ("-debug", Arg.Unit setdebug, " Debug (for OCAMLRUNPARAM=b)");
    ("-debug-show-regexps", Arg.Set showregexps, " Debug output of computed regular expressions");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
+   ("-no-if-bool", Arg.Set noifbool, "Don't show if false, if true stage");
    ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
    ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
@@ -291,8 +292,7 @@ let go () =
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if
           !showall &&  
-          (!show_simple_arithmetic || show_this_stage (Eval.last ()) (Eval.peek
-          state') (Eval.tiny state) (Eval.tiny state')) &&
+          (!show_simple_arithmetic || show_this_stage (Eval.last ()) (Eval.peek state') (Eval.tiny state) (Eval.tiny state')) &&
           (!showpervasives || show_this_pervasive_stage (Eval.last ()))
         then
           begin

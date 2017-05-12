@@ -15,6 +15,7 @@ let debugpp = ref false
 let prompt = ref false
 let step = ref 0.0
 let fastcurry = ref false
+let noifbool = ref false
 
 type mode =
   FromFile of string
@@ -76,12 +77,25 @@ let string_of_op = function
 | IfBool -> "IfBool"
 | InsidePervasive -> "InsidePervasive"
 
+let string_of_ops ops =
+  List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map string_of_op ops)
+
+let debug_last_next last next =
+  Printf.printf "LAST: %s\n" (string_of_ops last);
+  Printf.printf "NEXT: %s\n" (string_of_ops next)
+
 let show_this_stage last next prevstate currstate =
-  (*Printf.printf "last = %s, next = %s\n" (string_of_op last) (string_of_op * next);*)
+  (*Printf.printf "noifbool = %b\n" !noifbool;
+  debug_last_next last next;*)
+  if !noifbool && List.mem IfBool next then false else
+  let r =
      Tinyocamlutil.is_value prevstate
   || Tinyocamlutil.is_value currstate
   || not (List.mem Arith last)
   || not (List.mem Arith next)
+  in
+    (*Printf.printf "show_this_stage: %b\n" r;*)
+    r
 
 let show_this_pervasive_stage last =
   not (List.mem InsidePervasive last)
@@ -95,65 +109,11 @@ let print_string x =
   print_string x;
   flush stdout
 
-(* Evaluate a phrase to a string *)
-(*let eval ?(filename="") s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast ~filename:filename s)) in (* FIXME ENV *)
-    let rec eval_inner state =
-      match Eval.next state with
-      | Next state -> eval_inner state
-      | IsValue -> string_of_tiny ~preamble:"" (Eval.tiny state) 
-      | Malformed s ->
-          failwith "malformed"
-      | Unimplemented s ->
-          failwith "unimplemented"
-    in
-      eval_inner state*)
-
 let extract_expression = function
   [{pstr_desc = Pstr_eval (e, _)}] -> e
 | _ -> failwith "extract_expression"
-
-(* Structure to structure/expression *)
-(*let eval_ast structure =
-  let state = Eval.init structure in
-    let rec eval_inner state =
-      match Eval.next state with
-      | Next state ->
-          eval_inner state
-      | IsValue ->
-          extract_expression (Tinyocamlrw.to_real_ocaml (Eval.tiny state))
-      | Malformed _ | Unimplemented _ ->
-          failwith "evaluation failed"
-    in
-      eval_inner state*)
 
 let extract_tiny = function
   Tinyocaml.Struct (_, [x]) -> x
 | _ -> failwith "extract_tiny"
 
-(* String to Tinyocaml.t result *)
-(*let eval_string ?(filename="") s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast ~filename s)) in (* FIXME ENV *)
-    let rec eval_inner state =
-      match Eval.next state with
-      | Next state ->
-          eval_inner state
-      | IsValue ->
-          extract_tiny (Eval.tiny state)
-      | Malformed _ | Unimplemented _ ->
-          failwith "evaluation failed"
-    in
-      eval_inner state
-    
-let eval_string_to_ast ?(filename="") s =
-  let state = Eval.init (Tinyocamlrw.of_real_ocaml [] (ast ~filename s)) in (* FIXME ENV *)
-    let rec eval_inner state =
-      match Eval.next state with
-      | Next state ->
-          eval_inner state
-      | IsValue ->
-          extract_expression (Tinyocamlrw.to_real_ocaml (Eval.tiny state))
-      | Malformed _ | Unimplemented _ ->
-          failwith "evaluation failed"
-    in
-      eval_inner state*)
