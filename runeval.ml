@@ -16,6 +16,7 @@ let prompt = ref false
 let step = ref 0.0
 let fastcurry = ref false
 let noifbool = ref false
+let novarlookup = ref false
 
 type mode =
   FromFile of string
@@ -76,6 +77,7 @@ let string_of_op = function
 | Comparison -> "Comparison"
 | IfBool -> "IfBool"
 | InsidePervasive -> "InsidePervasive"
+| VarLookup -> "VarLookup"
 
 let string_of_ops ops =
   List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map string_of_op ops)
@@ -88,6 +90,7 @@ let show_this_stage last next prevstate currstate =
   (*Printf.printf "noifbool = %b\n" !noifbool;
   debug_last_next last next;*)
   if !noifbool && List.mem IfBool next then false else
+  if !novarlookup && List.mem VarLookup last then false else
   let r =
      Tinyocamlutil.is_value prevstate
   || Tinyocamlutil.is_value currstate

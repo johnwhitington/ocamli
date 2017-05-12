@@ -17,6 +17,8 @@ type last_op =
   | Comparison
   | IfBool
   | InsidePervasive
+  | VarLookup
+
 
 val unimp : string -> 'a
 

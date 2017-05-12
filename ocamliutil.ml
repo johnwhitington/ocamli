@@ -78,7 +78,8 @@ type last_op =
   | Boolean
   | Comparison
   | IfBool
-  | InsidePervasive 
+  | InsidePervasive
+  | VarLookup
 
 let unimp s = raise (ExnUnimplemented s)
 let malformed s = raise (ExnMalformed s)

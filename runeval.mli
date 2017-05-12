@@ -12,6 +12,7 @@ val prompt : bool ref
 val step : float ref
 val fastcurry : bool ref
 val noifbool : bool ref
+val novarlookup : bool ref
 
 type mode = FromFile of string | FromText of string
 

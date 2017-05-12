@@ -115,6 +115,7 @@ let argspec =
    ("-debug-show-regexps", Arg.Set showregexps, " Debug output of computed regular expressions");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-if-bool", Arg.Set noifbool, "Don't show if false, if true stage");
+   ("-no-var-lookup", Arg.Set novarlookup, "Don't show stage immediately after variable lookup");
    ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
    ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");

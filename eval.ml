@@ -316,13 +316,13 @@ let rec eval peek (env : Tinyocaml.env) expr =
     last := Comparison::!last;
     Bool (comp op a b)
 | Cmp (op, Var a, Int b) ->
-    last := Comparison::!last;
+    last := VarLookup::Comparison::!last;
     Bool (comp op (lookup_int_var env a) b)
 | Cmp (op, Int a, Var b) ->
-    last := Comparison::!last;
+    last := VarLookup::Comparison::!last;
     Bool (comp op a (lookup_int_var env b))
 | Cmp (op, Var a, Var b) ->
-    last := Comparison::!last;
+    last := VarLookup::Comparison::!last;
     Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
 | Cmp (op, a, b) when is_value a && is_value b -> Bool (comp op a b)
@@ -513,6 +513,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       else Unit
       else CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
+    last := VarLookup::!last;
     begin match lookup_value v env with
       Some x -> x
     | None ->
