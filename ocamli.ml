@@ -1,5 +1,6 @@
 open Runeval
 open Ocamliutil
+open Tinyocaml
 
 let setdebug () =
   Runeval.debug := true;
@@ -28,6 +29,7 @@ let highlight = ref false
 let regexp = ref false
 let showregexps = ref false
 let noparens = ref false
+let sidelets = ref false
 
 let set_until_any s =
   untilany := true;
@@ -121,6 +123,7 @@ let argspec =
    ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
+   ("-side-lets", Arg.Set sidelets, "Show value-lets at the side");
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs");
    ("-times", Arg.Set_int times, " Do many times");
    ("--", Arg.Rest argv, "")]
@@ -216,6 +219,20 @@ let highlight_search regexp plainstr str =
   let theend = Str.match_end () + 4 in
     highlight_string beginning theend str
 
+(* Given a Tinyocaml.t, remove any outer value-lets, and return the new
+ * Tinyocaml.t and the list of value-lets *)
+(* For now, just single binding, just PatVar. *)
+let rec find_sidelets lets = function
+  Let (_, [(PatVar v, e)], t) when Tinyocamlutil.is_value e ->
+    find_sidelets ((PatVar v, e)::lets) t
+| Struct (b, [e]) ->
+    let e', l = find_sidelets lets e in
+      (Struct (b, [e']), l)
+| x -> (x, List.rev lets)
+
+let find_sidelets tiny =
+  find_sidelets [] tiny
+
 let print_line newline preamble tiny =
   cache := string_of_tiny ~preamble:"    " tiny :: !cache;
   clean_cache ();
@@ -240,6 +257,7 @@ let print_line newline preamble tiny =
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
+        let tiny, sls = if !sidelets then find_sidelets tiny else tiny, [] in
         let str = string_of_tiny ~preamble tiny in
         let str = if !highlight then highlight_search !searchfor s str else str in
         if not !silenced then really_print_line str;
