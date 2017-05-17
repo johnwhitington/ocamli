@@ -153,9 +153,13 @@ let cache = ref []
 let clean_cache () =
   cache := try take_up_to !cache !upto with _ -> []
 
+let sls_width = ref 0
+
 let print_sls_binding = function
   (PatVar v, e) ->
-    Printf.printf "%s = %s " v (Pptinyocaml.to_string e)
+    let str = Pptinyocaml.to_string e in
+    Printf.printf "%s = %s " v str;
+    sls_width := max !sls_width (String.length str + 4 + String.length v)
 | _ -> failwith "print_sls_binding"
 
 let print_sls ls =
@@ -174,7 +178,10 @@ let really_print_line sls line =
   List.iter
     (fun x -> print_string x; print_string "\n")
     (take_up_to !cache !upto);
-  print_sls sls;
+  begin match sls with
+     [] -> for x = 0 to !sls_width - 1 do print_string " " done 
+    | _ -> print_sls sls
+  end;
   print_string line
 
 (* Make a list of characters from a string, preserving order. *)
