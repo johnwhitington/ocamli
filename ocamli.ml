@@ -153,11 +153,28 @@ let cache = ref []
 let clean_cache () =
   cache := try take_up_to !cache !upto with _ -> []
 
-let really_print_line line =
+let print_sls_binding = function
+  (PatVar v, e) ->
+    Printf.printf "%s = %s " v (Pptinyocaml.to_string e)
+| _ -> failwith "print_sls_binding"
+
+let print_sls ls =
+  List.iter print_sls_binding ls
+
+(* For now, remove any in remove_rec *)
+let filter_sl : binding -> binding option = function
+  (PatVar p, e) when List.mem p !remove_recs -> None
+| x -> Some x
+
+let filter_sls (sls : binding list) =
+  option_map filter_sl sls
+
+let really_print_line sls line =
   if !upto > 0 then print_string "\n";
   List.iter
     (fun x -> print_string x; print_string "\n")
     (take_up_to !cache !upto);
+  print_sls sls;
   print_string line
 
 (* Make a list of characters from a string, preserving order. *)
@@ -257,10 +274,10 @@ let print_line newline preamble tiny =
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
-        let tiny, sls = if !sidelets then find_sidelets tiny else tiny, [] in
+        let tiny, sls = if !sidelets then let t, sls = find_sidelets tiny in t, filter_sls sls else tiny, [] in
         let str = string_of_tiny ~preamble tiny in
         let str = if !highlight then highlight_search !searchfor s str else str in
-        if not !silenced then really_print_line str;
+        if not !silenced then really_print_line sls str;
         if newline && not !silenced then print_string "\n";
         flush stdout;
         incr linecount;
