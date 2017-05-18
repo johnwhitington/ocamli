@@ -146,6 +146,45 @@ let parse_type typ =
 let of_ocaml_value x typ =
   read_untyped (untyped_of_ocaml_value x) (parse_type typ)
 
+(* Iterate over the tinyocaml data type. The function will be called with each node of the tree *)
+let rec iter f x =
+  f x;
+  match x with
+  | (Bool _ | Float _ | Var _ | Int _ | Int32 _ | Int64 _ | NativeInt _
+     | Char _ | String _ | OutChannel _ | InChannel _ | Unit | Nil |
+     ModuleIdentifier _ | Raise (_, None) | ExceptionDef _ | TypeDef _ | Open _ ) -> ()
+  | Control (_, a) | Field (a, _) | Raise (_, Some a) | TryWith (a, _)
+  | ModuleBinding (_, a) | ModuleConstraint (_, a) | Functor (_, _, a) 
+  | Assert a | Include a | LocalOpen (_, a) | Lazy a -> iter f a
+  | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | If (a, b, None)
+  | App (a, b) | Seq (a, b) | Annot (_, a, b) | SetField (a, _, b)
+  | ModuleApply (a, b) | Cons (a, b) | Append (a, b) -> iter f a; iter f b
+  | If (e, e1, Some e2) -> iter f e; iter f e1; iter f e2
+  | Let (recflag, bindings, e) -> List.iter (fun (_ , v) -> f v) bindings; f e
+  | LetDef (recflag, bindings) -> List.iter (fun (_, v) -> f v) bindings
+  | Fun (label, n, fexp, e) -> iter_label f label; iter f fexp
+  | While (a, b, c, d) -> iter f a; iter f b; iter f c; iter f d
+  | For (v, a, x, b, c, copy) -> iter f a; iter f b; iter f c; iter f copy
+  | Array xs -> Array.iter (iter f) xs
+  | Record items -> List.iter (fun (_, v) -> iter f !v) items
+  | CallBuiltIn (_, _, args, _) -> List.iter f args
+  | Struct (_, l) -> List.iter f l
+  | Sig l -> List.iter f l
+  | Tuple l -> List.iter f l
+  | Function (patmatch, _) -> List.iter (iter_case f) patmatch
+
+and iter_option f = function
+  None -> ()
+| Some x -> iter f x
+
+and iter_case f (pat, guard, rhs) =
+  begin match guard with None -> () | Some g -> f g end;
+  f rhs
+
+and iter_label f = function
+  | Optional (s, Some x) -> iter f x
+  | _ -> ()
+
 (* Recurse over the tinyocaml data type *)
 let rec recurse f exp =
   match exp with
@@ -176,7 +215,7 @@ let rec recurse f exp =
       Record items
   | Field (a, n) -> Field (f a, n)
   | SetField (a, n, b) -> SetField (f a, n, f b)
-  | Raise s -> Raise s
+  | Raise s -> Raise s (*FIXME *)
   | TryWith (a, s) -> TryWith (f a, s)
   | ExceptionDef e -> ExceptionDef e
   | TypeDef e -> TypeDef e

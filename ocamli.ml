@@ -243,6 +243,11 @@ let highlight_search regexp plainstr str =
   let theend = Str.match_end () + 4 in
     highlight_string beginning theend str
 
+(* Given a Tinyocaml.t, find all the bound names of all let bindings. Return a
+ * list of them, including all duplicates. We use Eval.bound_in_bindings *)
+(*let bound_names = Tinyocamlutil.recurse*)
+
+
 (* Given a Tinyocaml.t, remove any outer value-lets, and return the new
  * Tinyocaml.t and the list of value-lets *)
 (* For now, just single binding, just PatVar. *)
