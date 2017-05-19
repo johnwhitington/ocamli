@@ -160,18 +160,18 @@ let rec iter f x =
   | App (a, b) | Seq (a, b) | Annot (_, a, b) | SetField (a, _, b)
   | ModuleApply (a, b) | Cons (a, b) | Append (a, b) -> iter f a; iter f b
   | If (e, e1, Some e2) -> iter f e; iter f e1; iter f e2
-  | Let (recflag, bindings, e) -> List.iter (fun (_ , v) -> f v) bindings; f e
-  | LetDef (recflag, bindings) -> List.iter (fun (_, v) -> f v) bindings
+  | Let (recflag, bindings, e) -> List.iter (fun (_ , v) -> iter f v) bindings; iter f e
+  | LetDef (recflag, bindings) -> List.iter (fun (_, v) -> iter f v) bindings
   | Fun (label, n, fexp, e) -> iter_label f label; iter f fexp
   | While (a, b, c, d) -> iter f a; iter f b; iter f c; iter f d
   | For (v, a, x, b, c, copy) -> iter f a; iter f b; iter f c; iter f copy
   | Array xs -> Array.iter (iter f) xs
   | Record items -> List.iter (fun (_, v) -> iter f !v) items
   | CallBuiltIn (_, _, args, _) -> List.iter f args
-  | Struct (_, l) -> List.iter f l
-  | Sig l -> List.iter f l
-  | Tuple l -> List.iter f l
+  | Struct (_, l) | Sig l | Tuple l -> List.iter (iter f) l
   | Function (patmatch, _) -> List.iter (iter_case f) patmatch
+  | Constr (_, e) -> iter_option f e
+  | Match (e, cases) -> iter f e; List.iter (iter_case f) cases
 
 and iter_option f = function
   None -> ()
@@ -525,4 +525,7 @@ let rec bound_in_pattern = function
 | PatConstraint (p, t) -> bound_in_pattern p
 | PatRecord (_, ps) -> List.flatten (List.map bound_in_pattern (List.map snd ps))
 | PatException p -> bound_in_pattern p
+
+let bound_in_bindings bindings =
+  List.flatten (List.map bound_in_pattern (List.map fst bindings))
 

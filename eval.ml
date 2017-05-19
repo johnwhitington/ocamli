@@ -13,8 +13,6 @@ let dopeek = ref true
 
 let docollectunusedlets = ref true
 
-let bound_in_bindings bindings =
-  List.flatten (List.map bound_in_pattern (List.map fst bindings))
 
 (* True if a variable appears not shadowed. *)
 let rec appears var = function

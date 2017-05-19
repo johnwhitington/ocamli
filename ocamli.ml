@@ -173,6 +173,55 @@ let filter_sl : binding -> binding option = function
 let filter_sls (sls : binding list) =
   option_map filter_sl sls
 
+(* Given a Tinyocaml.t, find all the bound names of all let bindings. Return a
+ * list of them, including all duplicates. We use Eval.bound_in_bindings *)
+let bound_names e =
+  let names = ref [] in
+    Tinyocaml.iter
+      (function x ->
+        (*Printf.printf "iter:%s\n" (Tinyocaml.to_string x);*)
+        match x with
+        | Let (_, bindings, _) ->
+            names := bound_in_bindings bindings @ !names
+        | x -> ())
+      e;
+    !names
+
+(* Given a Tinyocaml.t, remove any outer value-lets, and return the new
+ * Tinyocaml.t and the list of value-lets *)
+(* For now, just single binding, just PatVar. *)
+let lets = ref []
+
+let rec find_sidelets allowed_names e =
+    Tinyocaml.recurse
+      (function
+       | (Let (recflag, [(PatVar v, e)], t)) when Tinyocamlutil.is_value e && List.mem v allowed_names ->
+           lets := (PatVar v, e)::!lets;
+           Let (recflag, [(PatVar v, e)], find_sidelets allowed_names t)
+       | x ->
+         Tinyocaml.recurse (find_sidelets allowed_names) x)
+      e
+
+let find_sidelets allowed_names e =
+  lets := [];
+  let e' = find_sidelets allowed_names e in
+    (e', List.rev !lets)
+
+let rec remove_items_with_duplicates = function
+  [] -> []
+| h::t ->
+    if List.mem h t
+      then remove_items_with_duplicates (List.filter (fun x -> x <> h) t)
+      else h::remove_items_with_duplicates t
+
+(* To qualify for extraction, a name must be singly bound in the whole expression *)
+let find_sidelets tiny =
+  (*Printf.printf "Bound names found: ";
+  List.iter (Printf.printf "%s ") (bound_names tiny);*)
+  let bound = bound_names tiny in
+    let singly_bound_names = remove_items_with_duplicates bound in
+      find_sidelets singly_bound_names tiny
+
 let really_print_line sls line =
   if !upto > 0 then print_string "\n";
   List.iter
@@ -183,24 +232,6 @@ let really_print_line sls line =
     | _ -> print_sls sls
   end;
   print_string line
-
-(* Make a list of characters from a string, preserving order. *)
-let explode s =
-  let l = ref [] in
-    for p = String.length s downto 1 do
-      l := String.unsafe_get s (p - 1)::!l
-    done;
-    !l
-
-(* Make a string from a list of characters, preserving order. *)
-let implode l =
-  let s = Bytes.create (List.length l) in
-    let rec list_loop x = function
-       [] -> ()
-     | i::t -> Bytes.unsafe_set s x i; list_loop (x + 1) t
-    in
-      list_loop 0 l;
-      Bytes.to_string s
 
 (* To highlight a string, we proceed through it, counting all non-escaped
  * characters, to determine start and end points.
@@ -243,24 +274,7 @@ let highlight_search regexp plainstr str =
   let theend = Str.match_end () + 4 in
     highlight_string beginning theend str
 
-(* Given a Tinyocaml.t, find all the bound names of all let bindings. Return a
- * list of them, including all duplicates. We use Eval.bound_in_bindings *)
-(*let bound_names = Tinyocamlutil.recurse*)
 
-
-(* Given a Tinyocaml.t, remove any outer value-lets, and return the new
- * Tinyocaml.t and the list of value-lets *)
-(* For now, just single binding, just PatVar. *)
-let rec find_sidelets lets = function
-  Let (_, [(PatVar v, e)], t) when Tinyocamlutil.is_value e ->
-    find_sidelets ((PatVar v, e)::lets) t
-| Struct (b, [e]) ->
-    let e', l = find_sidelets lets e in
-      (Struct (b, [e']), l)
-| x -> (x, List.rev lets)
-
-let find_sidelets tiny =
-  find_sidelets [] tiny
 
 let print_line newline preamble tiny =
   cache := string_of_tiny ~preamble:"    " tiny :: !cache;

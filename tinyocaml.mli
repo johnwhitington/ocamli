@@ -140,6 +140,8 @@ val iter : (t -> unit) -> t -> unit
 
 val bound_in_pattern : pattern -> string list
 
+val bound_in_bindings : binding list -> string list
+
 val string_of_longident : Longident.t -> string
 
 val to_string_bindings : binding list -> string
