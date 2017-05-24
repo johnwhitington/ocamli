@@ -159,10 +159,21 @@ let print_sls_binding = function
   (PatVar v, e) ->
     let str = Pptinyocaml.to_string e in
     Printf.printf "%s = %s " v str;
-    sls_width := max !sls_width (String.length str + 4 + String.length v)
 | _ -> failwith "print_sls_binding"
 
+let calculate_sls_width sls =
+  List.fold_left ( + ) 0
+    (List.map
+      (function (PatVar v, e) ->
+         String.length (Pptinyocaml.to_string e) + 4 + String.length v
+       | _ -> failwith "set_sls_width")
+      sls)
+
+let set_sls_width sls =
+  sls_width := max !sls_width (calculate_sls_width sls)
+
 let print_sls ls =
+  set_sls_width ls;
   List.iter print_sls_binding ls
 
 (* For now, remove any in remove_rec *)
@@ -192,15 +203,12 @@ let bound_names e =
 (* For now, just single binding, just PatVar. *)
 let lets = ref []
 
-let rec find_sidelets allowed_names e =
-    Tinyocaml.recurse
-      (function
-       | (Let (recflag, [(PatVar v, e)], t)) when Tinyocamlutil.is_value e && List.mem v allowed_names ->
-           lets := (PatVar v, e)::!lets;
-           Let (recflag, [(PatVar v, e)], find_sidelets allowed_names t)
-       | x ->
-         Tinyocaml.recurse (find_sidelets allowed_names) x)
-      e
+let rec find_sidelets allowed_names x =
+  match x with
+  | (Let (recflag, [(PatVar v, e)], t)) when Tinyocamlutil.is_value e && List.mem v allowed_names ->
+      lets := (PatVar v, e)::!lets;
+      find_sidelets allowed_names t
+  | x -> Tinyocaml.recurse (find_sidelets allowed_names) x
 
 let find_sidelets allowed_names e =
   lets := [];
@@ -216,8 +224,6 @@ let rec remove_items_with_duplicates = function
 
 (* To qualify for extraction, a name must be singly bound in the whole expression *)
 let find_sidelets tiny =
-  (*Printf.printf "Bound names found: ";
-  List.iter (Printf.printf "%s ") (bound_names tiny);*)
   let bound = bound_names tiny in
     let singly_bound_names = remove_items_with_duplicates bound in
       find_sidelets singly_bound_names tiny
@@ -227,10 +233,8 @@ let really_print_line sls line =
   List.iter
     (fun x -> print_string x; print_string "\n")
     (take_up_to !cache !upto);
-  begin match sls with
-     [] -> for x = 0 to !sls_width - 1 do print_string " " done 
-    | _ -> print_sls sls
-  end;
+  for x = 0 to !sls_width - 1 - calculate_sls_width sls do print_string " " done; 
+  print_sls sls;
   print_string line
 
 (* To highlight a string, we proceed through it, counting all non-escaped
