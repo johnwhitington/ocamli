@@ -28,7 +28,7 @@ let percent_word_size =
 [%%auto {|external percent_boolnot : bool -> bool = "%boolnot"|}]
 [%%auto {|external percent_negint : int -> int = "%negint"|}]
 [%%auto {|external caml_ml_input_scan_line : in_channel -> int = "caml_ml_input_scan_line"|}]
-[%%auto {|external caml_create_string : int -> string = "caml_create_string"|}]
+(*[%%auto {|external caml_create_string : int -> string = "caml_create_string"|}]*)
 [%%auto {|external caml_create_bytes : int -> bytes = "caml_create_bytes"|}]
 [%%auto {|external caml_int64_float_of_bits : int64 -> float = "caml_int64_float_of_bits"|}]
 [%%auto {|external ignore : 'a -> unit = "%ignore"|}]
@@ -116,8 +116,10 @@ let caml_register_named_value =
 external array_safe_get : 'a array -> int -> 'a = "%array_safe_get"
 
 (* Build a Raise () from a native OCaml exn. *)
+let of_real_ocaml = ref (fun (_ : Tinyocaml.env) _ -> Tinyocaml.Int 0)
+
 let exception_from_ocaml e =
-  Raise ("exception_from_ocaml", None) (*FIXME*)
+  !of_real_ocaml [] (ast ("raise (" ^ Printexc.to_string e ^ ")"))
 
 let percent_array_safe_get =
   mk2 "%array_safe_get"
@@ -127,6 +129,17 @@ let percent_array_safe_get =
        with
          e -> exception_from_ocaml e)
      | _ -> failwith "percent_array_safe_get")
+
+(* Our exceptions example - delete *)
+external caml_create_string : int -> string = "caml_create_string"
+
+let caml_create_string =
+  mk "caml_create_string"
+    (function [Int i] ->
+       begin try String (caml_create_string i) with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "caml_create_string")
 
 (* bytes *)
 external bytes_to_string : bytes -> string = "%bytes_to_string"

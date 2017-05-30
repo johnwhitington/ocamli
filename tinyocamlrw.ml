@@ -287,6 +287,9 @@ and of_real_ocaml_structure (env : env) (acc : t list) (items : structure_item l
 let of_real_ocaml env x =
   Struct (false, of_real_ocaml_structure env [] x)
 
+let _ =
+  Ocamliprim.of_real_ocaml := of_real_ocaml
+
 (* Convert from t to an OCaml parsetree. *)
 let rec to_real_ocaml_expression_desc = function
   | Control (_, x) -> to_real_ocaml_expression_desc x
