@@ -58,21 +58,21 @@ and t =
 (* values *)
   Unit                        (* () *)
 | Int of int                  (* 1 *)
-| Int32 of Int32.t            (* 1l *)
-| Int64 of Int64.t            (* 1L *)
-| NativeInt of Nativeint.t    (* 1n *)
 | Bool of bool                (* false *)
 | Float of float              (* 1.0 *)
 | String of string            (* "foo" *)
-| Char of char                (* 'a' *)
 | OutChannel of out_channel   (* e.g stdout, stderr *)
 | InChannel of in_channel     (* e.g stdin *)
-| Array of t array            (* [|1; 2; 3|] *)
 | Record of (string * t ref) list  (* Records. *)
 | Tuple of t list             (* (1, 2) *)
-| Constr of string * t option (* Constructor [data] *)
 | Cons of (t * t)             (* List *)
 | Nil                         (* [] *)
+| Int32 of Int32.t            (* 1l *)
+| Int64 of Int64.t            (* 1L *)
+| NativeInt of Nativeint.t    (* 1n *)
+| Char of char                (* 'a' *)
+| Array of t array            (* [|1; 2; 3|] *)
+| Constr of string * t option (* Constructor [data] *)
 | Fun of (label * pattern * t * env)  (* fun x -> e *)
 | Function of (case list * env)   
 (* non-values *)
@@ -128,8 +128,12 @@ let rec read_untyped v typ =
   match v, typ.ptyp_desc with
   | UInt n, Ptyp_constr ({txt = Longident.Lident "int"}, _) ->
       Int n
+  | UInt n, Ptyp_constr ({txt = Longident.Lident "bool"}, _) ->
+      Bool (n <> 0)
   | UInt 0, Ptyp_constr ({txt = Longident.Lident "list"}, _) ->
       Nil
+  | UInt 0, Ptyp_constr ({txt = Longident.Lident "unit"}, _) ->
+      Unit
   | UString s, Ptyp_constr ({txt = Longident.Lident "string"}, _) ->
       String s
   | UDouble d, Ptyp_constr ({txt = Longident.Lident "float"}, _) ->

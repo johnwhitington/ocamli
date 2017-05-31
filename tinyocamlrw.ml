@@ -179,7 +179,7 @@ and of_real_ocaml env x =
 
 and of_real_ocaml_primitive p =
   let n = p.pval_name.txt in
-    (n, Ocamliprim.lookup_primitive p.pval_type (List.hd p.pval_prim))
+    (n, Ocamliprim.lookup_primitive ~typ:p.pval_type (List.hd p.pval_prim))
 
 and of_real_ocaml_signature env s =
   Sig []
@@ -358,3 +358,5 @@ let to_real_ocaml x =
   [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
     pstr_loc = Location.none}]
 
+let of_string s =
+  of_real_ocaml [] (ast s)

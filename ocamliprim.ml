@@ -12,7 +12,8 @@ external word_size : unit -> int = "%word_size"
 
 let percent_word_size =
   let f =
-    (function [Unit] -> Int (word_size ())
+    (function [Unit] ->
+      begin try Int (word_size ()) with e -> exception_from_ocaml e end
      | _ -> failwith "%word_size")
   in
     ("%word_size", Fun (NoLabel, PatVar "*x", CallBuiltIn (None, "%word_size", [Var "*x"], f), []))
@@ -119,6 +120,8 @@ let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
+
+(* BEGINNING OF VALUE TESTS *)
 external array_safe_get : 'a array -> int -> 'a = "%array_safe_get"
 
 let percent_array_safe_get =
@@ -129,6 +132,74 @@ let percent_array_safe_get =
        with
          e -> exception_from_ocaml e)
      | _ -> failwith "percent_array_safe_get")
+
+(* BOOL IN / OUT *)
+external percent_boolnot : bool -> bool = "%boolnot"
+
+let percent_boolnot =
+  mk "%boolnot"
+    (function [Bool b] ->
+       begin try
+         Tinyocaml.of_ocaml_value (percent_boolnot (Tinyocaml.to_ocaml_value (Bool b))) "bool"
+       with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "percent_boolnot")
+
+(* FLOAT IN / OUT *)
+external percent_negfloat : float -> float = "%negfloat"
+
+let percent_negfloat =
+  mk "%negfloat"
+    (function [Float f] ->
+       begin try
+         Tinyocaml.of_ocaml_value (percent_negfloat (Tinyocaml.to_ocaml_value (Float f))) "float"
+       with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "percent_negfloat")
+
+(* STRING IN / INT OUT *)
+external caml_int_of_string : string -> int = "caml_int_of_string"
+
+let caml_int_of_string =
+  mk "caml_int_of_string"
+    (function [String s] ->
+       begin try
+         Tinyocaml.of_ocaml_value
+           (caml_int_of_string (Tinyocaml.to_ocaml_value (String s)))
+           "int"
+       with 
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "caml_int_of_string")
+
+
+(* INT IN / STRING OUT *)
+external caml_create_string : int -> string = "caml_create_string"
+
+let caml_create_string =
+  mk "caml_create_string"
+    (function [Int i] ->
+       begin try
+         Tinyocaml.of_ocaml_value
+           (caml_create_string (Tinyocaml.to_ocaml_value (Int i)))
+           "string"
+       with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "caml_create_string")
+
+(* UNIT IN / UNIT OUT *)
+external caml_ba_init : unit -> unit = "caml_ba_init"
+
+let caml_ba_init =
+  mk "caml_ba_init"
+    (function [Unit] ->
+       Tinyocaml.of_ocaml_value (caml_ba_init (Tinyocaml.to_ocaml_value Unit)) "unit"
+     | _ -> failwith "caml_ba_init")
+
+(** END OF VALUE TESTS *)
 
 (* bytes *)
 external bytes_to_string : bytes -> string = "%bytes_to_string"
@@ -549,12 +620,13 @@ let rec really_add_type typ = function
 | _ -> failwith "unexpecetd: really_add_type"
 
 let add_type typ (name, implementation) =
+  match typ with None -> implementation | Some typ ->
   if name = "%identity" then
     really_add_type (our_type (final_type typ)) implementation
   else
     implementation
 
-let lookup_primitive typ n =
+let lookup_primitive ?typ n =
   try add_type typ (n, (List.assoc n builtin_primitives)) with
     Not_found ->
       snd

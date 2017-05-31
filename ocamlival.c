@@ -57,20 +57,32 @@ CAMLprim value to_ocaml_value(value t)
 {
   CAMLparam1(t);
   CAMLlocal1(out);
-  if (t == Val_int(0)) out = Val_unit; /* Unit */
-  if (t == Val_int(1)) out = Val_unit; /* Nil */
-  if (Is_block(t) && Tag_val(t) < 6) out = Field(t, 0); /* Int, Bool, Float, String, OutChannel, InChannel */
+  int done = 0;
+  if (t == Val_int(0))
+  {out = Val_unit; /* Unit */
+   done = 1;
+  }
+  if (t == Val_int(1))
+  {out = Val_unit; /* Nil */
+   done = 1;
+  }
+  if (Is_block(t) && Tag_val(t) < 6)
+  {out = Field(t, 0); /* Int, Bool, Float, String, OutChannel, InChannel */
+   done = 1;
+  }
   /* Records */
   if (Is_block(t) && Tag_val(t) == 6)
   {
     out = caml_alloc_tuple(length_of_list (Field(t, 0)));
     read_record (Field(t, 0), out);
+    done = 1;
   }
   /* Tuples */
   if (Is_block(t) && Tag_val(t) == 7)
   {
     out = caml_alloc_tuple(length_of_list (Field(t, 0)));
     read_list (Field(t, 0), out);
+    done = 1;
   }
   /* Lists */
   if (Is_block(t) && Tag_val(t) == 8)
@@ -78,6 +90,12 @@ CAMLprim value to_ocaml_value(value t)
     out = caml_alloc(2, 0);
     Store_field(out, 0, to_ocaml_value (Field(Field(t, 0), 0)));
     Store_field(out, 1, to_ocaml_value (Field(Field(t, 0), 1)));
+    done = 1;
+  }
+  if (done == 0)
+  {
+    printf("to_ocaml_value: not handled\n");
+    fflush(stdout);
   }
   CAMLreturn(out);
 }
@@ -94,6 +112,7 @@ CAMLprim value to_ocaml_value(value t)
 /* Read a Tinyocaml.untyped_ocaml_value from an ocaml heap value */
 CAMLprim value untyped_of_ocaml_value(value t)
 {
+  int done = 0;
   setbuf(stdout, NULL);
   CAMLparam1(t);
   CAMLlocal2(out, arr);
@@ -101,6 +120,7 @@ CAMLprim value untyped_of_ocaml_value(value t)
   {
     out = caml_alloc(1, 0);
     Store_field(out, 0, t);
+    done = 1;
   }
   if (Is_block(t) && Tag_val(t) < No_scan_tag)
   {
@@ -111,21 +131,30 @@ CAMLprim value untyped_of_ocaml_value(value t)
     int p;
     for(p = 0; p < Wosize_val(t); p++)
       Store_field(arr, p, untyped_of_ocaml_value (Field(t, p)));
+    done = 1;
   }
   if (Is_block(t) && Tag_val(t) == String_tag)
   {
     out = caml_alloc(1, 2);
     Store_field(out, 0, t);
+    done = 1;
   }
   if (Is_block(t) && Tag_val(t) == Double_tag)
   {
     out = caml_alloc(1, 3);
     Store_field(out, 0, t);
+    done = 1;
   }
   if (Is_block(t) && Tag_val(t) == Double_array_tag)
   {
     out = caml_alloc(1, 4);
     Store_field(out, 0, t);
+    done = 1;
+  }
+  if (done == 0)
+  {
+    printf("untyped_of_ocaml_value: not handled\n");
+    fflush(stdout);
   }
   CAMLreturn(out);
 }
