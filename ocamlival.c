@@ -64,25 +64,25 @@ CAMLprim value to_ocaml_value(value t)
   }
   if (t == Val_int(1))
   {out = Val_unit; /* Nil */
-   done = 1;
+   done = 2;
   }
   if (Is_block(t) && Tag_val(t) < 6)
   {out = Field(t, 0); /* Int, Bool, Float, String, OutChannel, InChannel */
-   done = 1;
+   done = 3;
   }
   /* Records */
   if (Is_block(t) && Tag_val(t) == 6)
   {
     out = caml_alloc_tuple(length_of_list (Field(t, 0)));
     read_record (Field(t, 0), out);
-    done = 1;
+    done = 4;
   }
   /* Tuples */
   if (Is_block(t) && Tag_val(t) == 7)
   {
     out = caml_alloc_tuple(length_of_list (Field(t, 0)));
     read_list (Field(t, 0), out);
-    done = 1;
+    done = 5;
   }
   /* Lists */
   if (Is_block(t) && Tag_val(t) == 8)
@@ -90,11 +90,16 @@ CAMLprim value to_ocaml_value(value t)
     out = caml_alloc(2, 0);
     Store_field(out, 0, to_ocaml_value (Field(Field(t, 0), 0)));
     Store_field(out, 1, to_ocaml_value (Field(Field(t, 0), 1)));
-    done = 1;
+    done = 6;
   }
   if (done == 0)
   {
     printf("to_ocaml_value: not handled\n");
+    fflush(stdout);
+  }
+  else
+  {
+    printf("to_ocaml_value: made %i\n", done);
     fflush(stdout);
   }
   CAMLreturn(out);
