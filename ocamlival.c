@@ -62,16 +62,18 @@ void read_record(value record, value out)
 }
 
 /* Read an array */
-void read_array(value array, value out)
+/* 'arr' is a value representing the Tinyocaml.t array that goes with the Array constructor in Tinyocaml.t */
+/* 'out' is a value which is the ocaml block we want to put the items in. */
+void read_array(value arr, value out)
 {
-  printf("read_array of length in %lu\n", Wosize_val(array));
-  printf("read_array of length out %lu\n", Wosize_val(out));
+  /*printf("read_array of length in %lu\n", Wosize_val(arr));
+  printf("read_array of length out %lu\n", Wosize_val(out));*/
   fflush(stdout);
   for (int p = 0; p < Wosize_val(out); p++)
   {
-    printf("Store %li at %i\n", to_ocaml_value (Field(array, p)), p);
-    fflush(stdout);
-    Store_field(out, p, to_ocaml_value (Field(array, p)));
+    /*printf("Store %li at %i\n", to_ocaml_value (Field(arr, p)), p);
+    fflush(stdout);*/
+    Store_field(out, p, to_ocaml_value (Field(arr, p)));
   }
 }
 
@@ -106,10 +108,10 @@ CAMLprim value to_ocaml_value(value t)
   if (Is_block(t) && Tag_val(t) == 13)
   {
     out = caml_alloc_tuple(Wosize_val((Field(t, 0))));
-    Store_field(out, 0, Val_int(6));
-    Store_field(out, 1, Val_int(7));
-    Store_field(out, 2, Val_int(8));
-    //read_array (Field(t, 0), out);
+    //Store_field(out, 0, Val_int(6));
+    //Store_field(out, 1, Val_int(7));
+    //Store_field(out, 2, Val_int(8));
+    read_array (Field(t, 0), out);
     done = 8;
   }
   /* Lists */
