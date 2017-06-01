@@ -62,18 +62,20 @@ void read_record(value record, value out)
 }
 
 /* Read an array */
-/* 'arr' is a value representing the Tinyocaml.t array that goes with the Array constructor in Tinyocaml.t */
-/* 'out' is a value which is the ocaml block we want to put the items in. */
 void read_array(value arr, value out)
 {
-  /*printf("read_array of length in %lu\n", Wosize_val(arr));
-  printf("read_array of length out %lu\n", Wosize_val(out));*/
-  fflush(stdout);
   for (int p = 0; p < Wosize_val(out); p++)
   {
-    /*printf("Store %li at %i\n", to_ocaml_value (Field(arr, p)), p);
-    fflush(stdout);*/
     Store_field(out, p, to_ocaml_value (Field(arr, p)));
+  }
+}
+
+/* Read a float array */
+void read_float_array(value arr, value out)
+{
+  for (int p = 0; p < Wosize_val(out); p++)
+  {
+    Store_double_field(out, p, Field(Field(arr, p), 0));
   }
 }
 
@@ -107,12 +109,23 @@ CAMLprim value to_ocaml_value(value t)
   /* Arrays */
   if (Is_block(t) && Tag_val(t) == 13)
   {
-    out = caml_alloc_tuple(Wosize_val((Field(t, 0))));
-    //Store_field(out, 0, Val_int(6));
-    //Store_field(out, 1, Val_int(7));
-    //Store_field(out, 2, Val_int(8));
-    read_array (Field(t, 0), out);
-    done = 8;
+    /* Detect a float array - first elt has tag 2 (Float f) */
+    if (Wosize_val(Field(t, 0)) > 0 && Tag_val(Field(Field(t, 0), 0)) == 2)
+    {
+      printf("this is A FLOAT ARRAY\n");
+      fflush(stdout);
+      out = caml_alloc_float_array(Wosize_val((Field(t, 0))));
+      read_float_array(Field(t, 0), out);
+      done = 9;
+    }
+    else
+    {
+      printf("this is NOT a float array\n");
+      fflush(stdout);
+      out = caml_alloc_tuple(Wosize_val((Field(t, 0))));
+      read_array (Field(t, 0), out);
+      done = 8;
+    }
   }
   /* Lists */
   if (Is_block(t) && Tag_val(t) == 8)

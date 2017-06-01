@@ -160,6 +160,7 @@ let rec read_untyped debug_typ v typ =
       Array (Array.map (fun x -> read_untyped debug_typ x elt_typ) vs)
   | UBlock (0, [|h; t|]), Ptyp_constr ({txt = Longident.Lident "list"}, [elt_typ]) ->
       Cons (read_untyped debug_typ h elt_typ, read_untyped debug_typ t typ)
+  | UDoubleArray arr, _ -> Array (Array.map (fun x -> Float x) arr)
   | b, _ -> failwith (Printf.sprintf "read_untyped: unimplemented : %s of type %s" (string_of_untyped b) debug_typ)
 
 let parse_type typ =
