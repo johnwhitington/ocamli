@@ -75,7 +75,7 @@ void read_float_array(value arr, value out)
 {
   for (int p = 0; p < Wosize_val(out); p++)
   {
-    Store_double_field(out, p, Field(Field(arr, p), 0));
+    Store_double_field(out, p, Double_val(Field(Field(arr, p), 0)));
   }
 }
 
