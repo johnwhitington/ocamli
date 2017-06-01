@@ -7,5 +7,5 @@ val of_real_ocaml : Tinyocaml.env -> Parsetree.structure -> Tinyocaml.t
 
 val to_real_ocaml : Tinyocaml.t -> Parsetree.structure
 
-(* Quick & nasty for top level *)
+(* Quick & nasty for top level. Removes the outside struct *)
 val of_string : string -> Tinyocaml.t

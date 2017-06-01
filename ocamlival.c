@@ -6,17 +6,25 @@
 
 /*
 type t =
-  Unit                            <-- Val_int(0).
-| Int of int                      <-- Block with tag 0.
-| Bool of bool                    <-- Block with tag 1.
-| Float of float                  <-- Block with tag 2.
-| String of string                <-- Block with tag 3.
-| OutChannel of out_channel       <-- Block with tag 4.
-| InChannel of in_channel         <-- Block with tag 5.
-| Record of (string * t ref) list <-- Block with tag 6
-| Tuple of t list                 <-- Block with tag 7
-| Cons of (t * t)                 <-- Block with tag 8
-| Nil                             <-- Val_int(1).
+  Unit                                 Val_int(0)
+| Int of int                           Block with tag 0
+| Bool of bool                         Block with tag 1
+| Float of float                       Block with tag 2
+| String of string                     Block with tag 3
+| OutChannel of out_channel            Block with tag 4
+| InChannel of in_channel              Block with tag 5
+| Record of (string * t ref) list      Block with tag 6
+| Tuple of t list                      Block with tag 7
+| Cons of (t * t)                      Block with tag 8
+| Nil                                  Val_int(1)
+| Int32 of Int32.t                     Block with tag 9
+| Int64 of Int64.t                     Block with tag 10
+| NativeInt of Nativeint.t             Block with tag 11
+| Char of char                         Block with tag 12
+| Array of t array                     Block with tag 13
+| Constr of string * t option          Block with tag 14
+| Fun of (label * pattern * t * env)   Block with tag 15
+| Function of (case list * env)        Block with tag 16
 */
 
 value to_ocaml_value(value);
@@ -53,6 +61,20 @@ void read_record(value record, value out)
    }
 }
 
+/* Read an array */
+void read_array(value array, value out)
+{
+  printf("read_array of length in %lu\n", Wosize_val(array));
+  printf("read_array of length out %lu\n", Wosize_val(out));
+  fflush(stdout);
+  for (int p = 0; p < Wosize_val(out); p++)
+  {
+    printf("Store %li at %i\n", to_ocaml_value (Field(array, p)), p);
+    fflush(stdout);
+    Store_field(out, p, to_ocaml_value (Field(array, p)));
+  }
+}
+
 CAMLprim value to_ocaml_value(value t)
 {
   CAMLparam1(t);
@@ -65,10 +87,6 @@ CAMLprim value to_ocaml_value(value t)
   if (t == Val_int(1))
   {out = Val_unit; /* Nil */
    done = 2;
-  }
-  if (Is_block(t) && Tag_val(t) < 6)
-  {out = Field(t, 0); /* Int, Bool, Float, String, OutChannel, InChannel */
-   done = 3;
   }
   /* Records */
   if (Is_block(t) && Tag_val(t) == 6)
@@ -84,6 +102,16 @@ CAMLprim value to_ocaml_value(value t)
     read_list (Field(t, 0), out);
     done = 5;
   }
+  /* Arrays */
+  if (Is_block(t) && Tag_val(t) == 13)
+  {
+    out = caml_alloc_tuple(Wosize_val((Field(t, 0))));
+    Store_field(out, 0, Val_int(6));
+    Store_field(out, 1, Val_int(7));
+    Store_field(out, 2, Val_int(8));
+    //read_array (Field(t, 0), out);
+    done = 8;
+  }
   /* Lists */
   if (Is_block(t) && Tag_val(t) == 8)
   {
@@ -91,6 +119,11 @@ CAMLprim value to_ocaml_value(value t)
     Store_field(out, 0, to_ocaml_value (Field(Field(t, 0), 0)));
     Store_field(out, 1, to_ocaml_value (Field(Field(t, 0), 1)));
     done = 6;
+  }
+  /* Int32, Int64, Nativeint, Char,Int, Bool, Float, String, OutChannel, InChannel */
+  if (Is_block(t) && Tag_val(t) < 13 && done == 0)
+  {out = Field(t, 0);
+   done = 7;
   }
   if (done == 0)
   {

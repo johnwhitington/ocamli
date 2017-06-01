@@ -359,4 +359,7 @@ let to_real_ocaml x =
     pstr_loc = Location.none}]
 
 let of_string s =
-  of_real_ocaml [] (ast s)
+  match of_real_ocaml [] (ast s) with
+    Struct (_, [x]) -> x
+  | _ -> failwith "Tinyocaml.of_string"
+
