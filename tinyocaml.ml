@@ -72,7 +72,7 @@ and t =
 | NativeInt of Nativeint.t    (* 1n *)
 | Char of char                (* 'a' *)
 | Array of t array            (* [|1; 2; 3|] *)
-| Constr of string * t option (* Constructor [data] *)
+| Constr of int * string * t option (* tag, Constructor, data *)
 | Fun of (label * pattern * t * env)  (* fun x -> e *)
 | Function of (case list * env)   
 (* non-values *)
@@ -165,10 +165,10 @@ let rec read_untyped debug_typ v typ =
       Record (List.map (fun x -> ("contents", ref (read_untyped debug_typ x elt_typ))) (Array.to_list vs))
   | UInt 0, Ptyp_constr ({txt = Longident.Lident "option"}, [elt_typ]) ->
       (* Just an example. None *)
-      Constr ("None", None)
+      Constr (0, "None", None)
   | UBlock (0, [|v|]), Ptyp_constr ({txt = Longident.Lident "option"}, [elt_typ]) ->
       (* Just an example. Some x *)
-      Constr ("Some", Some (read_untyped debug_typ v elt_typ))
+      Constr (0, "Some", Some (read_untyped debug_typ v elt_typ))
   | UDoubleArray arr, _ -> Array (Array.map (fun x -> Float x) arr)
   | b, _ -> failwith (Printf.sprintf "read_untyped: unimplemented : %s of type %s" (string_of_untyped b) debug_typ)
 
@@ -202,7 +202,7 @@ let rec iter f x =
   | CallBuiltIn (_, _, args, _) -> List.iter f args
   | Struct (_, l) | Sig l | Tuple l -> List.iter (iter f) l
   | Function (patmatch, _) -> List.iter (iter_case f) patmatch
-  | Constr (_, e) -> iter_option f e
+  | Constr (_, _, e) -> iter_option f e
   | Match (e, cases) -> iter f e; List.iter (iter_case f) cases
 
 and iter_option f = function
@@ -259,8 +259,8 @@ let rec recurse f exp =
   | ModuleApply (m1, m2) -> ModuleApply (f m1, f m2)
   | Functor (x, mt, me) -> Functor (x, mt, f me)
   | Cons (e, e') -> Cons (f e, f e')
-  | Constr (n, None) -> Constr (n, None)
-  | Constr (n, Some t) -> Constr (n, Some (f t))
+  | Constr (tag, n, None) -> Constr (tag, n, None)
+  | Constr (tag, n, Some t) -> Constr (tag, n, Some (f t))
   | Append (e, e') -> Append (f e, f e')
   | Match (e, patmatch) ->
       Match (e, List.map (recurse_case f) patmatch)
@@ -385,9 +385,9 @@ let rec to_string = function
     to_string_struct l
 | Sig l ->
     to_string_sig l
-| Constr (n, None) ->
+| Constr (tag, n, None) ->
     Printf.sprintf "%s" n
-| Constr (n, Some t) ->
+| Constr (tag, n, Some t) ->
     Printf.sprintf "%s (%s)" n (to_string t)
 | Cons (e, e') ->
     Printf.sprintf "Cons (%s, %s)" (to_string e) (to_string e')

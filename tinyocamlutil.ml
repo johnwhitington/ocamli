@@ -22,8 +22,8 @@ let rec is_value e =
     List.for_all is_value items -> true
 | Array items when
     Array.for_all is_value items -> true
-| Constr (_, None) -> true
-| Constr (_, Some t) -> is_value t
+| Constr (_, _, None) -> true
+| Constr (_, _, Some t) -> is_value t
 | Cons (e, e') when
     is_value e && is_value e' -> true
 | LetDef (_, bindings) when
@@ -139,10 +139,10 @@ let rec underline_redex e =
               underline_first_non_value_array items;
               Array items
             end
-    | Constr (n, Some t) ->
+    | Constr (tag, n, Some t) ->
         if is_value t
           then failwith "constr already a value"
-          else Constr (n, Some (underline_redex t))
+          else Constr (tag, n, Some (underline_redex t))
     | Cons (x, y) ->
         if is_value x then Cons (x, underline_redex y) else Cons (underline x, y)
     | Match (x, patmatch) ->

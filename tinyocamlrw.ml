@@ -21,9 +21,9 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_construct ({txt = Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
     Cons (of_real_ocaml env e, of_real_ocaml env e')
 | Pexp_construct ({txt}, None) ->
-    Constr (string_of_longident txt, None)
+    Constr (0, string_of_longident txt, None) (* FIXME tag *)
 | Pexp_construct ({txt}, Some e) ->
-    Constr (string_of_longident txt, Some (of_real_ocaml env e))
+    Constr (0, string_of_longident txt, Some (of_real_ocaml env e)) (* FIXME tag *)
 | Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin

@@ -22,7 +22,7 @@ type t =
 | NativeInt of Nativeint.t             Block with tag 11
 | Char of char                         Block with tag 12
 | Array of t array                     Block with tag 13
-| Constr of string * t option          Block with tag 14
+| Constr of int * string * t option    Block with tag 14
 | Fun of (label * pattern * t * env)   Block with tag 15
 | Function of (case list * env)        Block with tag 16
 */
@@ -138,7 +138,7 @@ CAMLprim value to_ocaml_value(value t)
   /* Constructors. Just Some and None as examples for now. Later we will look up in the Constr to get the tag number. */
   if (Is_block(t) && Tag_val(t) == 14)
   {
-    if (Field(t, 1) == Val_int(0))
+    if (Field(t, 2) == Val_int(0))
     {
       out = Val_int(0); 
       done = 10;
@@ -146,7 +146,7 @@ CAMLprim value to_ocaml_value(value t)
     else
     {
       out = caml_alloc(1, 0);
-      Store_field(out, 0, to_ocaml_value (Field(Field(t, 1), 0)));
+      Store_field(out, 0, to_ocaml_value (Field(Field(t, 2), 0)));
       done = 11;
     }
   }

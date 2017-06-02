@@ -70,7 +70,7 @@ and t =
 | NativeInt of Nativeint.t    (** 1n *)
 | Char of char                 (** 'a' *)
 | Array of t array             (** [|1; 2; 3|] *)
-| Constr of string * t option  (** Constuctor [data] *)
+| Constr of int * string * t option  (** tag, Constuctor [data] *)
 | Fun of (label * pattern * t * env)          (** fun x -> e *)
 | Function of (case list * env)       (** function x -> e | y -> f ... *)
 | Var of string                (** x *)

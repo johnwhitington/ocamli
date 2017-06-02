@@ -22,8 +22,8 @@ let rec appears var = function
 | LocalOpen (_, t) -> appears var t (* FIXME Do we need to take account of the open here? It alters names... *)
 | Op (_, a, b) | And (a, b) | Or (a, b) | Cmp (_, a, b) | App (a, b)
 | Seq (a, b) | Cons (a, b) | Append (a, b) -> appears var a || appears var b
-| Constr (_, Some x) -> appears var x
-| Constr (_, None) -> false
+| Constr (_, _, Some x) -> appears var x
+| Constr (_, _, None) -> false
 | While (a, b, c, d) ->
     appears var a || appears var b || appears var c || appears var d
 | For (v, a, flag, b, c, copy) ->
@@ -227,8 +227,8 @@ let rec matches expr pattern rhs =
           Some _ -> yes
         | _ -> matches e b rhs
         end
-    | Constr (y, None), PatConstr (x, None) when x = y -> yes
-    | Constr (y, Some yp), PatConstr (x, Some xp)
+    | Constr (_, y, None), PatConstr (x, None) when x = y -> yes
+    | Constr (_, y, Some yp), PatConstr (x, Some xp)
         when x = y -> matches yp xp rhs
     | _ -> no
 
@@ -280,7 +280,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
   match expr with
 | Lazy e -> Lazy (eval peek env e)
 | LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
-| Constr (n, Some x) -> Constr (n, Some (eval peek env x))
+| Constr (tag, n, Some x) -> Constr (tag, n, Some (eval peek env x))
 | Annot (n, x, y) -> Annot (n, x, eval peek env y)
 | Assert (Bool false) ->
     Raise ("Assert_failure", Some (Tuple [String "//unknown//"; Int 0; Int 0]))
@@ -569,7 +569,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
 | Int32 _ | Int64 _ | NativeInt _ | Char _
 | InChannel _ | String _ | Nil | ExceptionDef _ | TypeDef _
-| Constr (_, None)
+| Constr (_, _, None)
 | Function _ | Sig _ | ModuleConstraint _ | ModuleIdentifier _ | Open _ | Functor _
 | ModuleApply _ | Include _ ->
     failwith ("already a value or unimplemented: " ^ (Pptinyocaml.to_string
@@ -580,7 +580,7 @@ and eval_match_exception peek env exnname exnpayload cases =
   match cases with
     [] -> FailedToMatch
   | c::cs ->
-      let expr = Constr (exnname, exnpayload) in
+      let expr = Constr (0, exnname, exnpayload) in (* FIXME tag *)
         match eval_case peek env expr c with
           Matched rhs -> Matched rhs
         | EvaluatedGuardStep x -> EvaluatedGuardStep x

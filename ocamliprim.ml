@@ -213,13 +213,13 @@ let percent_bytes_to_string =
 let percent_backend_type =
   mk "%backend_type"
     (function
-     | [Unit] -> Constr ("Other", Some (String "ocamli"))
+     | [Unit] -> Constr (0, "Other", Some (String "ocamli")) (* FIXME tag *)
      | _ -> failwith "percent_backend_type")
 
 let percent_raise =
   mk "%raise"
     (function
-     | [Constr (n, eopt)] -> Raise (n, eopt)
+     | [Constr (_, n, eopt)] -> Raise (n, eopt)
      | _ -> failwith "percent_raise")
 
 let percent_raise_notrace =
@@ -439,7 +439,7 @@ let flag_of_string = function
 
 let rec convert_flags = function
   | Nil -> []
-  | Cons (Constr (x, None), more) -> flag_of_string x::convert_flags more
+  | Cons (Constr (tag, x, None), more) -> flag_of_string x::convert_flags more
   | _ -> failwith "Ocamliprim.convert_flags"
 
 let caml_sys_open =
