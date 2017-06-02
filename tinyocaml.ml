@@ -160,6 +160,15 @@ let rec read_untyped debug_typ v typ =
       Array (Array.map (fun x -> read_untyped debug_typ x elt_typ) vs)
   | UBlock (0, [|h; t|]), Ptyp_constr ({txt = Longident.Lident "list"}, [elt_typ]) ->
       Cons (read_untyped debug_typ h elt_typ, read_untyped debug_typ t typ)
+  | UBlock (0, vs), Ptyp_constr ({txt = Longident.Lident "ref"}, [elt_typ]) ->
+      (* Just an example. We will need to look up the type to reconstruct the real record *)
+      Record (List.map (fun x -> ("contents", ref (read_untyped debug_typ x elt_typ))) (Array.to_list vs))
+  | UInt 0, Ptyp_constr ({txt = Longident.Lident "option"}, [elt_typ]) ->
+      (* Just an example. None *)
+      Constr ("None", None)
+  | UBlock (0, [|v|]), Ptyp_constr ({txt = Longident.Lident "option"}, [elt_typ]) ->
+      (* Just an example. Some x *)
+      Constr ("Some", Some (read_untyped debug_typ v elt_typ))
   | UDoubleArray arr, _ -> Array (Array.map (fun x -> Float x) arr)
   | b, _ -> failwith (Printf.sprintf "read_untyped: unimplemented : %s of type %s" (string_of_untyped b) debug_typ)
 

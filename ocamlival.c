@@ -135,6 +135,21 @@ CAMLprim value to_ocaml_value(value t)
     Store_field(out, 1, to_ocaml_value (Field(Field(t, 0), 1)));
     done = 6;
   }
+  /* Constructors. Just Some and None as examples for now. Later we will look up in the Constr to get the tag number. */
+  if (Is_block(t) && Tag_val(t) == 14)
+  {
+    if (Field(t, 1) == Val_int(0))
+    {
+      out = Val_int(0); 
+      done = 10;
+    }
+    else
+    {
+      out = caml_alloc(1, 0);
+      Store_field(out, 0, to_ocaml_value (Field(Field(t, 1), 0)));
+      done = 11;
+    }
+  }
   /* Int32, Int64, Nativeint, Char,Int, Bool, Float, String, OutChannel, InChannel */
   if (Is_block(t) && Tag_val(t) < 13 && done == 0)
   {out = Field(t, 0);
@@ -156,7 +171,7 @@ CAMLprim value to_ocaml_value(value t)
 /*
   type untyped_ocaml_value =
   UInt of int                                <-- Block with tag 0
-| Block of tag * untyped_ocaml_value array   <-- Block with tag 1
+| UBlock of tag * untyped_ocaml_value array  <-- Block with tag 1
 | UString of string                          <-- Block with tag 2
 | UDouble of float                           <-- Block with tag 3
 | UDoubleArray of float array                <-- Block with tag 4
