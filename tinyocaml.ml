@@ -314,6 +314,14 @@ let string_of_constructor_arg = function
        ptyp_attributes = []}
 | Pcstr_record _ -> "record"
 
+let rec dots_between = function
+  [] -> ""
+| [h] -> h
+| h::t -> h ^ "." ^ dots_between t
+
+let string_of_longident l =
+  dots_between (Longident.flatten l)
+
 let rec to_string = function
   Unit -> "Unit"
 | Assert e -> Printf.sprintf "Assert %s" (to_string e)
@@ -513,7 +521,41 @@ and to_string_sig l =
   Printf.sprintf "Sig [" ^
   List.fold_left ( ^ ) "" (List.map (fun x -> to_string x ^ "\n") l) ^
   "]"
-  
+
+and to_string_core_type {ptyp_desc} =
+  match ptyp_desc with
+    Ptyp_any -> "_"
+  | Ptyp_var s -> s
+  | Ptyp_arrow (_, a, b) -> to_string_core_type a ^ " -> " ^ to_string_core_type b (* FIXME Prec/assoc? *)
+  | Ptyp_tuple core_types ->
+      "(" ^ List.fold_left ( ^ ) "" (List.map (fun x -> to_string_core_type x ^ ", ") core_types) ^ ")"
+  | Ptyp_constr ({txt}, _) -> string_of_longident txt
+  | Ptyp_object _ -> "Ptyp_object"
+  | Ptyp_class _ -> "Ptyp_class"
+  | Ptyp_alias _ -> "Ptyp_alias"
+  | Ptyp_variant _ -> "Ptyp_variant"
+  | Ptyp_poly _ -> "Ptyp_poly"
+  | Ptyp_package _ -> "Ptyp_package"
+  | Ptyp_extension _ -> "Ptyp_extenstion"
+
+and to_string_constdecl {pcd_name = {txt}; pcd_args} =
+  Printf.sprintf "%s %s" txt
+  (match pcd_args with
+  | Pcstr_tuple [] -> ""
+  | Pcstr_tuple types -> "of" ^ List.fold_left (fun x y ->  x ^ " " ^ y) "" (List.map to_string_core_type types)
+  | Pcstr_record _ -> "of RECORD")
+
+and to_string_ptype_kind = function
+  Ptype_variant constdecls ->
+    List.fold_left (fun x y -> x ^ " | " ^ y) "" (List.map to_string_constdecl constdecls)
+| _ -> "unknonwn ptype"
+
+and to_string_typedecl {ptype_kind; ptype_name = {txt}} =
+  Printf.sprintf "%s " txt ^ to_string_ptype_kind ptype_kind
+
+and to_string_typedecls typedecls =
+  List.fold_left ( ^ ) "" (List.map (fun x -> to_string_typedecl x ^ "\n") typedecls)
+
 and to_string_env ?(full=false) env =
   let strings = 
     List.map
@@ -523,18 +565,12 @@ and to_string_env ?(full=false) env =
            recflag
            ((if full then to_string_bindings else to_string_bindings_names) !bs)
        | EnvFunctor _ -> "EnvFunctor"
-       | EnvType _ -> "EnvType")
+       | EnvType (recflag, typedecls) ->
+           Printf.sprintf "EnvType (%b, %s)" recflag (to_string_typedecls typedecls))
       env
   in
     Printf.sprintf "Env [" ^ List.fold_left ( ^ ) "" strings ^ "]"
 
-let rec dots_between = function
-  [] -> ""
-| [h] -> h
-| h::t -> h ^ "." ^ dots_between t
-
-let string_of_longident l =
-  dots_between (Longident.flatten l)
 
 let rec bound_in_pattern = function
   PatAny -> []

@@ -5,6 +5,35 @@ open Ocamliutil
 
 exception UnknownNode of string
 
+let rec tag_of_constructor_name_envtype valnum blocknum str (recflag, typedecls) =
+  match typedecls with
+    [] -> None
+  | {ptype_name = {txt}; ptype_params}::_ when txt = str ->
+      Some (if ptype_params = [] then valnum else blocknum)
+  | {ptype_params}::t ->
+      if ptype_params = []
+        then tag_of_constructor_name_envtype (valnum + 1) blocknum str (recflag, t)
+        else tag_of_constructor_name_envtype valnum (blocknum + 1) str (recflag, t)
+
+let rec tag_of_constructor_name env str =
+  match env with
+    [] -> failwith (Printf.sprintf "constructor tag %s not found" str)
+  | EnvType t::more ->
+      begin match tag_of_constructor_name_envtype 0 0 str t with
+        None -> tag_of_constructor_name more str
+      | Some tag -> tag
+      end
+  | _::t -> tag_of_constructor_name t str
+
+(* For debug only *)
+let tag_of_constructor_name env str =
+  try
+    tag_of_constructor_name env str
+  with
+    e ->
+      print_endline (to_string_env env);
+      raise e
+
 (* Convert from a parsetree to a t, assuming we can *)
 let rec of_real_ocaml_expression_desc env = function
   Pexp_constant (Pconst_integer (s, None)) -> Int (int_of_string s)
@@ -21,9 +50,11 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_construct ({txt = Lident "::"}, Some ({pexp_desc = Pexp_tuple [e; e']})) ->
     Cons (of_real_ocaml env e, of_real_ocaml env e')
 | Pexp_construct ({txt}, None) ->
-    Constr (0, string_of_longident txt, None) (* FIXME tag *)
+    let str = string_of_longident txt in
+      Constr (tag_of_constructor_name env str, str, None)
 | Pexp_construct ({txt}, Some e) ->
-    Constr (0, string_of_longident txt, Some (of_real_ocaml env e)) (* FIXME tag *)
+    let str = string_of_longident txt in
+      Constr (tag_of_constructor_name env str, str, Some (of_real_ocaml env e))
 | Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
@@ -260,7 +291,8 @@ and of_real_ocaml_structure_item env = function
       (Some (LetDef (false, bindings)), env')
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
-     (Some (TypeDef (recflag == Recursive, typedecls)), env)
+    let t = (recflag == Recursive, typedecls) in
+      (Some (TypeDef t), EnvType t::env)
   (* module M = ... *)
 | {pstr_desc = Pstr_module module_binding} ->
      of_real_ocaml_module_binding env module_binding
