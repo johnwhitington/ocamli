@@ -145,7 +145,9 @@ let bindings_beginning_with n env =
       | EnvBinding (recflag, bindings) ->
           if List.for_all (binding_begins_with n) !bindings
             then Some envitem
-            else None)
+            else None
+      | EnvType _ ->
+          None (* FIXME *))
     env
 
 let cut n s =
@@ -163,6 +165,7 @@ let strip_bindings n = function
     EnvFunctor (cut n s, input_module_name, modtype, e, env)
 | EnvBinding (recflag, bs) ->
     EnvBinding (recflag, ref (List.map (strip_binding n) !bs))
+| EnvType t -> EnvType t (*FIXME*)
 
 let open_module n (env : Tinyocaml.env) =
   List.map (strip_bindings n) (bindings_beginning_with n env) @ env
@@ -179,6 +182,7 @@ let prefix_bindings p = function
     EnvBinding (recflag, ref (List.map (prefix_binding p) !bs))
 | EnvFunctor (n, input_module_name, modtype, e, env) ->
     EnvFunctor (p ^ n, input_module_name, modtype, e, env)
+| EnvType t -> EnvType t (* FIXME*)
 
 (* For "module B = Bytes" Find any binding beginning with 'Bytes', replace
 'Bytes' with 'B', and stick on to the front of the environment. *)

@@ -39,6 +39,7 @@ and binding = pattern * t
 and envitem = (* Environment items *)
   EnvBinding of bool * binding list ref
 | EnvFunctor of string * string * modtype option * t * env (* name, input_module, name, modtype, e, env *)
+| EnvType of (bool * Parsetree.type_declaration list)
 
 and env = envitem list
 
@@ -521,7 +522,8 @@ and to_string_env ?(full=false) env =
          Printf.sprintf "(%b, %s)\n"
            recflag
            ((if full then to_string_bindings else to_string_bindings_names) !bs)
-       | EnvFunctor _ -> "EnvFunctor")
+       | EnvFunctor _ -> "EnvFunctor"
+       | EnvType _ -> "EnvType")
       env
   in
     Printf.sprintf "Env [" ^ List.fold_left ( ^ ) "" strings ^ "]"

@@ -40,6 +40,7 @@ and binding = pattern * t
 and envitem = (* Environment items *)
   EnvBinding of bool * binding list ref
 | EnvFunctor of string * string * modtype option * t * env
+| EnvType of (bool * Parsetree.type_declaration list)
 
 and env = envitem list
 

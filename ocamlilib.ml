@@ -54,6 +54,7 @@ let add_prefix_to_bindings name envitem =
   | EnvFunctor (n, i, a, b, c) ->
       if name = "" then EnvFunctor (n, i, a, b, c) else (* pervasives *)
       EnvFunctor (name ^ "." ^ n, i, a, b, c)
+  | EnvType t -> EnvType t (* FIXME *)
 
 let rec definitions_of_module (env : Tinyocaml.env) = function
   Struct (_, items) ->
@@ -188,5 +189,7 @@ let showlib () =
             print_string (if recflag then "let rec:\n" else "let:\n");
             List.iter print_binding !bindings
         | EnvFunctor (n, i, a, b, c) ->
-            print_string "EnvFunctor: "; print_string n; print_string "\n")
+            print_string "EnvFunctor: "; print_string n; print_string "\n"
+        | EnvType t ->
+            print_string "EnvType")
       !Eval.lib

@@ -20,9 +20,15 @@
 
 \section*{Polymorphic Comparison, Hashing, Serialization}
 
+We need to do our own polymorphic comparison, which must act exactly the same as that of the OCaml runtime. Two approaches: (a) Write our own, which would traverse the \texttt{Tinyocaml.t} datatype (b) Convert the data structures to be compared into the OCaml heap representation and call \texttt{compare\_val} directly.
+
 \section*{Interfacing with C}
 
+OCaml has a system for interfacing with C-like languages using \texttt{external} calls. We need to be able to (a) Convert any \texttt{Tinyocaml.t} into an OCaml heap object and (b) Convert any OCaml heap object back into \texttt{Tinyocaml.t}. Biggest complication: what happens when a closure is passed or returned?
+
 \section*{Interfacing with the expectation of a Runtime}
+
+C code linked to OCaml code can create OCaml heap items, interact with the OCaml runtime, and make callbacks. So, there will be another OCaml runtime running (in addition to the interpreter's). How will we communicate with it? Or can we make a runtime shim and capture all the calls? Our own \texttt{lib(asm)run.a} effectively?
 
 \section*{Threads and Processes}
 

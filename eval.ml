@@ -165,6 +165,9 @@ let rec lookup_value v = function
     if n = v
       then Some (Functor (input_module_name, modtype, e)) (* FIXME env *)
       else lookup_value v t
+| EnvType _::t ->
+    (* FIXME*)
+    lookup_value v t
 
 (* Evaluate one step, assuming not already a value *)
 let lookup_int_var env v =
@@ -270,7 +273,8 @@ let build_lets_from_fenv (fenv : Tinyocaml.env) e =
               (PatVar n, Functor (input_module_name, modtype, e')) (* FIXME env?  *)
             in
               Let (false, [binding], e)
-          else e)
+          else e
+      | EnvType _ -> e (* FIXME? *))
     e
     fenv
   
@@ -399,6 +403,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
                      | bs -> Some (EnvBinding (recflag, bindings))
                      end
                  | EnvFunctor (n, input_module_name, modtype, e, env) -> None (*FIXME EnvFunctor*)
+                 | EnvType _ -> None (* FIXME?*)
               )
               fenv
           in
