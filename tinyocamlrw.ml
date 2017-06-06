@@ -15,7 +15,10 @@ let rec tag_of_constructor_name_constdecls valnum blocknum str = function
     if args = []
       then tag_of_constructor_name_constdecls (valnum + 1) blocknum str t
       else tag_of_constructor_name_constdecls valnum (blocknum + 1) str t
-| _ -> failwith "tag_of_constructor_name_constdecls: unimplemented pcd_args"
+| {pcd_name = {txt}; pcd_args = Pcstr_record _}::t when txt = str ->
+    valnum, blocknum, Some blocknum
+| {pcd_args = Pcstr_record _}::t ->
+    tag_of_constructor_name_constdecls valnum (blocknum + 1) str t
 
 let rec tag_of_constructor_name_envtype valnum blocknum str (recflag, typedecls) =
   match typedecls with
@@ -27,12 +30,17 @@ let rec tag_of_constructor_name_envtype valnum blocknum str (recflag, typedecls)
       end
   | {ptype_kind = Ptype_abstract}::more ->
       tag_of_constructor_name_envtype valnum blocknum str (recflag, more)
-  | {ptype_kind = Ptype_record _}::more -> failwith "tag_of_constructor_name_envtype: Ptype_record"
+  | {ptype_kind = Ptype_record _}::more ->
+      tag_of_constructor_name_envtype valnum blocknum str (recflag, more)
   | {ptype_kind = Ptype_open}::more -> failwith "tag_of_constructor_name_envtype: Ptype_open"
 
 let rec tag_of_constructor_name env str =
   match env with
-    [] -> failwith (Printf.sprintf "constructor tag %s not found" str)
+    [] ->
+      begin match str with
+        "Invalid_argument" | "Failure" | "None" | "Some" -> 0
+      | _ -> failwith (Printf.sprintf "constructor tag %s not found" str)
+      end
   | EnvType t::more ->
       begin match tag_of_constructor_name_envtype 0 0 str t with
         None -> tag_of_constructor_name more str
