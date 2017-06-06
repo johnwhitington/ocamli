@@ -5,15 +5,27 @@ open Ocamliutil
 
 exception UnknownNode of string
 
+let rec tag_of_constructor_name_constdecls valnum blocknum str = function
+  [] -> valnum, blocknum, None
+| {pcd_name = {txt}; pcd_args = Pcstr_tuple args}::t when txt = str ->
+    if args = []
+      then valnum, blocknum, Some valnum
+      else valnum, blocknum, Some blocknum
+| {pcd_args = Pcstr_tuple args}::t ->
+    if args = []
+      then tag_of_constructor_name_constdecls (valnum + 1) blocknum str t
+      else tag_of_constructor_name_constdecls valnum (blocknum + 1) str t
+| _ -> failwith "tag_of_constructor_name_constdecls: unimplemented pcd_args"
+
 let rec tag_of_constructor_name_envtype valnum blocknum str (recflag, typedecls) =
   match typedecls with
     [] -> None
-  | {ptype_name = {txt}; ptype_params}::_ when txt = str ->
-      Some (if ptype_params = [] then valnum else blocknum)
-  | {ptype_params}::t ->
-      if ptype_params = []
-        then tag_of_constructor_name_envtype (valnum + 1) blocknum str (recflag, t)
-        else tag_of_constructor_name_envtype valnum (blocknum + 1) str (recflag, t)
+  | {ptype_kind = Ptype_variant constdecls}::more ->
+      begin match tag_of_constructor_name_constdecls valnum blocknum str constdecls with
+        _, _, Some tag -> Some tag
+      | valnum', blocknum', None -> tag_of_constructor_name_envtype valnum' blocknum' str (recflag, more)
+      end
+  | _ -> failwith "tag_of_constructor_name_envtype: unimplemented ptype_kind"
 
 let rec tag_of_constructor_name env str =
   match env with
@@ -27,9 +39,7 @@ let rec tag_of_constructor_name env str =
 
 (* For debug only *)
 let tag_of_constructor_name env str =
-  try
-    tag_of_constructor_name env str
-  with
+  try tag_of_constructor_name env str with
     e ->
       print_endline (to_string_env env);
       raise e

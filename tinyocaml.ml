@@ -379,8 +379,8 @@ let rec to_string = function
       n (match payload with None -> "" | Some x -> to_string x)
 | ExceptionDef (e, args) ->
     Printf.sprintf "Exception (%s, Some %s)" e (string_of_constructor_arg args)
-| TypeDef _ ->
-    "TypeDef"
+| TypeDef (recflag, typedecls) ->
+    Printf.sprintf "TypeDef (%b, %s)" recflag (to_string_typedecls typedecls)
 | TryWith (e, patmatch) ->
     Printf.sprintf
       "TryWith (%s, %s)" (to_string e) (to_string_patmatch patmatch)
@@ -395,9 +395,9 @@ let rec to_string = function
 | Sig l ->
     to_string_sig l
 | Constr (tag, n, None) ->
-    Printf.sprintf "%s" n
+    Printf.sprintf "%s{%i}" n tag
 | Constr (tag, n, Some t) ->
-    Printf.sprintf "%s (%s)" n (to_string t)
+    Printf.sprintf "%s{%i} (%s)" n tag (to_string t)
 | Cons (e, e') ->
     Printf.sprintf "Cons (%s, %s)" (to_string e) (to_string e')
 | Nil -> "[]"
