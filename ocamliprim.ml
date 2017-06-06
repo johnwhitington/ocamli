@@ -128,7 +128,7 @@ let percent_array_safe_get =
   mk2 "%array_safe_get"
     (function [Array x; Int i] ->
       (try
-         Tinyocaml.of_ocaml_value (array_safe_get (Tinyocaml.to_ocaml_value (Array x)) i) "int"
+         Tinyexternal.of_ocaml_value (array_safe_get (Tinyexternal.to_ocaml_value (Array x)) i) "int"
        with
          e -> exception_from_ocaml e)
      | _ -> failwith "percent_array_safe_get")
@@ -140,7 +140,7 @@ let percent_boolnot =
   mk "%boolnot"
     (function [Bool b] ->
        begin try
-         Tinyocaml.of_ocaml_value (percent_boolnot (Tinyocaml.to_ocaml_value (Bool b))) "bool"
+         Tinyexternal.of_ocaml_value (percent_boolnot (Tinyexternal.to_ocaml_value (Bool b))) "bool"
        with
          e -> exception_from_ocaml e
        end
@@ -153,7 +153,7 @@ let percent_negfloat =
   mk "%negfloat"
     (function [Float f] ->
        begin try
-         Tinyocaml.of_ocaml_value (percent_negfloat (Tinyocaml.to_ocaml_value (Float f))) "float"
+         Tinyexternal.of_ocaml_value (percent_negfloat (Tinyexternal.to_ocaml_value (Float f))) "float"
        with
          e -> exception_from_ocaml e
        end
@@ -166,8 +166,8 @@ let caml_int_of_string =
   mk "caml_int_of_string"
     (function [String s] ->
        begin try
-         Tinyocaml.of_ocaml_value
-           (caml_int_of_string (Tinyocaml.to_ocaml_value (String s)))
+         Tinyexternal.of_ocaml_value
+           (caml_int_of_string (Tinyexternal.to_ocaml_value (String s)))
            "int"
        with 
          e -> exception_from_ocaml e
@@ -182,8 +182,8 @@ let caml_create_string =
   mk "caml_create_string"
     (function [Int i] ->
        begin try
-         Tinyocaml.of_ocaml_value
-           (caml_create_string (Tinyocaml.to_ocaml_value (Int i)))
+         Tinyexternal.of_ocaml_value
+           (caml_create_string (Tinyexternal.to_ocaml_value (Int i)))
            "string"
        with
          e -> exception_from_ocaml e
@@ -196,7 +196,7 @@ external caml_ba_init : unit -> unit = "caml_ba_init"
 let caml_ba_init =
   mk "caml_ba_init"
     (function [Unit] ->
-       Tinyocaml.of_ocaml_value (caml_ba_init (Tinyocaml.to_ocaml_value Unit)) "unit"
+       Tinyexternal.of_ocaml_value (caml_ba_init (Tinyexternal.to_ocaml_value Unit)) "unit"
      | _ -> failwith "caml_ba_init")
 
 (** END OF VALUE TESTS *)

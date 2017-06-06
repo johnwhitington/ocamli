@@ -122,19 +122,6 @@ val to_string : t -> string
 
 val to_string_pat : pattern -> string
 
-val to_ocaml_value : t -> 'a
-
-val of_ocaml_value : 'a -> string -> t
-
-type untyped_ocaml_value =
-  UInt of int
-| UBlock of int * untyped_ocaml_value array
-| UString of string
-| UDouble of float
-| UDoubleArray of float array
-
-val untyped_of_ocaml_value : 'a -> untyped_ocaml_value
-
 val recurse : (t -> t) -> t -> t
 
 val iter : (t -> unit) -> t -> unit
