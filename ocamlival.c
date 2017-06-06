@@ -138,14 +138,16 @@ CAMLprim value to_ocaml_value(value t)
   /* Constructors. Just Some and None as examples for now. Later we will look up in the Constr to get the tag number. */
   if (Is_block(t) && Tag_val(t) == 14)
   {
-    if (Field(t, 2) == Val_int(0))
+    if (Is_long(Field(t, 2)))
     {
-      out = Val_int(0); 
+      //t option is None, just write Val_int of the tag
+      out = Val_int(Field(t, 0)); 
       done = 10;
     }
     else
     {
-      out = caml_alloc(1, 0);
+      //t option is Some, make a block with the appropriate tag
+      out = caml_alloc(1, Field(t, 1));
       Store_field(out, 0, to_ocaml_value (Field(Field(t, 2), 0)));
       done = 11;
     }

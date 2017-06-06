@@ -25,7 +25,10 @@ let rec tag_of_constructor_name_envtype valnum blocknum str (recflag, typedecls)
         _, _, Some tag -> Some tag
       | valnum', blocknum', None -> tag_of_constructor_name_envtype valnum' blocknum' str (recflag, more)
       end
-  | _ -> failwith "tag_of_constructor_name_envtype: unimplemented ptype_kind"
+  | {ptype_kind = Ptype_abstract}::more ->
+      tag_of_constructor_name_envtype valnum blocknum str (recflag, more)
+  | {ptype_kind = Ptype_record _}::more -> failwith "tag_of_constructor_name_envtype: Ptype_record"
+  | {ptype_kind = Ptype_open}::more -> failwith "tag_of_constructor_name_envtype: Ptype_open"
 
 let rec tag_of_constructor_name env str =
   match env with

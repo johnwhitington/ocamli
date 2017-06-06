@@ -10,6 +10,10 @@ type untyped_ocaml_value =
 | UDouble of float
 | UDoubleArray of float array
 
+external to_ocaml_value : t -> 'a = "to_ocaml_value"
+
+external untyped_of_ocaml_value : 'a -> untyped_ocaml_value = "untyped_of_ocaml_value"
+
 let rec string_of_untyped = function
   UInt i -> Printf.sprintf "UInt %i" i
 | UBlock (tag, arr) -> Printf.sprintf "UBlock %i [|%s|]" tag (string_of_untyped_array arr)
@@ -22,10 +26,6 @@ and string_of_untyped_array arr =
 
 and string_of_untyped_float_array arr =
   List.fold_left ( ^ ) "" (List.map (fun x -> Printf.sprintf "%f; " x) (Array.to_list arr))
-
-external to_ocaml_value : t -> 'a = "to_ocaml_value"
-
-external untyped_of_ocaml_value : 'a -> untyped_ocaml_value = "untyped_of_ocaml_value"
 
 let rec read_untyped debug_typ v typ =
   Printf.printf "read_untyped: considering %s of type %s\n" (string_of_untyped v) debug_typ;
