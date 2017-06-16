@@ -563,8 +563,8 @@ let bindings_beginning_with n env =
             else None
       | EnvType (recflag, typedecls) ->
           if List.for_all (string_loc_begins_with n) (List.map (fun x -> x.ptype_name) typedecls)
-          then (Printf.printf "binding %s chosen\n" (to_string_envitem envitem); Some envitem)
-          else (Printf.printf "binding %s NOT chosen\n" (to_string_envitem envitem); None))
+          then ((*Printf.printf "binding %s chosen\n" (to_string_envitem envitem);*) Some envitem)
+          else ((*Printf.printf "binding %s NOT chosen\n" (to_string_envitem envitem);*) None))
     env
 
 let cut n s =
@@ -577,8 +577,20 @@ let rec strip_pattern n = function
 
 let strip_binding n (p, e) = (strip_pattern n p, e)
 
+(* Strip the [n] from the type constructor name and it constructors *)
+let strip_constructor n c =
+  match c with {pcd_name = ({txt} as loc)} ->
+    {c with pcd_name = {loc with txt = cut n txt}}
+
+let strip_ptype_kind n = function
+  Ptype_abstract -> Ptype_abstract
+| Ptype_variant constructors -> Ptype_variant (List.map (strip_constructor n) constructors)
+| Ptype_record record -> (* FIXME *) Ptype_record record
+| Ptype_open -> Ptype_open
+
 let strip_typedecl n t =
-  {t with ptype_name = {t.ptype_name with txt = cut n t.ptype_name.txt}}
+  {t with ptype_name = {t.ptype_name with txt = cut n t.ptype_name.txt};
+          ptype_kind = strip_ptype_kind n t.ptype_kind}
 
 let strip_bindings n = function
   EnvFunctor (s, input_module_name, modtype, e, env) ->
@@ -589,7 +601,7 @@ let strip_bindings n = function
     EnvType (recflag, List.map (strip_typedecl n) typedecls)
 
 let open_module n (env : env) =
-  Printf.printf "open_module : %s\n" n;
+  (*Printf.printf "open_module : %s\n" n;*)
   List.map (strip_bindings n) (bindings_beginning_with n env) @ env
 
 let rec prefix_pattern prefix = function

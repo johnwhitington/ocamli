@@ -38,7 +38,9 @@ let rec tag_of_constructor_name env str =
   match env with
     [] ->
       begin match str with
-        "Invalid_argument" | "Failure" | "None" | "Some" -> 0
+        (* FIXME Not defined in stdlib + two stream ones because we don't deal with exception types in EnvType yet *)
+        "Invalid_argument" | "Failure" | "None" | "Some"
+      | "Stream.Error" | "Stream.Failure" | "GenHashTable.EDead" | "GenHashTable.EFalse" | "GenHashTable.ETrue" -> 0
       | _ -> failwith (Printf.sprintf "constructor tag %s not found" str)
       end
   | EnvType t::more ->
@@ -52,6 +54,7 @@ let rec tag_of_constructor_name env str =
 let tag_of_constructor_name env str =
   try tag_of_constructor_name env str with
     e ->
+      Printf.printf "TAG_OF_CONSTRUCTOR failed.....!";
       print_endline (to_string_env env);
       raise e
 
@@ -313,7 +316,7 @@ and of_real_ocaml_structure_item env = function
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
     let t = (recflag == Recursive, typedecls) in
-      Printf.printf "Adding type %s... to env as EnvType\n" (to_string_envitem (EnvType t));
+      (*Printf.printf "Adding type %s... to env as EnvType\n" (to_string_envitem (EnvType t));*)
       (Some (TypeDef t), EnvType t::env)
   (* module M = ... *)
 | {pstr_desc = Pstr_module module_binding} ->

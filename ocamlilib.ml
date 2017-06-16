@@ -46,8 +46,22 @@ let add_prefix_to_binding name (pattern, e) =
   if name = "" then (pattern, e) else (* pervasives *)
   (add_prefix_to_pattern (fun x -> name ^ "." ^ x) pattern, e)
 
+(* Prefix the type name and type constructors *)
+let add_prefix_to_constructor name c =
+  match c with
+    {pcd_name = ({txt} as n)} -> {c with pcd_name = {n with txt = name ^ "." ^ txt}}
+
+let add_prefix_to_ptype_kind name = function
+  | Ptype_abstract -> Ptype_abstract
+  | Ptype_variant constructors ->
+      Ptype_variant (List.map (add_prefix_to_constructor name) constructors)
+  | Ptype_record record -> Ptype_record record (* FIXME *)
+  | Ptype_open -> Ptype_open
+
 let add_prefix_to_typedecl name typedecl =
-  {typedecl with ptype_name = {typedecl.ptype_name with txt = name ^ "." ^ typedecl.ptype_name.txt}}
+  {typedecl with
+     ptype_name = {typedecl.ptype_name with txt = name ^ "." ^ typedecl.ptype_name.txt};
+     ptype_kind = add_prefix_to_ptype_kind name typedecl.ptype_kind}
 
 let add_prefix_to_bindings name envitem =
   match envitem with
@@ -69,6 +83,7 @@ let rec definitions_of_module (env : Tinyocaml.env) = function
         (fun x ->
           match x with
             LetDef (recflag, bindings) -> [EnvBinding (recflag, ref bindings)]
+          | TypeDef t -> [EnvType t]
           | ModuleBinding (name, (Struct (_, items) as themod)) ->
               load_module_from_struct name env themod
           | ModuleBinding (name, Functor (fname, ftype, fcontents)) ->
