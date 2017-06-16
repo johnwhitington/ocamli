@@ -313,6 +313,7 @@ and of_real_ocaml_structure_item env = function
   (* type t = A | B of int *)
 | {pstr_desc = Pstr_type (recflag, typedecls)} ->
     let t = (recflag == Recursive, typedecls) in
+      Printf.printf "Adding type %s... to env as EnvType\n" (to_string_envitem (EnvType t));
       (Some (TypeDef t), EnvType t::env)
   (* module M = ... *)
 | {pstr_desc = Pstr_module module_binding} ->

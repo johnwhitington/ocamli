@@ -134,5 +134,13 @@ val string_of_longident : Longident.t -> string
 
 val to_string_bindings : binding list -> string
 
+val to_string_envitem : ?full:bool -> envitem -> string
+
 val to_string_env : ?full:bool -> env -> string
+
+val open_module : string -> env -> env
+
+val alias_module : string -> string -> env -> env
+
+val open_struct_as_module : string -> t list -> env -> env
 

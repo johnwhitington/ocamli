@@ -1,5 +1,6 @@
 open Tinyocaml
 open Ocamliutil
+open Parsetree
 
 let debug = ref false
 let otherlibs = ref ""
@@ -7,8 +8,6 @@ let showstdlibinit = ref false
 
 (* Beginning of what was ocamilib.ml *)
 let load_stdlib = ref true
-
-
 
 let stdlib_dir =
   let tname = Filename.temp_file "ocaml" "ocamli" in
@@ -47,14 +46,21 @@ let add_prefix_to_binding name (pattern, e) =
   if name = "" then (pattern, e) else (* pervasives *)
   (add_prefix_to_pattern (fun x -> name ^ "." ^ x) pattern, e)
 
+let add_prefix_to_typedecl name typedecl =
+  {typedecl with ptype_name = {typedecl.ptype_name with txt = name ^ "." ^ typedecl.ptype_name.txt}}
+
 let add_prefix_to_bindings name envitem =
   match envitem with
     EnvBinding (recflag, bindings) ->
       EnvBinding(recflag, ref (List.map (add_prefix_to_binding name) !bindings))
   | EnvFunctor (n, i, a, b, c) ->
-      if name = "" then EnvFunctor (n, i, a, b, c) else (* pervasives *)
-      EnvFunctor (name ^ "." ^ n, i, a, b, c)
-  | EnvType t -> EnvType t (* FIXME *)
+      if name = ""
+        then EnvFunctor (n, i, a, b, c) (* pervasives *)
+        else EnvFunctor (name ^ "." ^ n, i, a, b, c)
+  | EnvType (recflag, typedecls) ->
+      if name = ""
+        then EnvType (recflag, typedecls) (*pervasives *)
+        else EnvType (recflag, List.map (add_prefix_to_typedecl name) typedecls)
 
 let rec definitions_of_module (env : Tinyocaml.env) = function
   Struct (_, items) ->
