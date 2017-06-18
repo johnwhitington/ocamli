@@ -147,7 +147,7 @@ CAMLprim value to_ocaml_value(value t)
     else
     {
       //t option is Some, make a block with the appropriate tag
-      out = caml_alloc(1, Field(t, 1));
+      out = caml_alloc(1, Field(t, 0));
       Store_field(out, 0, to_ocaml_value (Field(Field(t, 2), 0)));
       done = 11;
     }
