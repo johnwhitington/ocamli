@@ -27,6 +27,9 @@ and string_of_untyped_array arr =
 and string_of_untyped_float_array arr =
   List.fold_left ( ^ ) "" (List.map (fun x -> Printf.sprintf "%f; " x) (Array.to_list arr))
 
+let lookup_variant_type vartypename x isblock =
+  if isblock then (0, "Some") else (0, "None")
+
 let rec read_untyped debug_typ v typ =
   Printf.printf "read_untyped: considering %s of type %s\n" (string_of_untyped v) debug_typ;
   match v, typ.ptyp_desc with
@@ -53,12 +56,14 @@ let rec read_untyped debug_typ v typ =
   | UBlock (0, vs), Ptyp_constr ({txt = Longident.Lident "ref"}, [elt_typ]) ->
       (* Just an example. We will need to look up the type to reconstruct the real record *)
       Record (List.map (fun x -> ("contents", ref (read_untyped debug_typ x elt_typ))) (Array.to_list vs))
-  | UInt 0, Ptyp_constr ({txt = Longident.Lident "option"}, [elt_typ]) ->
-      (* Just an example. None *)
-      Constr (0, "None", None)
-  | UBlock (0, [|v|]), Ptyp_constr ({txt = Longident.Lident "option"}, [elt_typ]) ->
-      (* Just an example. Some x *)
-      Constr (0, "Some", Some (read_untyped debug_typ v elt_typ))
+  | UInt x, Ptyp_constr ({txt = Longident.Lident vartypename}, [elt_typ]) ->
+      (* e.g None *)
+      let tag, name = lookup_variant_type vartypename x false in
+        Constr (tag, name, None)
+  | UBlock (x, [|v|]), Ptyp_constr ({txt = Longident.Lident vartypename}, [elt_typ]) ->
+      (* e.g Some x *)
+      let tag, name = lookup_variant_type vartypename x true in
+        Constr (tag, name, Some (read_untyped debug_typ v elt_typ))
   | UDoubleArray arr, _ -> Array (Array.map (fun x -> Float x) arr)
   | b, _ -> failwith (Printf.sprintf "read_untyped: unimplemented : %s of type %s" (string_of_untyped b) debug_typ)
 
