@@ -98,7 +98,7 @@ and t =
 | TryWith of (t * case list) (* try e with ... *)
 | ExceptionDef of (string * Parsetree.constructor_arguments) (* Exception definition. *)
 | Control of (control * t)    (* Control string for prettyprinting *)
-| CallBuiltIn of (typ option * string * t list * (t list -> t)) (* A built-in. Recieves args, returns result *)
+| CallBuiltIn of (typ option * string * t list * (env -> t list -> t)) (* A built-in. Recieves args, returns result *)
 | Struct of (bool * t list)   (* Module implementation. *)
 | Sig of t list               (* Module signature. *)
 | ModuleBinding of (string * t) (* Module M = ... *)

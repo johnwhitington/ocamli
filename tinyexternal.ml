@@ -27,10 +27,11 @@ and string_of_untyped_array arr =
 and string_of_untyped_float_array arr =
   List.fold_left ( ^ ) "" (List.map (fun x -> Printf.sprintf "%f; " x) (Array.to_list arr))
 
+(* Lookup the variant type in the typing environment, to find the tag number *)
 let lookup_variant_type vartypename x isblock =
   if isblock then (0, "Some") else (0, "None")
 
-let rec read_untyped debug_typ v typ =
+let rec read_untyped env debug_typ v typ =
   Printf.printf "read_untyped: considering %s of type %s\n" (string_of_untyped v) debug_typ;
   match v, typ.ptyp_desc with
   | UInt n, Ptyp_constr ({txt = Longident.Lident "int"}, _) ->
@@ -48,14 +49,14 @@ let rec read_untyped debug_typ v typ =
   | UDouble d, Ptyp_constr ({txt = Longident.Lident "float"}, _) ->
       Float d
   | UBlock (0, vs), Ptyp_tuple ts when Array.length vs = List.length ts ->
-      Tuple (List.map2 (read_untyped debug_typ) (Array.to_list vs) ts) (* FIXME: Check no array duplication here *)
+      Tuple (List.map2 (read_untyped env debug_typ) (Array.to_list vs) ts) (* FIXME: Check no array duplication here *)
   | UBlock (0, vs), Ptyp_constr ({txt = Longident.Lident "array"}, [elt_typ]) ->
-      Array (Array.map (fun x -> read_untyped debug_typ x elt_typ) vs)
+      Array (Array.map (fun x -> read_untyped env debug_typ x elt_typ) vs)
   | UBlock (0, [|h; t|]), Ptyp_constr ({txt = Longident.Lident "list"}, [elt_typ]) ->
-      Cons (read_untyped debug_typ h elt_typ, read_untyped debug_typ t typ)
+      Cons (read_untyped env debug_typ h elt_typ, read_untyped env debug_typ t typ)
   | UBlock (0, vs), Ptyp_constr ({txt = Longident.Lident "ref"}, [elt_typ]) ->
       (* Just an example. We will need to look up the type to reconstruct the real record *)
-      Record (List.map (fun x -> ("contents", ref (read_untyped debug_typ x elt_typ))) (Array.to_list vs))
+      Record (List.map (fun x -> ("contents", ref (read_untyped env debug_typ x elt_typ))) (Array.to_list vs))
   | UInt x, Ptyp_constr ({txt = Longident.Lident vartypename}, [elt_typ]) ->
       (* e.g None *)
       let tag, name = lookup_variant_type vartypename x false in
@@ -63,13 +64,13 @@ let rec read_untyped debug_typ v typ =
   | UBlock (x, [|v|]), Ptyp_constr ({txt = Longident.Lident vartypename}, [elt_typ]) ->
       (* e.g Some x *)
       let tag, name = lookup_variant_type vartypename x true in
-        Constr (tag, name, Some (read_untyped debug_typ v elt_typ))
+        Constr (tag, name, Some (read_untyped env debug_typ v elt_typ))
   | UDoubleArray arr, _ -> Array (Array.map (fun x -> Float x) arr)
   | b, _ -> failwith (Printf.sprintf "read_untyped: unimplemented : %s of type %s" (string_of_untyped b) debug_typ)
 
 let parse_type typ =
   typ |> Lexing.from_string |> Parse.core_type
 
-let of_ocaml_value x typ =
-  read_untyped typ (untyped_of_ocaml_value x) (parse_type typ)
+let of_ocaml_value env x typ =
+  read_untyped env typ (untyped_of_ocaml_value x) (parse_type typ)
 
