@@ -28,8 +28,34 @@ and string_of_untyped_float_array arr =
   List.fold_left ( ^ ) "" (List.map (fun x -> Printf.sprintf "%f; " x) (Array.to_list arr))
 
 (* Lookup the variant type in the typing environment, to find the tag number *)
-let lookup_variant_type vartypename x isblock =
-  if isblock then (0, "Some") else (0, "None")
+let rec find_tag_in_constdecls x isblock tblock tnonblock = function
+  {pcd_name = {txt}; pcd_args = Pcstr_tuple []}::_ when x = tnonblock && not isblock -> txt
+| {pcd_name = {txt}; pcd_args = Pcstr_tuple args}::_ when x = tblock && isblock -> txt
+| {pcd_args = Pcstr_tuple []}::t -> find_tag_in_constdecls x isblock tblock (tnonblock + 1) t
+| {pcd_args = Pcstr_tuple _}::t -> find_tag_in_constdecls x isblock (tblock + 1) tnonblock t
+| h::_ -> failwith "find_tag_in_constdecls: unimplemented constdecl"
+| [] -> failwith "find_tag_in_constdecls"
+
+let find_tag_in_variant_type x isblock = function
+  | Ptype_variant constdecls -> Some (find_tag_in_constdecls x isblock 0 0 constdecls)
+  | Ptype_abstract -> None
+  | Ptype_record _ -> None
+  | Ptype_open -> None
+
+let rec lookup_variant_type (env : Tinyocaml.env) vartypename x isblock =
+  (* For each typedef in the env, try to extract the name and tag. *)
+  match env with
+    EnvType (_, [{ptype_name = {txt}; ptype_kind}])::r when txt = vartypename ->
+      (* FIXME only allows one variant type, not e.g type t  and t' =... *)
+      (* FIXME we need 'option' to come in, not 'int option' e.g *)
+      begin match find_tag_in_variant_type x isblock ptype_kind with
+        Some x -> x
+      | None -> lookup_variant_type r vartypename x isblock
+      end
+  | _::r -> lookup_variant_type r vartypename x isblock
+  | [] -> failwith "Could not find tag and name in lookup_variant_type"
+
+ (* if isblock then (0, "Some") else (0, "None")*)
 
 let rec read_untyped env debug_typ v typ =
   Printf.printf "read_untyped: considering %s of type %s\n" (string_of_untyped v) debug_typ;
@@ -59,12 +85,12 @@ let rec read_untyped env debug_typ v typ =
       Record (List.map (fun x -> ("contents", ref (read_untyped env debug_typ x elt_typ))) (Array.to_list vs))
   | UInt x, Ptyp_constr ({txt = Longident.Lident vartypename}, [elt_typ]) ->
       (* e.g None *)
-      let tag, name = lookup_variant_type vartypename x false in
-        Constr (tag, name, None)
+      let name = lookup_variant_type env vartypename x false in
+        Constr (x, name, None)
   | UBlock (x, [|v|]), Ptyp_constr ({txt = Longident.Lident vartypename}, [elt_typ]) ->
       (* e.g Some x *)
-      let tag, name = lookup_variant_type vartypename x true in
-        Constr (tag, name, Some (read_untyped env debug_typ v elt_typ))
+      let name = lookup_variant_type env vartypename x true in
+        Constr (x, name, Some (read_untyped env debug_typ v elt_typ))
   | UDoubleArray arr, _ -> Array (Array.map (fun x -> Float x) arr)
   | b, _ -> failwith (Printf.sprintf "read_untyped: unimplemented : %s of type %s" (string_of_untyped b) debug_typ)
 
