@@ -728,6 +728,8 @@ and eval_first_non_value_item peek (env : env) r = function
     List.rev r @ [ModuleBinding (name, apply_functor env modf modx)] @ t
 | Open name as h::t ->
     eval_first_non_value_item peek (open_module name env) (h::r) t
+| TypeDef td as h::t ->
+    eval_first_non_value_item peek (EnvType td::env) (h::r) t
 | h::t ->
     if is_value h then
       let env' =
