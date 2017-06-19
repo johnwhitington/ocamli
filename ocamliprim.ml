@@ -118,7 +118,7 @@ let mk5 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") ?(x5="p") name f =
 (* not implemented *)
 let caml_register_named_value =
   mk2 "caml_register_named_value"
-    (function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
+    (function env -> function [String name; func] -> Unit | _ -> failwith "builtin_caml_register_value")
 
 
 (* BEGINNING OF VALUE TESTS *)
@@ -126,9 +126,9 @@ external array_safe_get : 'a array -> int -> 'a = "%array_safe_get"
 
 let percent_array_safe_get =
   mk2 "%array_safe_get"
-    (function [Array x; Int i] ->
+    (function env -> function [Array x; Int i] ->
       (try
-         Tinyexternal.of_ocaml_value [] (array_safe_get (Tinyexternal.to_ocaml_value (Array x)) i) "int"
+         Tinyexternal.of_ocaml_value env (array_safe_get (Tinyexternal.to_ocaml_value (Array x)) i) "int"
        with
          e -> exception_from_ocaml e)
      | _ -> failwith "percent_array_safe_get")
@@ -138,9 +138,9 @@ external percent_boolnot : bool -> bool = "%boolnot"
 
 let percent_boolnot =
   mk "%boolnot"
-    (function [Bool b] ->
+    (function env -> function [Bool b] ->
        begin try
-         Tinyexternal.of_ocaml_value [] (percent_boolnot (Tinyexternal.to_ocaml_value (Bool b))) "bool"
+         Tinyexternal.of_ocaml_value env (percent_boolnot (Tinyexternal.to_ocaml_value (Bool b))) "bool"
        with
          e -> exception_from_ocaml e
        end
@@ -151,9 +151,9 @@ external percent_negfloat : float -> float = "%negfloat"
 
 let percent_negfloat =
   mk "%negfloat"
-    (function [Float f] ->
+    (function env -> function [Float f] ->
        begin try
-         Tinyexternal.of_ocaml_value [] (percent_negfloat (Tinyexternal.to_ocaml_value (Float f))) "float"
+         Tinyexternal.of_ocaml_value env (percent_negfloat (Tinyexternal.to_ocaml_value (Float f))) "float"
        with
          e -> exception_from_ocaml e
        end
@@ -164,7 +164,7 @@ external caml_int_of_string : string -> int = "caml_int_of_string"
 
 let caml_int_of_string =
   mk "caml_int_of_string"
-    (function [String s] ->
+    (function env -> function [String s] ->
        begin try
          Tinyexternal.of_ocaml_value []
            (caml_int_of_string (Tinyexternal.to_ocaml_value (String s)))
@@ -174,13 +174,12 @@ let caml_int_of_string =
        end
      | _ -> failwith "caml_int_of_string")
 
-
 (* INT IN / STRING OUT *)
 external caml_create_string : int -> string = "caml_create_string"
 
 let caml_create_string =
   mk "caml_create_string"
-    (function [Int i] ->
+    (function env -> function [Int i] ->
        begin try
          Tinyexternal.of_ocaml_value []
            (caml_create_string (Tinyexternal.to_ocaml_value (Int i)))
@@ -195,7 +194,7 @@ external caml_ba_init : unit -> unit = "caml_ba_init"
 
 let caml_ba_init =
   mk "caml_ba_init"
-    (function [Unit] ->
+    (function env -> function [Unit] ->
       Tinyexternal.of_ocaml_value [] (caml_ba_init (Tinyexternal.to_ocaml_value Unit)) "unit"
      | _ -> failwith "caml_ba_init")
 
@@ -206,60 +205,60 @@ external bytes_to_string : bytes -> string = "%bytes_to_string"
 
 let percent_bytes_to_string =
   mk "%bytes_to_string"
-    (function [String x] -> String (String.copy x)
+    (function env -> function [String x] -> String (String.copy x)
      | _ -> failwith "%bytes_to_string")
 
 
 let percent_backend_type =
   mk "%backend_type"
-    (function
+    (function env -> function
      | [Unit] -> Constr (0, "Other", Some (String "ocamli")) (* FIXME tag *)
      | _ -> failwith "percent_backend_type")
 
 let percent_raise =
   mk "%raise"
-    (function
+    (function env -> function
      | [Constr (_, n, eopt)] -> Raise (n, eopt)
      | _ -> failwith "percent_raise")
 
 let percent_raise_notrace =
   mk "%raise_notrace"
-    (function [e] -> Raise ("FixPercentRaiseNotrace", None) | _ -> failwith "percent_raise_notrace")
+    (function env -> function [e] -> Raise ("FixPercentRaiseNotrace", None) | _ -> failwith "percent_raise_notrace")
 
 let percent_apply =
   mk2 "%apply"
-    (function [f; a] -> App (f, a)
+    (function env -> function [f; a] -> App (f, a)
      | _ -> failwith "percent_apply")
 
 let percent_revapply =
   mk2 "%revapply"
-    (function [a; f] -> App (f, a)
+    (function env -> function [a; f] -> App (f, a)
      | _ -> failwith "percent_revapply")
 
 let percent_identity =
   mk "%identity"
-    (function [x] -> x
+    (function env -> function [x] -> x
      | _ -> failwith "percent_identity")
 
 let percent_makemutable =
   mk "%makemutable"
-    (function [e] -> Record [("contents", ref e)]
+    (function env -> function [e] -> Record [("contents", ref e)]
      | _ -> failwith "percent_makemutable") 
 
 let percent_field0 =
   mk "%field0"
-    (function [Record [(_, {contents = e})]] -> e
+    (function env -> function [Record [(_, {contents = e})]] -> e
      | _ -> failwith "percent_field0")
 
 let percent_setfield0 =
   mk2 "%setfield0"
-    (function
+    (function env -> function
       [Record [(_, r)]; e] -> r := e; Unit
      | _ -> failwith "percent_setfield0")
 
 let percent_compare =
   mk2 "%compare"
-    (function [a; b] -> Int (compare a b)
+    (function env -> function [a; b] -> Int (compare a b)
      | _ -> failwith "percent_compare") (* Obviously not *) 
 
 
@@ -270,7 +269,7 @@ external inet_addr_of_string : string -> Unix.inet_addr
 (* FIXME This Obj.magic stuff - can we avoid it? *)
 let unix_inet_addr_of_string =
   mk "unix_inet_addr_of_string"
-    (function [String s] -> String (Obj.magic (inet_addr_of_string s))
+    (function env -> function [String s] -> String (Obj.magic (inet_addr_of_string s))
      | _ -> failwith "unix_inet_addr_of_string")
 
 
@@ -278,7 +277,7 @@ let unix_inet_addr_of_string =
 
 let caml_sys_get_argv =
   mk "caml_sys_get_argv"
-    (function [Unit] ->
+    (function env -> function [Unit] ->
        Tuple [String !exe; Array (Array.map (fun x -> String x) !argv)]
      | _ -> failwith "caml_sys_get_argv")
 
@@ -286,35 +285,35 @@ external get_config: unit -> string * int * bool = "caml_sys_get_config"
 
 let caml_sys_get_config =
   mk "caml_sys_get_config"
-    (function [Unit] ->
+    (function env -> function [Unit] ->
        let s, i, b = get_config () in
          Tuple [String s; Int i; Bool b]
      | _ -> failwith "caml_sys_get_config")
 
 let caml_obj_tag =
   mk "caml_obj_tag"
-    (function _ -> Int 0)
+    (function env -> function _ -> Int 0)
 
 let percent_obj_field =
   mk2 "%obj_field"
-    (function [e; Int i] -> e
+    (function env -> function [e; Int i] -> e
      | _ -> failwith "percent_obj_field") 
 
 let caml_obj_block =
   mk2 "caml_obj_block"
-    (function [Int a; Int b] -> Int 0
+    (function env -> function [Int a; Int b] -> Int 0
      | _ -> failwith "caml_obj_block")
 
 let caml_make_vect =
   mk2 "caml_make_vect"
-    (function [Int len; x] -> Array (Array.make len x)
+    (function env -> function [Int len; x] -> Array (Array.make len x)
      | _ -> failwith "caml_make_vect")
 
 external unsafe_fill : bytes -> int -> int -> char -> unit = "caml_fill_string" [@@noalloc]
 
 let caml_fill_string =
   mk4 "caml_fill_string"
-    (function
+    (function env -> function
        [String b; Int x; Int y; Char c] -> unsafe_fill (Bytes.unsafe_of_string b) x y c; Unit
      | _ -> failwith "caml_fill_string")
 
@@ -324,7 +323,7 @@ external caml_weak_create : int -> 'a w = "caml_weak_create"
 
 let caml_weak_create =
   mk "caml_weak_create"
-    (function
+    (function env -> function
         [Int i] -> Unit (* FIXME*)
       | _ -> failwith "caml_weak_create")
 
@@ -332,7 +331,7 @@ external getenv: string -> string = "caml_sys_getenv"
 
 let caml_sys_getenv =
   mk "caml_sys_getenv"
-    (function [String s] ->
+    (function env -> function [String s] ->
         begin try String (getenv s) with
           Not_found -> Raise ("Not_found", None) 
         end
@@ -342,7 +341,7 @@ external random_seed: unit -> int array = "caml_sys_random_seed"
 
 let caml_sys_random_seed =
   mk "caml_sys_random_seed"
-    (function [Unit] ->
+    (function env -> function [Unit] ->
         Array (Array.map (fun x -> Int x) (random_seed ()))
      | _ -> failwith "caml_sys_random_seed")
 
@@ -350,31 +349,31 @@ external percent_array_length: 'a array -> int = "%array_length"
 
 let percent_array_length =
   mk "%array_length"
-    (function [Array x] -> Int (Array.length x)
+    (function env -> function [Array x] -> Int (Array.length x)
      | _ -> failwith "percent_array_length")
 
 external set: 'a array -> int -> 'a -> unit = "%array_safe_set"
 
 let percent_array_safe_set =
   mk3 "%array_safe_set"
-    (function [Array x; Int i; v] -> set x i v; Unit
+    (function env -> function [Array x; Int i; v] -> set x i v; Unit
      | _ -> failwith "percent_array_safe_set")
 
 (* FIXME *)
 let thread_initialize =
   mk "thread_initialize"
-    (function _ -> Unit)
+    (function env -> function _ -> Unit)
 
 let unix_gettimeofday =
   mk "unix_gettimeofday"
-    (function [Unit] -> Float (Unix.gettimeofday ())
+    (function env -> function [Unit] -> Float (Unix.gettimeofday ())
      | _ -> failwith "unix_gettimeofday")
 
 external percent_string_safe_get : string -> int -> char = "%string_safe_get"
 
 let percent_string_safe_get =
   mk2 "%string_safe_get"
-    (function [String s; Int i] ->
+    (function env -> function [String s; Int i] ->
       begin try Char s.[i] with _ ->
          Raise ("Invalid_argument", Some (String "index out of bounds"))
       end
@@ -382,7 +381,7 @@ let percent_string_safe_get =
 
 let unix_fork =
   mk "unix_fork"
-    (function [Unit] -> Int (Unix.fork ())
+    (function env -> function [Unit] -> Int (Unix.fork ())
      | _ -> failwith "unix_fork")
 
 external percent_greaterthan : 'a -> 'a -> bool = "%greaterthan"
@@ -394,32 +393,32 @@ external percent_equal : 'a -> 'a -> bool = "%equal"
 
 let percent_greaterthan =
   mk2 "%greaterthan"
-    (function [x; y] -> Bool (x > y)
+    (function env -> function [x; y] -> Bool (x > y)
      | _ -> failwith "percent_greaterthan")
 
 let percent_greaterequal =
   mk2 "%greaterequal"
-    (function [x; y] -> Bool (x >= y)
+    (function env -> function [x; y] -> Bool (x >= y)
      | _ -> failwith "percent_greaterequal")
 
 let percent_lessthan =
   mk2 "%lessthan"
-    (function [x; y] -> Bool (x < y)
+    (function env -> function [x; y] -> Bool (x < y)
      | _ -> failwith "percent_lessthan")
 
 let percent_lessequal =
   mk2 "%lessequal"
-    (function [x; y] -> Bool (x <= y)
+    (function env -> function [x; y] -> Bool (x <= y)
      | _ -> failwith "percent_lessequal")
 
 let percent_notequal =
   mk2 "%notequal"
-    (function [x; y] -> Bool (x <> y)
+    (function env -> function [x; y] -> Bool (x <> y)
      | _ -> failwith "percent_notequal")
 
 let percent_equal =
   mk2 "%equal"
-    (function [x; y] -> Bool (x = y)
+    (function env -> function [x; y] -> Bool (x = y)
      | _ -> failwith "percent_equal")
 
 external caml_sys_open : string -> open_flag list -> int -> int = "caml_sys_open"
@@ -444,7 +443,7 @@ let rec convert_flags = function
 
 let caml_sys_open =
   mk3 "caml_sys_open"
-    (function [String filename; flags; Int perm] ->
+    (function env -> function [String filename; flags; Int perm] ->
        Int (caml_sys_open filename (convert_flags flags) perm)
      | _ -> failwith "caml_sys_open")
 
@@ -453,7 +452,7 @@ external caml_ml_set_channel_name' : in_channel -> string -> int = "caml_ml_set_
 
 let caml_ml_set_channel_name =
   mk2 "caml_ml_set_channel_name"
-    (function
+    (function env -> function
        [OutChannel x; String y] -> Int (caml_ml_set_channel_name x y)
      | [InChannel x; String y] -> Int (caml_ml_set_channel_name' x y)
      | x -> failwith "caml_ml_set_channel_name")
@@ -463,7 +462,7 @@ external caml_ml_close_channel' : in_channel -> unit = "caml_ml_close_channel"
 
 let caml_ml_close_channel =
   mk "caml_ml_close_channel"
-    (function
+    (function env -> function
        [OutChannel i] -> caml_ml_close_channel i; Unit
      | [InChannel i] -> caml_ml_close_channel' i; Unit
      | x -> failwith "caml_ml_close_channel")
@@ -472,7 +471,7 @@ external percent_bytes_of_string : string -> bytes = "%bytes_of_string"
 
 let percent_bytes_of_string =
   mk "%bytes_of_string"
-    (function [String x] -> String x
+    (function env -> function [String x] -> String x
      | _ -> failwith "percent_bytes_of_string")
 
 
@@ -480,7 +479,7 @@ external caml_blit_bytes : bytes -> int -> bytes -> int -> int -> unit = "caml_b
 
 let caml_blit_bytes =
   mk5 "caml_blit_bytes"
-    (function [String x; Int a; String y; Int b; Int c] ->
+    (function env -> function [String x; Int a; String y; Int b; Int c] ->
        caml_blit_bytes (Obj.magic x : bytes) a (Obj.magic y : bytes) b c;
        Unit
      | _ -> failwith "caml_blit_bytes")
@@ -493,7 +492,7 @@ let rec make_tinyocaml_list = function
 
 let caml_ml_out_channels_list =
   mk "caml_ml_out_channels_list"
-    (function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
+    (function env -> function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
      | _ -> failwith "caml_ml_out_channels_list")
 
 let builtin_primitives =
@@ -631,7 +630,7 @@ let lookup_primitive ?typ n =
     Not_found ->
       snd
         (mk n
-          (function
+          (function _ -> function
              [e] -> Raise ("UnknownPrimitive: " ^ n, None)
              | _ -> failwith "unknown unknown primitive"))
 

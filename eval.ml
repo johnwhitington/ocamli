@@ -512,7 +512,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     in
     if List.for_all is_value args
       then if not peek then
-        coerce typ (fn args)
+        coerce typ (fn env args)
       else Unit
       else CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
