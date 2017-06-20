@@ -390,7 +390,7 @@ let go () =
    let run code =
     if !printer = "simple" then Pptinyocaml.simple := true;
     Pptinyocaml.width := !width;
-    let state = Eval.init (Tinyocamlrw.of_real_ocaml !Eval.lib (Ocamliutil.ast ~filename:!mainfile code)) in
+    let state = Eval.init (snd (Tinyocamlrw.of_real_ocaml !Eval.lib (Ocamliutil.ast ~filename:!mainfile code))) in
        if !debugtiny then
          begin
            print_string (Tinyocaml.to_string (Eval.tiny state));

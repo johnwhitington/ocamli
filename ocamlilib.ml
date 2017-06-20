@@ -99,7 +99,7 @@ and load_module_from_struct name (env : Tinyocaml.env) themod : Tinyocaml.env =
 
 and load_module (name : string) (env : Tinyocaml.env) (file : string) : Tinyocaml.env =
   if !debug then Printf.printf "Loading module %s...%!" name;
-    let themod = Tinyocamlrw.of_real_ocaml env (ast ~filename:(filename_of_modname name) (load_file file)) in
+    let themod = snd (Tinyocamlrw.of_real_ocaml env (ast ~filename:(filename_of_modname name) (load_file file))) in
       if !debug then Printf.printf "read...%!";
       let r = load_module_from_struct name env themod in
       if !debug then Printf.printf "done\n%!";
@@ -107,7 +107,7 @@ and load_module (name : string) (env : Tinyocaml.env) (file : string) : Tinyocam
 
 and load_module_from_text (name : string) (env : Tinyocaml.env) (text : string) : Tinyocaml.env =
   if !debug then Printf.printf "Loading module from text %s...%!" name;
-    let themod = Tinyocamlrw.of_real_ocaml env (ast ~filename:(filename_of_modname name) text) in
+    let themod = snd (Tinyocamlrw.of_real_ocaml env (ast ~filename:(filename_of_modname name) text)) in
       if !debug then Printf.printf "read...%!";
       let r = load_module_from_struct name env themod in
       if !debug then Printf.printf "done\n%!";

@@ -16,11 +16,11 @@ untyped_of_ocaml_value\
 \
 \
 \
-let x = of_string "type t = A | B of int | C | D of string let _ = B 5"\
+let env, x = of_string "type t = A | B of int | C | D of string let _ = B 5"\
 \
-let y = to_ocaml_value x (have it pick up the let _ = ... ?)\
+let y = to_ocaml_value x\
 \
-let z = of_ocaml_value y "t"\
+let z = of_ocaml_value env y "t"\
 \
 \
 }

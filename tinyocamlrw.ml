@@ -254,7 +254,7 @@ and of_real_ocaml_module_type env module_type =
 
 and of_real_ocaml_module_expr env module_expr =
   match module_expr.pmod_desc with
-    Pmod_structure s -> Struct (true, of_real_ocaml_structure env [] s)
+    Pmod_structure s -> Struct (true, snd (of_real_ocaml_structure env [] s))
   | Pmod_constraint (module_expr, module_type) ->
       ModuleConstraint
         (of_real_ocaml_module_type env module_type,
@@ -335,14 +335,15 @@ and of_real_ocaml_structure_item env = function
 
 and of_real_ocaml_structure (env : env) (acc : t list) (items : structure_item list) =
   match items with
-  | [] -> List.rev acc
+  | [] -> env, List.rev acc
   | s::ss ->
       match of_real_ocaml_structure_item env s with
         (None, _) -> of_real_ocaml_structure env acc ss
       | (Some s, env') -> of_real_ocaml_structure env' (s::acc) ss
 
 let of_real_ocaml env x =
-  Struct (false, of_real_ocaml_structure env [] x)
+  let env', str = of_real_ocaml_structure env [] x in
+    (env', Struct (false, str))
 
 let _ =
   Ocamliprim.of_real_ocaml := of_real_ocaml
@@ -415,8 +416,21 @@ let to_real_ocaml x =
   [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
     pstr_loc = Location.none}]
 
+(* For debug, take something like:
+  *
+  * type t = A | B of int
+  *
+  * let _ = B 5
+  *
+  *
+  * and return a Tinyocaml.t representation of expression "B 5" and the Tinyocaml.env including 't' *)
+let extract_from_let = function
+  LetDef (_, [(_, e)]) -> e
+| e -> e
+
 let of_string s =
   match of_real_ocaml [] (ast s) with
-    Struct (_, [x]) -> x
+    env, Struct (_, (_::_ as l)) ->
+      (env, extract_from_let (List.hd (List.rev l)))
   | _ -> failwith "Tinyocaml.of_string"
 

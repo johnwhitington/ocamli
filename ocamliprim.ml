@@ -20,10 +20,10 @@ let percent_word_size =
 *)
 
 (* Build a Raise () from a native OCaml exn. *)
-let of_real_ocaml = ref (fun (_ : Tinyocaml.env) _ -> Tinyocaml.Int 0)
+let of_real_ocaml = ref (fun (_ : Tinyocaml.env) _ -> ([], Tinyocaml.Int 0))
 
 let exception_from_ocaml e =
-  !of_real_ocaml [] (ast ("raise (" ^ Printexc.to_string e ^ ")"))
+  snd (!of_real_ocaml [] (ast ("raise (" ^ Printexc.to_string e ^ ")")))
 
 [%%auto {|external word_size : unit -> int = "%word_size"|}]
 [%%auto {|external int_size : unit -> int = "%int_size"|}]
