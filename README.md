@@ -1,3 +1,5 @@
+Foo
+
 Tiny OCaml
 ==========
 
