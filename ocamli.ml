@@ -2,6 +2,8 @@ open Runeval
 open Ocamliutil
 open Tinyocaml
 
+let version = "4.05.0"
+
 let setdebug () =
   Runeval.debug := true;
   Eval.debug := true;
@@ -81,8 +83,14 @@ let settext s =
   if !ename <> "" then create_cmi_cmo !ename s;
   ename := ""
 
+let printversion () =
+  print_string version;
+  print_string "\n";
+  exit 0
+
 let argspec =
-  [("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
+  [("-version", Arg.Unit printversion, " Print the version number of ocamli");
+   ("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
    ("-regexp", Arg.Set regexp, " Search terms are regular expressions rather than the built-in system");
    ("-no-parens", Arg.Set noparens, "Ignore parentheses and begin and end when matching with classic search syntax");
    ("-invert-search", Arg.Set invertsearch, " Invert the search, showing non-matching steps");
@@ -410,7 +418,7 @@ let go () =
      try
        if not !top then
          match load_code () with
-           None -> failwith "No source code provided"
+           None -> print_string "No source code provided.\n"; exit 1
          | Some x -> run x
      with
        Eval.ExceptionRaised(n, payload) ->
