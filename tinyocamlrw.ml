@@ -41,7 +41,7 @@ let rec tag_of_constructor_name env str =
         (* FIXME Not defined in stdlib + two stream ones because we don't deal with exception types in EnvType yet *)
         "Invalid_argument" | "Failure" | "None" | "Some"
       | "Stream.Error" | "Stream.Failure" | "GenHashTable.EDead" | "GenHashTable.EFalse" | "GenHashTable.ETrue" -> 0
-      | _ -> failwith (Printf.sprintf "constructor tag %s not found" str)
+      | _ -> 42 (* FIXME failwith (Printf.sprintf "constructor tag %s not found" str) *)
       end
   | EnvType t::more ->
       begin match tag_of_constructor_name_envtype 0 0 str t with
