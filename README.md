@@ -1,4 +1,4 @@
-Foo
+moFoo
 
 Tiny OCaml
 ==========
