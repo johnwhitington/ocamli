@@ -1,1 +1,0 @@
-raise (Stream.Error "foo")
