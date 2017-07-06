@@ -77,6 +77,11 @@ factorial (2 - 1)
 Examples
 --------
 
+The directory *examples* contains a number of little programs written for development.
+
+The directory *OCaml from the Very Beginning* contains all the examples and exercises from my beginner's OCaml textbook.
+
+
 Paper
 -----
 The eventual use of `ocamli` as a debugger is sketched in the position paper ["Visualizing the Evaluation of Functional Programs for Debugging"](http://www.cs.le.ac.uk/people/jw642/visfunc.pdf), given at SLATE'17 in June. 
@@ -102,7 +107,7 @@ The `ocamli` facilities for conversing with C code (such as OCaml `%external` de
 Use with C programs
 -------------------
 
-PPX example
+PPX_eval
 -----------
 
 Status
@@ -122,11 +127,10 @@ Future
 In short, make it more than a proof-of-concept:
 
 * Extend it to the full language
+* Better pretty-printing
 * Make it fast enough for general use
 * Easy invocation as a debugger regardless of build system or source structure\columnbreak
 * Better tools for searching and eliding
 * Allow interpretation of just one module -- other modules run at full speed
 * An interactive interface
 
-License
--------
