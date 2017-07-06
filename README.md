@@ -43,11 +43,71 @@ n = 1 =>  4 * (3 * (2 * (if n = 1 then 1 else n * factorial (n - 1))))
 
 
 ```
-(Mutable example)
 
-(I/O example)
+**Mutable code**
 
-(standard library example)
+Some of `ocamli`'s output is a little low-level for now, but it's important to emulate what OCaml itself does by making the actual calls to primitives like `%setfield0`:
+
+```
+    let x = ref 0 in (:= x (! x + 1)); (! x)
+=>  let x = let x = 0 in <<%makemutable>> in (:= x (! x + 1)); (! x)
+=>* let x = {contents = 0} in (:= x (! x + 1)); (! x)
+=>  let x = {contents = 0} in (:= {contents = 0} (! x + 1)); (! x)
+=>  let x = {contents = 0} in ((let x = {contents = 0} in fun y -> <<%setfield0>>) (! x + 1)); (! x)
+=>* let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) (! {contents = 0} + 1)); (! x)
+=>  let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) ((let x = {contents = 0} in <<%field0>>) + 1)); (! x)
+=>* let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) (0 + 1)); (! x)
+=>  let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) 1); (! x)
+=>  let x = {contents = 0} in (let y = 1 in let x = {contents = 0} in <<%setfield0>>); (! x)
+=>* let x = {contents = 1} in (); (! x)
+=>  let x = {contents = 1} in ! x
+=>  ! {contents = 1}
+=>  let x = {contents = 1} in <<%field0>>
+=>* 1
+```
+
+**Input/Output**
+
+Sometimes the approach of printing everything gets far too much. We will need methods for hiding this internal detail by default:
+
+```
+$ ocamli -e "print_int 42" -show-all
+    print_int 42
+=>  let string_length a = <<%string_length>> in let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let unsafe_output_string a b c d = <<caml_ml_output>> in let output_string oc s = unsafe_output_string oc s 0 (string_length s) in let i = 42 in output_string <out_channel> (string_of_int i)
+=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in fun s -> unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
+=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in fun s -> let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
+=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (let string_length a = <<%string_length>> in fun s -> let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
+=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
+=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int 42)
+=>  (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (let format_int a b = <<caml_format_int>> in let n = 42 in format_int "%d" n)
+=>  (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (let n = 42 in (let a = "%d" in fun b -> <<caml_format_int>>) n)
+=>* (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) ((fun b -> let a = "%d" in <<caml_format_int>>) 42)
+=>  (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (let b = 42 in let a = "%d" in <<caml_format_int>>)
+=>* (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) "42"
+=>  let s = "42" in let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)
+=>  let s = "42" in let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in unsafe_output_string <out_channel> s 0 (string_length s)
+=>  let s = "42" in let string_length a = <<%string_length>> in (let a = <out_channel> in fun b c d -> <<caml_ml_output>>) s 0 (string_length s)
+=>* let s = "42" in let string_length a = <<%string_length>> in (fun b -> let a = <out_channel> in fun c d -> <<caml_ml_output>>) "42" 0 (string_length s)
+=>  let s = "42" in let string_length a = <<%string_length>> in (let b = "42" in let a = <out_channel> in fun c d -> <<caml_ml_output>>) 0 (string_length s)
+=>* let s = "42" in let string_length a = <<%string_length>> in (let c = 0 in let b = "42" in let a = <out_channel> in fun d -> <<caml_ml_output>>) (string_length s)
+=>* let string_length a = <<%string_length>> in (fun d -> let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>) (string_length "42")
+=>  (fun d -> let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>) (let a = "42" in <<%string_length>>)
+=>* (fun d -> let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>) 2
+=>  let d = 2 in let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>
+42=>* ()
+```
+
+**Standard Library Functions**
+
+You should be able to use some or most of the Standard Library functions. Presently `Printf` and `Scanf` are not loaded due to bugs.
+
+```
+$ ocamli -e 'List.(map (fun x -> x * 2) (filter (fun x -> x > 2) [1; 2; 3; 4])))' -show
+List.([6; 8])
+```
+
+**Searching**
+
 
 "I want to see the last few steps before `if true`":
 
@@ -86,8 +146,69 @@ Paper
 -----
 The eventual use of `ocamli` as a debugger is sketched in the position paper ["Visualizing the Evaluation of Functional Programs for Debugging"](http://www.cs.le.ac.uk/people/jw642/visfunc.pdf), given at SLATE'17 in June. 
 
-Command line options
+Selected command line options
 --------------------
+
+`eval <filename | -e program> [-- arg1 arg2 ...]`
+
+**Loading and runnning programs:**
+ 
+ * -e  Evaluate the program text given
+ * -show  Print the final result of the program
+ * -show-all  Print steps of evaluation
+ * -e-name  Set the module name for the next -e instance
+ * -no-stdlib  Don't load the standard library (for speed)
+
+
+Multiple files and `-e` options may be given, and will be treated as zero or more modules followed by one main program.
+
+**Searching:**
+
+*  -search  Show only matching evaluation steps
+*  -regexp  Search terms are regular expressions rather than the built-in system
+*  -invert-search  Invert the search, showing non-matching steps
+*  -highlight Highlight the matching part of each matched step.
+*  -n  Show only <x> results
+*  -until  show only until this matches a printed step
+*  -after  show only after this matches a printed step
+*  -until-any  show only until this matches any step
+*  -after-any  show only after this matches any step
+*  -invert-after  invert the after condition
+*  -invert-until  invert the until condition
+*  -stop  stop computation after final search results
+*  -repeat  allow the after...until result to be repeated.
+*  -upto  show n lines up to each result line
+*  -times  Do many times
+
+**Interaction:**
+
+*  -prompt  Require enter after each step but last
+*  -step  Wait a number of seconds after each step but last  
+
+**Elision:**
+
+*  -remove-rec  Do not print the given recursive function
+*  -remove-rec-all  Do not print any recursive functions
+*  -show-pervasives  Show Pervasives such as :=
+*  -fast-curry  Apply all curried arguments at once. 
+*  -show-stdlib-init  Show initialisation of standard library
+*  -no-arith  Ellide simple arithmetic
+*  -no-if-bool Don't show if false, if true stage
+*  -no-var-lookup Don't show stage immediately after variable lookup 
+*  -side-lets Show value-lets at the side
+ 
+**Configuration:**
+
+*  -pp  Set the prettyprinter
+*  -width  Set the output width
+*  -top  Do nothing, exit cleanly (for top level) 
+*  -dtiny  Show Tinyocaml representation
+*  -dpp  Show the pretty-printed program
+*  -debug  Debug (for OCAMLRUNPARAM=b)
+*  -no-syntax  Don't use syntax highlighting
+*  -no-typecheck  Don't typecheck
+*  -no-collect  Don't collect unused lets
+*  -otherlibs  Location of OCaml otherlibs
 
 Implementation
 --------------
@@ -104,11 +225,35 @@ The `ocamli` facilities for conversing with C code (such as OCaml `%external` de
 
 
 
-Use with C programs
+Use at runtime
 -------------------
+
+The interpreter can be used at runtime, and the resulting value bought back into the caller:
+
+
+```
+# let x : int list * int list =
+  Tinyocaml.to_ocaml_value\\
+    (Runeval.eval_string "List.split [(1, 2); (3, 4)]");;
+val x : int list * int list = ([1; 3], [2; 4])
+```
+
+Support for this is very rudimentary at the moment.
 
 PPX_eval
 -----------
+
+Writing 
+
+```
+let compiler_command = [%compiletimestr "Sys.argv.(0)"])
+```
+
+in a normal compiled OCaml program with `PPX_eval` generates
+
+```
+let compiler_command = "ocamlopt"
+```
 
 Status
 ------
