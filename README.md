@@ -2,137 +2,50 @@ OCamli
 ======
 OCamli is a proof-of-concept step-by-step interpreter for OCaml programs intended for teaching purposes and, eventually, as a debugger. It works by reading an OCaml program into an abstract syntax tree, then interpreting the AST one reduction at a time, optionally displaying each reduction and underlining the reducible expression. For example:
 
-```
-$ ocamli -e "1 + 2 * 3" -show-all
-   1 + 2 * 3
-=> 1 + 6
-=> 7
-```
+![show](https://user-images.githubusercontent.com/1702581/27963403-de0a29e8-632c-11e7-90b1-854e0f81840b.png)
+
 
 With just `-show` instead:
 
-```
-$ ocamli -e "1 + 2 * 3" -show-all
-7
-```
+![showall](https://user-images.githubusercontent.com/1702581/27963402-de08f0f0-632c-11e7-8263-43e5f086819a.png)
+
+
 
 Running the classic factorial program, using a set of options to elide parts of the output (there are too many options, and the interface will be improved):
 
-```
-$ ocamli examples/factorial.ml -show-all -side-lets -remove-rec factorial -no-if-bool -no-arith
-    factorial 4
-n = 4 =>  if n = 1 then 1 else n * factorial (n - 1)
-n = 4 =>* n * factorial (n - 1)
-n = 4 =>  4 * factorial (n - 1)
-      =>  4 * factorial (4 - 1)
-      =>  4 * factorial 3
-n = 3 =>  4 * (if n = 1 then 1 else n * factorial (n - 1))
-n = 3 =>* 4 * (n * factorial (n - 1))
-n = 3 =>  4 * (3 * factorial (n - 1))
-      =>  4 * (3 * factorial (3 - 1))
-      =>  4 * (3 * factorial 2)
-n = 2 =>  4 * (3 * (if n = 1 then 1 else n * factorial (n - 1)))
-n = 2 =>* 4 * (3 * (n * factorial (n - 1)))
-n = 2 =>  4 * (3 * (2 * factorial (n - 1)))
-      =>  4 * (3 * (2 * factorial (2 - 1)))
-      =>  4 * (3 * (2 * factorial 1))
-n = 1 =>  4 * (3 * (2 * (if n = 1 then 1 else n * factorial (n - 1))))
-      =>* 4 * (3 * (2 * 1))
-      =>* 24
+![factorial](https://user-images.githubusercontent.com/1702581/27963400-ddeae8f8-632c-11e7-8ac1-9b5ef7493a4b.png)
 
-
-
-```
 
 **Mutable code**
 
 Some of `ocamli`'s output is a little low-level for now, but it's important to emulate what OCaml itself does by making the actual calls to primitives like `%setfield0`:
 
-```
-    let x = ref 0 in (:= x (! x + 1)); (! x)
-=>  let x = let x = 0 in <<%makemutable>> in (:= x (! x + 1)); (! x)
-=>* let x = {contents = 0} in (:= x (! x + 1)); (! x)
-=>  let x = {contents = 0} in (:= {contents = 0} (! x + 1)); (! x)
-=>  let x = {contents = 0} in ((let x = {contents = 0} in fun y -> <<%setfield0>>) (! x + 1)); (! x)
-=>* let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) (! {contents = 0} + 1)); (! x)
-=>  let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) ((let x = {contents = 0} in <<%field0>>) + 1)); (! x)
-=>* let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) (0 + 1)); (! x)
-=>  let x = {contents = 0} in ((fun y -> let x = {contents = 0} in <<%setfield0>>) 1); (! x)
-=>  let x = {contents = 0} in (let y = 1 in let x = {contents = 0} in <<%setfield0>>); (! x)
-=>* let x = {contents = 1} in (); (! x)
-=>  let x = {contents = 1} in ! x
-=>  ! {contents = 1}
-=>  let x = {contents = 1} in <<%field0>>
-=>* 1
-```
+![mutable](https://user-images.githubusercontent.com/1702581/27963398-dde74a22-632c-11e7-94a6-58a898e121ba.png)
+
+
 
 **Input/Output**
 
 Sometimes the approach of printing everything gets far too much. We will need methods for hiding this internal detail by default:
 
-```
-$ ocamli -e "print_int 42" -show-all
-    print_int 42
-=>  let string_length a = <<%string_length>> in let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let unsafe_output_string a b c d = <<caml_ml_output>> in let output_string oc s = unsafe_output_string oc s 0 (string_length s) in let i = 42 in output_string <out_channel> (string_of_int i)
-=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in fun s -> unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
-=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in fun s -> let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
-=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (let string_length a = <<%string_length>> in fun s -> let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
-=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in let i = 42 in (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int i)
-=>  let format_int a b = <<caml_format_int>> in let string_of_int n = format_int "%d" n in (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (string_of_int 42)
-=>  (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (let format_int a b = <<caml_format_int>> in let n = 42 in format_int "%d" n)
-=>  (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (let n = 42 in (let a = "%d" in fun b -> <<caml_format_int>>) n)
-=>* (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) ((fun b -> let a = "%d" in <<caml_format_int>>) 42)
-=>  (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) (let b = 42 in let a = "%d" in <<caml_format_int>>)
-=>* (fun s -> let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)) "42"
-=>  let s = "42" in let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in let oc = <out_channel> in unsafe_output_string oc s 0 (string_length s)
-=>  let s = "42" in let string_length a = <<%string_length>> in let unsafe_output_string a b c d = <<caml_ml_output>> in unsafe_output_string <out_channel> s 0 (string_length s)
-=>  let s = "42" in let string_length a = <<%string_length>> in (let a = <out_channel> in fun b c d -> <<caml_ml_output>>) s 0 (string_length s)
-=>* let s = "42" in let string_length a = <<%string_length>> in (fun b -> let a = <out_channel> in fun c d -> <<caml_ml_output>>) "42" 0 (string_length s)
-=>  let s = "42" in let string_length a = <<%string_length>> in (let b = "42" in let a = <out_channel> in fun c d -> <<caml_ml_output>>) 0 (string_length s)
-=>* let s = "42" in let string_length a = <<%string_length>> in (let c = 0 in let b = "42" in let a = <out_channel> in fun d -> <<caml_ml_output>>) (string_length s)
-=>* let string_length a = <<%string_length>> in (fun d -> let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>) (string_length "42")
-=>  (fun d -> let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>) (let a = "42" in <<%string_length>>)
-=>* (fun d -> let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>) 2
-=>  let d = 2 in let c = 0 in let b = "42" in let a = <out_channel> in <<caml_ml_output>>
-42=>* ()
-```
+![printint](https://user-images.githubusercontent.com/1702581/27963397-dde723c6-632c-11e7-982c-8ac81dd9014e.png)
+
 
 **Standard Library Functions**
 
 You should be able to use some or most of the Standard Library functions. Presently `Printf` and `Scanf` are not loaded due to bugs.
 
-```
-$ ocamli -e 'List.(map (fun x -> x * 2) (filter (fun x -> x > 2) [1; 2; 3; 4])))' -show
-List.([6; 8])
-```
+![listmap](https://user-images.githubusercontent.com/1702581/27963401-ddeb93f2-632c-11e7-9ccf-c22331236026.png)
+
 
 **Searching**
 
 
 "I want to see the last few steps before `if true`":
 
+![search](https://user-images.githubusercontent.com/1702581/27963399-ddea4c04-632c-11e7-85a1-3d2e8bb872af.png)
 
-```
-ocamli programs/factorial.ml -show-all -search "if true" -upto 3
-=>  3 * (2 * factorial (2 - 1))
-=>  3 * (2 * factorial 1)
-=>  3 * (2 * (let n = 1 in if n = 1 then 1 else n * factorial (n - 1)))
-=>  3 * (2 * (let n = 1 in if true then 1 else n * factorial (n - 1)))
-```
 
-Alternatively, we can annotate the node to be shown in the source with `[@show]`:
-
-```
-if n = 1 then 1 else n * (factorial (n - 1) [@show])
-```
-
-So when we run it:
-
-```
-$ ocamli programs/factorial.ml -show-annot
-factorial (3 - 1)
-factorial (2 - 1)
-```
 
 Examples
 --------
