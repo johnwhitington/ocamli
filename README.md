@@ -2,13 +2,11 @@ OCamli
 ======
 OCamli is a proof-of-concept step-by-step interpreter for OCaml programs intended for teaching purposes and, eventually, as a debugger. It works by reading an OCaml program into an abstract syntax tree, then interpreting the AST one reduction at a time, optionally displaying each reduction and underlining the reducible expression. For example:
 
-![show](https://user-images.githubusercontent.com/1702581/27963403-de0a29e8-632c-11e7-90b1-854e0f81840b.png)
-
+![showall](https://user-images.githubusercontent.com/1702581/27963402-de08f0f0-632c-11e7-8263-43e5f086819a.png)
 
 With just `-show` instead:
 
-![showall](https://user-images.githubusercontent.com/1702581/27963402-de08f0f0-632c-11e7-8263-43e5f086819a.png)
-
+![show](https://user-images.githubusercontent.com/1702581/27963403-de0a29e8-632c-11e7-90b1-854e0f81840b.png)
 
 
 Running the classic factorial program, using a set of options to elide parts of the output (there are too many options, and the interface will be improved):
@@ -52,7 +50,7 @@ Examples
 
 The directory *examples* contains a number of little programs written for development.
 
-The directory *OCaml from the Very Beginning* contains all the examples and exercises from my beginner's OCaml textbook.
+The directory *OCaml from the Very Beginning* contains all the examples and exercises from the beginner's OCaml [textbook](http://www.ocaml-book.com/).
 
 
 Paper
@@ -66,10 +64,10 @@ Selected command line options
 
 **Loading and runnning programs:**
  
- * -e  Evaluate the program text given
+ * -e \<string> Evaluate the program text given
  * -show  Print the final result of the program
  * -show-all  Print steps of evaluation
- * -e-name  Set the module name for the next -e instance
+ * -e-name \<string>  Set the module name for the next -e instance
  * -no-stdlib  Don't load the standard library (for speed)
 
 
@@ -77,30 +75,30 @@ Multiple files and `-e` options may be given, and will be treated as zero or mor
 
 **Searching:**
 
-*  -search  Show only matching evaluation steps
+*  -search \<search-term> Show only matching evaluation steps
 *  -regexp  Search terms are regular expressions rather than the built-in system
 *  -invert-search  Invert the search, showing non-matching steps
 *  -highlight Highlight the matching part of each matched step.
-*  -n  Show only <x> results
-*  -until  show only until this matches a printed step
-*  -after  show only after this matches a printed step
-*  -until-any  show only until this matches any step
-*  -after-any  show only after this matches any step
+*  -n \<integer> Show only <x> results
+*  -until \<search-term>  show only until this matches a printed step
+*  -after \<search-term> show only after this matches a printed step
+*  -until-any \<search-term> show only until this matches any step
+*  -after-any \<search-term> show only after this matches any step
 *  -invert-after  invert the after condition
 *  -invert-until  invert the until condition
 *  -stop  stop computation after final search results
 *  -repeat  allow the after...until result to be repeated.
-*  -upto  show n lines up to each result line
-*  -times  Do many times
+*  -upto \<n> show n lines up to each result line
+*  -times \<n> Do many times
 
 **Interaction:**
 
 *  -prompt  Require enter after each step but last
-*  -step  Wait a number of seconds after each step but last  
+*  -step /<float> Wait a number of seconds after each step but last  
 
 **Elision:**
 
-*  -remove-rec  Do not print the given recursive function
+*  -remove-rec \<string> Do not print the given recursive function
 *  -remove-rec-all  Do not print any recursive functions
 *  -show-pervasives  Show Pervasives such as :=
 *  -fast-curry  Apply all curried arguments at once. 
@@ -112,8 +110,8 @@ Multiple files and `-e` options may be given, and will be treated as zero or mor
  
 **Configuration:**
 
-*  -pp  Set the prettyprinter
-*  -width  Set the output width
+*  -pp <prettyprinter> Set the prettyprinter "normal" or "simple" (default)
+*  -width <integer> Set the output width
 *  -top  Do nothing, exit cleanly (for top level) 
 *  -dtiny  Show Tinyocaml representation
 *  -dpp  Show the pretty-printed program
@@ -121,7 +119,7 @@ Multiple files and `-e` options may be given, and will be treated as zero or mor
 *  -no-syntax  Don't use syntax highlighting
 *  -no-typecheck  Don't typecheck
 *  -no-collect  Don't collect unused lets
-*  -otherlibs  Location of OCaml otherlibs
+*  -otherlibs <path> Location of OCaml otherlibs (Unix, Bigarray, Str)
 
 Implementation
 --------------
@@ -174,7 +172,7 @@ The `ocamli` interpreter is a proof-of-concept. Do not expect it to run your lar
 
 It supports just enough of the language to load (and run the module initialisation of) most of the OCaml Standard Library. This is quite a large number of constructs, though, including functors, first class modules and so on.
 
-The `ocamli` interpreter can run almost all the programs in the *OCaml from the Very Beginning* textbook. The examples are included in the download.
+The `ocamli` interpreter can run almost all the programs in the *OCaml from the Very Beginning* [textbook](http://www.ocaml-book.com/). The examples are included in the download.
 
 The `ocamli` interpreter currently makes no guarantee of computational complexity, even when the steps of evaluation are not shown. The extent to which such a guarantee can be given is an open research question.
 
