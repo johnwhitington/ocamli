@@ -370,7 +370,7 @@ let go () =
           (!showpervasives || show_this_pervasive_stage (Eval.last ()))
         then
           begin
-            let preamble = if !skipped then "=>* " else "=>  " in
+            let preamble = (*if !skipped then "=>* " else*) "=>  " in
             if Eval.newlines state then print_string "\n";
             print_line (not !prompt) preamble (Eval.tiny state');
             skipped := false;

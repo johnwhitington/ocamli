@@ -10,6 +10,11 @@ let syntax = ref true
 (* If true, whole program printed on one line *)
 let simple = ref false
 
+let is_operator_char = function
+    '!' | '$' | '%' | '&' | '*' | '+' | '-' | '.' | '/' | ':' | '<' | '=' | '>'
+  | '?' | '@' | '^' | '|' | '~' -> true
+  | _ -> false
+
 (* Width to format to *)
 let width = ref 80
 
@@ -345,6 +350,17 @@ let rec print_tiny_inner f isleft parent node =
   | Fun ((_, _, _, fenv) as fn) ->
       (*if !debug then begin txt "|E|"; txt (to_string_env fenv); txt "|E|" end;*)
       print_series_of_funs lp rp f true (Some node) (Fun fn)
+  | (App (App (Var v, a), b) | App (Control (_, App (Var v, a)), b)) when is_operator_char v.[0] ->
+      str lp;
+      print_tiny_inner f true (Some node) a;
+      txt (" " ^ v ^ " ");
+      print_tiny_inner f false (Some node) b;
+      str rp
+  | App (Var v, e') when is_operator_char v.[0] ->
+      str lp;
+      print_tiny_inner f true (Some node) (Var v);
+      print_tiny_inner f false (Some node) e';
+      str rp
   | App (e, e') ->
       str lp;
       print_tiny_inner f true (Some node) e;
