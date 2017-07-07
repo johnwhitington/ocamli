@@ -15,6 +15,10 @@ let is_operator_char = function
   | '?' | '@' | '^' | '|' | '~' -> true
   | _ -> false
 
+let is_operator = function
+  "lsl" | "lsr" | "asr" | "mod" | "land" | "lor" | "lxor" -> true
+| v -> is_operator_char v.[0]
+
 (* Width to format to *)
 let width = ref 80
 
@@ -22,15 +26,33 @@ let fastcurry = ref false
 
 type assoc = L | R | N
 
+(* FIXME Add associativities for App (Var v, x) according to table *)
 let rec assoc = function
   Control (_, x) -> assoc x
 | Op _ | Cmp _ | App _ -> L
 | And _ | Or _ | Seq _ | SetField _ -> R
 | _ -> N
 
+(* FIXME Need to add Control possibilities to this, or strip controls? *)
 let prec = function
   Field _ -> 110
-| App _ -> 100
+| App (Var v, App (_, _)) when is_operator v ->
+    (* Binary operator application *)
+    begin match v with
+      "**" | "**." | "lsr" | "lsl" | "asr" -> 98
+    | "*" | "*." | "/" | "/." | "%" | "mod" | "land" | "lor" | "lxor" -> 97
+    | "+." | "-." -> 96
+    | "@" | "^" -> 95
+    | "=" | "<" | ">" | "<>" | "|" | "&" | "$" | "!=" -> 94
+    | "<-" | ":=" -> 93
+    | _ -> 100 (*FIXME*)
+    end
+| App (Var v, _) when is_operator v ->
+    99
+| Seq _ -> 91
+| App _ ->
+    (* All other function applications *)
+    100
 | Op ((Mul | Div), _, _) -> 90
 | Op (_, _, _) -> 80
 | Cmp _ -> 70
@@ -350,13 +372,13 @@ let rec print_tiny_inner f isleft parent node =
   | Fun ((_, _, _, fenv) as fn) ->
       (*if !debug then begin txt "|E|"; txt (to_string_env fenv); txt "|E|" end;*)
       print_series_of_funs lp rp f true (Some node) (Fun fn)
-  | (App (App (Var v, a), b) | App (Control (_, App (Var v, a)), b)) when is_operator_char v.[0] ->
+  | (App (App (Var v, a), b) | App (Control (_, App (Var v, a)), b)) when is_operator v ->
       str lp;
       print_tiny_inner f true (Some node) a;
       txt (" " ^ v ^ " ");
       print_tiny_inner f false (Some node) b;
       str rp
-  | App (Var v, e') when is_operator_char v.[0] ->
+  | App (Var v, e') when is_operator v ->
       str lp;
       print_tiny_inner f true (Some node) (Var v);
       print_tiny_inner f false (Some node) e';
