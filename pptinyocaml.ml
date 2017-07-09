@@ -60,9 +60,17 @@ let prec = function
 | Or _ -> 60
 | SetField _ -> 55
 | If _ -> 50
-| Fun _ | Function _ | Let _ -> 10
-| Struct _ -> 0 | Tuple _ -> 0 (* FIXME *)
-| _ -> max_int
+| Fun _ | Function _ | Let _ | LetDef _ -> 10
+| Struct _
+| Tuple _
+| Cons _ | Constr (_, _, _) | Var _ | TypeDef _ | While _ | For _ | Raise _
+| Match _ | TryWith _ | ExceptionDef _ | Control _ | CallBuiltIn _ |Sig _
+| ModuleBinding _ | ModuleConstraint _ | ModuleIdentifier _ | ModuleApply _
+| Functor (_, _, _) | Append _ | Assert _ | Open _ | LocalOpen _ | Include _
+| Lazy _ | Annot (_, _, _) -> 0
+| Unit | Nil | Int _ | Bool _ | Float _ | String _ | OutChannel _
+| InChannel _ | Record _ | Int32 _ | Int64 _ | NativeInt _ | Char _
+| Array _ -> max_int
 
 let parens node parent isleft =
   match parent with
