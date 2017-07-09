@@ -1,6 +1,6 @@
 (* Recursive function of one argument. *)
 let rec factorial n =
-  if n = 1 then 1 else n * factorial (n - 1) [@show]
+  if n = 1 then 1 else n * factorial (n - 1)
 in
-  factorial 3
+  factorial 4
 
