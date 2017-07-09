@@ -119,7 +119,7 @@ Multiple files and `-e` options may be given, and will be treated as zero or mor
 *  -no-syntax  Don't use syntax highlighting
 *  -no-typecheck  Don't typecheck
 *  -no-collect  Don't collect unused lets
-*  -otherlibs <path> Location of OCaml otherlibs (Unix, Bigarray, Str)
+*  -otherlibs <path> Location of OCaml otherlibs folder (Unix, Bigarray, Str)
 
 Implementation
 --------------

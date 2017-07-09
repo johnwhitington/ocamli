@@ -114,12 +114,12 @@ and load_module_from_text (name : string) (env : Tinyocaml.env) (text : string) 
       r
 
 let otherlib_modules () =
-  [("Unix",                    !otherlibs, "unix.ml");
+  [("Unix",                    !otherlibs ^ Filename.dir_sep ^ "unix", "unix.ml");
    (*("Num",                     !otherlibs, "num.ml");*) (* Not_found *)
    (*("Str",                     !otherlibs, "str.ml");*) (* modinit fails *)
    (*("Threads",                 !otherlibs, "thread.ml");*) (* not clear what files to use *)
    (*("Graphics",                !otherlibs, "graphics.ml");*) (* slow... *)
-   ("Bigarray",                 !otherlibs, "bigarray.ml")]
+   ("Bigarray",                 !otherlibs ^ Filename.dir_sep ^ "bigarray", "bigarray.ml")]
 
 (*let stdlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
