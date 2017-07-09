@@ -1,7 +1,7 @@
 SOURCES = example.ml
 
-#Uncomment this, and remove -ppx ../ppx_blob below to use the installed version
-#PACKS = ppx_blob
+#Uncomment this, and remove -ppx ../ppx_eval below to use the installed version
+#PACKS = ppx_eval
 
 RESULT = example
 

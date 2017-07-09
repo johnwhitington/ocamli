@@ -120,3 +120,16 @@ let extract_tiny = function
   Tinyocaml.Struct (_, [x]) -> x
 | _ -> failwith "extract_tiny"
 
+let eval_string_to_ast ?(filename="") s =
+  let state = Eval.init (snd (Tinyocamlrw.of_real_ocaml [] (ast ~filename s))) in (* FIXME ENV *)
+    let rec eval_inner state =
+      match Eval.next state with
+      | Next state ->
+          eval_inner state
+      | IsValue ->
+          extract_expression (Tinyocamlrw.to_real_ocaml (Eval.tiny state))
+      | Malformed _ | Unimplemented _ ->
+          failwith "evaluation failed"
+   in
+      eval_inner state
+
