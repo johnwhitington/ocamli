@@ -37,5 +37,5 @@ val show_this_pervasive_stage : Ocamliutil.last_op list -> bool
 val skipped : bool ref
 val wait_for_enter : unit -> unit
 val print_string : string -> unit
-val eval_string_to_ast : ?filename:string -> string -> Parsetree.expression
+val eval_string_to_ast : ?stdlib:bool -> ?filename:string -> string -> Parsetree.expression
 

@@ -21,4 +21,6 @@ cd ../secd
 make clean
 cd ../ppx_auto
 make clean
+cd ../ppx_eval/example
+make clean
 

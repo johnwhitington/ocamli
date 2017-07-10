@@ -120,7 +120,9 @@ let extract_tiny = function
   Tinyocaml.Struct (_, [x]) -> x
 | _ -> failwith "extract_tiny"
 
-let eval_string_to_ast ?(filename="") s =
+(* This is just for the use of ppx_eval *)
+let eval_string_to_ast ?(stdlib=true) ?(filename="") s =
+  if stdlib then Ocamlilib.load_library ();
   let state = Eval.init (snd (Tinyocamlrw.of_real_ocaml [] (ast ~filename s))) in (* FIXME ENV *)
     let rec eval_inner state =
       match Eval.next state with
