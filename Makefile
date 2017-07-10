@@ -12,6 +12,7 @@ RESULT = ocamli
 OCAMLNCFLAGS = -g -w -3 -w -40 -ppx ppx_auto/ppx_auto
 OCAMLBCFLAGS = -g -w -3 -w -40 -ppx ppx_auto/ppx_auto
 OCAMLLDFLAGS = -g
+CFLAGS = -fPIC
 
 all : ppx_auto native-code native-code-library byte-code-library 
 
