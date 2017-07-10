@@ -2,16 +2,15 @@ OCamli
 ======
 OCamli is a proof-of-concept step-by-step interpreter for OCaml programs intended for teaching purposes and, eventually, as a debugger. It works by reading an OCaml program into an abstract syntax tree, then interpreting the AST one reduction at a time, optionally displaying each reduction and underlining the reducible expression. For example:
 
-![showall](https://user-images.githubusercontent.com/1702581/27963402-de08f0f0-632c-11e7-8263-43e5f086819a.png)
+![showall](https://user-images.githubusercontent.com/1702581/28017901-0502774c-6573-11e7-94df-822a260b82c5.png)
 
 With just `-show` instead:
 
-![show](https://user-images.githubusercontent.com/1702581/27963403-de0a29e8-632c-11e7-90b1-854e0f81840b.png)
-
+![show](https://user-images.githubusercontent.com/1702581/28017899-0501478c-6573-11e7-9966-4482ad0c6baf.png)
 
 Running the classic factorial program, using a set of options to elide parts of the output (there are too many options, and the interface will be improved):
 
-![factorial](https://user-images.githubusercontent.com/1702581/27963400-ddeae8f8-632c-11e7-8ac1-9b5ef7493a4b.png)
+![factorial](https://user-images.githubusercontent.com/1702581/28017898-04bdaf04-6573-11e7-9237-c73a223f8d7b.png)
 
 
 **Mutable code**
@@ -33,16 +32,16 @@ Sometimes the approach of printing everything gets far too much. We will need me
 
 You should be able to use some or most of the Standard Library functions. Presently `Printf` and `Scanf` are not loaded due to bugs.
 
-![listmap](https://user-images.githubusercontent.com/1702581/27963401-ddeb93f2-632c-11e7-9ccf-c22331236026.png)
+![listmap](https://user-images.githubusercontent.com/1702581/28017902-0503bda0-6573-11e7-8315-a419189c2c29.png)
+
 
 
 **Searching**
 
 
-"I want to see the last few steps before `if true`":
+"I want to see the last few steps before `2 * 1`:
 
-![search](https://user-images.githubusercontent.com/1702581/27963399-ddea4c04-632c-11e7-85a1-3d2e8bb872af.png)
-
+![search](https://user-images.githubusercontent.com/1702581/28016945-934d9a90-656e-11e7-9d2e-563af155d8ee.png)
 
 
 Examples
