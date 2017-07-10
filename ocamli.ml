@@ -289,8 +289,6 @@ let highlight_search regexp plainstr str =
 
 
 let print_line newline preamble tiny =
-  cache := string_of_tiny ~preamble:"    " tiny :: !cache;
-  clean_cache ();
   let invert x = if x then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
   let matched =
@@ -328,7 +326,10 @@ let print_line newline preamble tiny =
       begin
         inrange := false;
         if !repeat then print_string "\n" else numresults := 0
-      end
+      end;
+  (* Update the cache *)
+  cache := string_of_tiny ~preamble:"    " tiny :: !cache;
+  clean_cache ();
 
 external reraise : exn -> 'a = "%reraise"
 
