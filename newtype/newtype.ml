@@ -361,7 +361,7 @@ and seval_first_non_value_binding env = function
 
 (* string -> ocaml ast -> tinyocaml ast -> newtype ast *)
 let of_program_text s =
-  of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
+  of_tinyocaml (snd (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s)))
 
 (* newtype ast -> tinyocaml ast -> pptinyocaml -> string *)
 let to_program_text x =
