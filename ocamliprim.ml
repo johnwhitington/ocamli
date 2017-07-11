@@ -697,7 +697,8 @@ let add_type typ (name, implementation) =
     implementation
 
 let lookup_primitive ?typ n =
-  try add_type typ (n, (List.assoc n builtin_primitives)) with
+  let prims = if !emulated then builtin_primitives_emulated else builtin_primitives in
+  try add_type typ (n, (List.assoc n prims)) with
     Not_found ->
       snd
         (mk n
