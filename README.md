@@ -189,3 +189,9 @@ In short, make it more than a proof-of-concept:
 * Allow interpretation of just one module -- other modules run at full speed
 * An interactive interface
 
+
+Building
+--------
+
+Should work on all platforms with OCaml 4.05. To build, run the `build` script. You will need `ocamlfind` and `ppx_tools` installed, both of which are available on OPAM.
+

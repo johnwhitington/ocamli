@@ -1,5 +1,9 @@
 val debug : bool ref
 
+(* For now, we allow the continuation of the "emulated" primitives, to work
+ * around the C interface not being finished yet. *)
+val emulated : bool ref
+
 val exe : string ref
 val argv : string array ref
 

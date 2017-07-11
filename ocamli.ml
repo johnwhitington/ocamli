@@ -133,6 +133,7 @@ let argspec =
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
    ("-side-lets", Arg.Set sidelets, "Show value-lets at the side");
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs");
+   ("-emulated-stdlib", Arg.Set Ocamliprim.emulated, " Use emulated Standard Library %externals");
    ("-times", Arg.Set_int times, " Do many times");
    ("--", Arg.Rest argv, "")]
 

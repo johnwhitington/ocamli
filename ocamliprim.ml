@@ -83,6 +83,8 @@ let argv = ref [||]
 
 let debug = ref false
 
+let emulated = ref false
+
 let mk name f =
   (name, Fun (NoLabel, PatVar "*x", CallBuiltIn (None, name, [Var "*x"], f), []))
 
@@ -133,6 +135,15 @@ let percent_array_safe_get =
          e -> exception_from_ocaml e)
      | _ -> failwith "percent_array_safe_get")
 
+let emulated_percent_array_safe_get =
+  mk2 "%array_safe_get"
+    (function env -> function [Array x; Int i] ->
+       (try
+          x.(i)
+        with
+          e -> exception_from_ocaml e)
+     | _ -> failwith "percent_array_safe_get")
+
 (* BOOL IN / OUT *)
 external percent_boolnot : bool -> bool = "%boolnot"
 
@@ -146,6 +157,17 @@ let percent_boolnot =
        end
      | _ -> failwith "percent_boolnot")
 
+
+let emulated_percent_boolnot =
+  mk "%boolnot"
+    (function env -> function [Bool b] ->
+       begin try
+         Bool (not b)
+       with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "percent_boolnot")
+
 (* FLOAT IN / OUT *)
 external percent_negfloat : float -> float = "%negfloat"
 
@@ -154,6 +176,16 @@ let percent_negfloat =
     (function env -> function [Float f] ->
        begin try
          Tinyexternal.of_ocaml_value env (percent_negfloat (Tinyexternal.to_ocaml_value (Float f))) "float"
+       with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "percent_negfloat")
+
+let emulated_percent_negfloat =
+  mk "%negfloat"
+    (function env -> function [Float f] ->
+       begin try
+         Float (~-. f)
        with
          e -> exception_from_ocaml e
        end
@@ -174,6 +206,16 @@ let caml_int_of_string =
        end
      | _ -> failwith "caml_int_of_string")
 
+let emulated_caml_int_of_string =
+  mk "caml_int_of_string"
+    (function env -> function [String s] ->
+       begin try
+         Int (int_of_string s)
+       with 
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "caml_int_of_string")
+
 (* INT IN / STRING OUT *)
 external caml_create_string : int -> string = "caml_create_string"
 
@@ -189,8 +231,24 @@ let caml_create_string =
        end
      | _ -> failwith "caml_create_string")
 
+let emulated_caml_create_string =
+  mk "caml_create_string"
+    (function env -> function [Int i] ->
+       begin try
+         String (String.create i)
+       with
+         e -> exception_from_ocaml e
+       end
+     | _ -> failwith "caml_create_string")
+
 (* UNIT IN / UNIT OUT *)
 external caml_ba_init : unit -> unit = "caml_ba_init"
+
+let emulated_caml_ba_init =
+  mk "caml_ba_init"
+    (function env -> function [Unit] ->
+      caml_ba_init (); Unit
+     | _ -> failwith "caml_ba_init")
 
 let caml_ba_init =
   mk "caml_ba_init"
@@ -495,7 +553,7 @@ let caml_ml_out_channels_list =
     (function env -> function [Unit] -> make_tinyocaml_list (List.map (fun x -> OutChannel x) (caml_ml_out_channels_list ()))
      | _ -> failwith "caml_ml_out_channels_list")
 
-let builtin_primitives =
+let builtin_primitives_common =
   [caml_sys_exit;
   caml_ml_out_channels_list;
   caml_blit_bytes;
@@ -509,7 +567,6 @@ let builtin_primitives =
   caml_sys_random_seed;
   caml_sys_getenv;
   caml_weak_create;
-  caml_ba_init;
   caml_fill_string;
   caml_make_vect;
   caml_obj_block;
@@ -524,8 +581,6 @@ let builtin_primitives =
   caml_format_int;
   caml_ml_input_scan_line;
   caml_ml_input_char;
-  caml_int_of_string;
-  caml_create_string;
   caml_create_bytes;
   caml_int64_float_of_bits;
   caml_sqrt_float;
@@ -585,14 +640,30 @@ let builtin_primitives =
   percent_setfield0;
   percent_compare;
   percent_addint;
-  percent_array_safe_get;
+
   percent_ostype_unix;
   percent_ostype_win32;
   percent_ostype_cygwin;
   percent_lsrint;
-  percent_negint;
-  percent_boolnot;
 ]
+
+let builtin_primitives =
+  [percent_array_safe_get;
+   percent_boolnot;
+   percent_negfloat;
+   caml_int_of_string;
+   caml_create_string;
+   caml_ba_init]
+  @ builtin_primitives_common
+
+let builtin_primitives_emulated =
+  [emulated_percent_array_safe_get;
+   emulated_percent_boolnot;
+   emulated_percent_negfloat;
+   emulated_caml_int_of_string;
+   emulated_caml_create_string;
+   emulated_caml_ba_init]
+  @ builtin_primitives_common
 
 (* For %identity, we need to annotate the output type, so that eval.ml can do
 the coercion at runtime. *)
