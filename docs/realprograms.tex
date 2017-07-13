@@ -13,26 +13,90 @@
 \usepackage{attrib}
 \begin{document}
 
-\title{Complications}
+\title{Making \textsf{ocamli} Work for Real Programs}
 \maketitle
 
-\section*{The Standard Library}
+\section*{What We Want to Achieve}
 
-\section*{Polymorphic Comparison, Hashing, Serialization}
+\begin{enumerate}
+\item Interpreting a mixed OCaml/C program with arbitrary outside code in C. OCaml has the \texttt{\%external} keyword and C macros for this, so it is well-defined. Complications: function pointers, callbacks, custom blocks.
+\item Interpreting just one module of an OCaml program and running others in bytecode (Dynlink?) or native code (dlopen?).
+\item As a special case of this, running the Standard Library full speed always.
+\item Calling the debugger from any build system. We envisage this to be done by making the debugger take a command line just like the final build step.
+\end{enumerate}
+
+\section*{Key Tasks}
+
+It is important to distinguish various things when we talk about making the interpreter run real programs using arbitrary libraries:
+
+\begin{enumerate}
+\item Getting the interpreter linked with the parts of the program not in plain OCaml -- so it may call the outside functions. This may be static or dynamic linking.
+\item Getting the \texttt{\%external} definitions compiled in so that OCaml can actually call those outside functions.
+\item Actually calling a function (converting interpreter's data structure to OCaml heap value, reading back any resultant heap value into the interpreter's data structure).
+\item Ensuring that modules (both C and OCaml) are run module-initialisation in the same order when interpreted as in normal operation for semantic consistency.
+\end{enumerate}
+
+\section*{Achieved So Far}
+
+\begin{enumerate}
+\item We can convert \texttt{Tinyocaml.t} values to and from heap values in the OCaml heap. Since whatever scheme we do will involve the interpreter and the target program being linked in to the same heap, this is sufficient. No custom blocks, functions yet.
+\end{enumerate}
+
+\section*{Standard Library Tasks}
+
+\subsection*{Polymorphic Comparison, Hashing, Serialization}
 
 We need to do our own polymorphic comparison, which must act exactly the same as that of the OCaml runtime. Two approaches: (a) Write our own, which would traverse the \texttt{Tinyocaml.t} datatype (b) Convert the data structures to be compared into the OCaml heap representation and call \texttt{compare\_val} directly.
 
-\section*{Interfacing with C}
+\section*{New Strategy 13th Jul 2017}
 
-OCaml has a system for interfacing with C-like languages using \texttt{external} calls. We need to be able to (a) Convert any \texttt{Tinyocaml.t} into an OCaml heap object and (b) Convert any OCaml heap object back into \texttt{Tinyocaml.t}. Biggest complication: what happens when a closure is passed or returned?
+Can we implement this whole thing using PPX? A new \textsf{PPX\_interpret} is created. This converts each OCaml source file to an interpreted version with exactly the same interface.
 
-\section*{Interfacing with the expectation of a Runtime}
+\begin{itemize}
+\item No changes to build system
+\item Everything just works
+\item Interpret one module or many (Annotate [@interpret] for example)
+\item Just remember to link in ocamli-support.o for the C parts of ocamli.
+\item Module initialisation problem goes away too...
+\end{itemize}
 
-C code linked to OCaml code can create OCaml heap items, interact with the OCaml runtime, and make callbacks. So, there will be another OCaml runtime running (in addition to the interpreter's). How will we communicate with it? Or can we make a runtime shim and capture all the calls? Our own \texttt{lib(asm)run.a} effectively?
+\noindent Claim: the PPX system is the perfect way to embed our interpreter (and thus debugger) into the OCaml build process so that it will be \textit{accessible} as we require.
 
-\section*{Threads and Processes}
+\section*{Example}
 
-\section*{Calling the debugger from any build system}
+Consider a .ml file
+
+\begin{verbatim}
+external f : int -> int = "f"
+
+let _ = A.some_module_initialisation ()
+
+let g a = f a (* A normal function which calls the external *)
+\end{verbatim}
+
+\noindent The \textsf{PPX\_interpret} code will replace this with code to interpret the module initialisation and shims for all the other functions. For example:
+
+\begin{verbatim}
+external f : int -> int = "f"
+
+(* Read .interp files left behind by runs of PPX_interpret on the other modules *)
+let _ =
+   OCamli.setup_environment ()
+
+let call_A.some_module_initialisation () = A.some_module_initialisation ()
+
+(* Because we read the .interp files, we know what A.some_module_initialisation is here *)
+let _ =
+   Ocamli.eval "A.some_module_initialisation ()"
+
+let call_f x = f x
+
+let g a =
+  to_ocaml_heap_value (string_of_ocaml_heap_value (call_f a))
+
+\end{verbatim}
+
+\noindent Do we even need these .interp files? Because everything goes through the interface. Maybe just types? We can get these from source files, though? Or .cmt files?
 
 \end{document}
 

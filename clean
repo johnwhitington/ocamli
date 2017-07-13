@@ -25,3 +25,6 @@ cd ../ppx_eval/example
 make clean
 cd ../../interfacing_with_C
 make clean
+cd ../ppx_interpret
+make clean
+
