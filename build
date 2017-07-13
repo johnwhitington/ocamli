@@ -2,4 +2,5 @@ cd ppx_auto && make
 cd .. && make install
 cd ppx_eval && make 
 cd example && make
-
+cd ../../ppx_interpret && make
+cd example && make
