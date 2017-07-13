@@ -27,4 +27,5 @@ cd ../../interfacing_with_C
 make clean
 cd ../ppx_interpret
 make clean
-
+cd ../ppx_interpret/example
+make clean
