@@ -796,9 +796,9 @@ let rec eval_until_value show peek env e =
     let e = collect_unused_lets e in
       if show then
         begin
-          print_string "BEGINNING OF STAGE\n";
-          print_string (to_string e);
-          print_string "\n"
+          (*print_string (to_string e);*)
+          print_string (Tinyocaml.to_string e);
+          print_string "\n";
         end;
       eval_until_value show peek env (eval peek env e)
 

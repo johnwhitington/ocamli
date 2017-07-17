@@ -7,7 +7,7 @@ export OCAMLFIND_IGNORE_DUPS_IN
 SOURCES = a.mli a.ml b.mli b.ml c.ml
 
 #This will include the interpreter and C support code for it.
-PACKS = bigarray ocamli
+PACKS = bigarray str ocamli
 
 RESULT = example
 
