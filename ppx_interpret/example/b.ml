@@ -19,7 +19,7 @@ let a_dot_double_builtin (x : Tinyocaml.t) =
       let result = A.double (List.hd heap_xs) in
       Tinyexternal.of_ocaml_value [] result "int"
     in
-      CallBuiltIn (None, "A.double", [Var "x"], f)
+      CallBuiltIn (None, "A.double", [x], f)
 
 let quad x =
   Printf.printf "Beginning of quad\n";
