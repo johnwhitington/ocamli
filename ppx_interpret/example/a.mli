@@ -1,2 +1,2 @@
-(*a.mli*)
-val a : int
+val double : int -> int
+

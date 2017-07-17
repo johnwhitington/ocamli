@@ -1,2 +1,2 @@
-(*c.ml*)
-let c = 1
+let _ =
+  print_int (B.quad 42)

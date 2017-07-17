@@ -1,2 +1,2 @@
-(*a.ml*)
-let a = 1
+let double x = x * 2
+

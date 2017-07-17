@@ -1,0 +1,4 @@
+name="ppx_interpret"
+description="Debug with ocamli"
+version="0.1"
+ppx="./ppx_interpret"

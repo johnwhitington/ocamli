@@ -1,2 +1,1 @@
-(*b.mli*)
-val b : int
+val quad : int -> int

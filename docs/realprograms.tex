@@ -58,6 +58,7 @@ Can we implement this whole thing using PPX? A new \textsf{PPX\_interpret} is cr
 \item Interpret one module or many (Annotate [@interpret] for example)
 \item Just remember to link in ocamli-support.o for the C parts of ocamli.
 \item Module initialisation problem goes away too...
+\item Can annotate just a single function instead of a whole file!
 \end{itemize}
 
 \noindent Claim: the PPX system is the perfect way to embed our interpreter (and thus debugger) into the OCaml build process so that it will be \textit{accessible} as we require.
@@ -97,6 +98,7 @@ let g a =
 \end{verbatim}
 
 \noindent Do we even need these .interp files? Because everything goes through the interface. Maybe just types? We can get these from source files, though? Or .cmt files?
+
 
 \end{document}
 
