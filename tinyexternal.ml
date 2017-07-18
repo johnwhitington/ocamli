@@ -58,7 +58,7 @@ let rec lookup_variant_type (env : Tinyocaml.env) vartypename x isblock =
  (* if isblock then (0, "Some") else (0, "None")*)
 
 let rec read_untyped env debug_typ v typ =
-  Printf.printf "read_untyped: considering %s of type %s\n" (string_of_untyped v) debug_typ;
+  (*Printf.printf "read_untyped: considering %s of type %s\n" (string_of_untyped v) debug_typ;*)
   match v, typ.ptyp_desc with
   | UInt n, Ptyp_constr ({txt = Longident.Lident "int"}, _) ->
       Int n

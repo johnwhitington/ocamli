@@ -2,11 +2,14 @@
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
+#include <caml/callback.h>
 #include <stdio.h>
 
-CAMLprim value f(value x)
+CAMLprim value c_function(value x)
 {
   CAMLparam1(x);
-  CAMLreturn(Val_int(Int_val(x) * 2));
+  CAMLlocal1(y);
+  y = caml_callback(*caml_named_value("trip"), x);
+  CAMLreturn(y);
 }
 

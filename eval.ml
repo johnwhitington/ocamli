@@ -499,6 +499,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       raise (ExceptionRaised (e, payload))
     end
 | CallBuiltIn (typ, name, args, fn) ->
+    (*Printf.printf "CallBuiltIn: peek = %b\n" peek;*)
     let really_coerce typ input =
       match typ, input with
         TypChar, Int x -> Char (Char.chr x)
@@ -510,11 +511,10 @@ let rec eval peek (env : Tinyocaml.env) expr =
       | Some x -> really_coerce x result
       | None -> result
     in
-    if List.for_all is_value args
-      then if not peek then
-        coerce typ (fn env args)
-      else Unit
-      else CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
+    if List.for_all is_value args then
+      (if not peek then coerce typ (fn env args) else Unit)
+    else
+      CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
     last := VarLookup::!last;
     begin match lookup_value v env with
@@ -796,8 +796,7 @@ let rec eval_until_value show peek env e =
     let e = collect_unused_lets e in
       if show then
         begin
-          (*print_string (to_string e);*)
-          print_string (Tinyocaml.to_string e);
+          print_string (to_string e);
           print_string "\n";
         end;
       eval_until_value show peek env (eval peek env e)
