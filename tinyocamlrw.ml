@@ -353,6 +353,7 @@ let rec to_real_ocaml_expression_desc = function
   | Control (_, x) -> to_real_ocaml_expression_desc x
   | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
   | Int i -> Pexp_constant (Pconst_integer (string_of_int i, None)) 
+  | String s -> Pexp_constant (Pconst_string (s, None))
   | Bool b ->
       Pexp_construct
         ({txt = Longident.Lident (string_of_bool b); loc = Location.none},
@@ -384,7 +385,15 @@ and to_real_ocaml_pattern = function
     {ppat_desc = Ppat_constant (Pconst_integer (string_of_int i, None));
      ppat_loc = Location.none;
      ppat_attributes = []}
-| _ -> failwith "to_real_ocaml_pattern"
+| PatAny ->
+    {ppat_desc = Ppat_any;
+     ppat_loc = Location.none;
+     ppat_attributes = []}
+| PatVar v ->
+    {ppat_desc = Ppat_var {txt = v; loc = Location.none};
+     ppat_loc = Location.none;
+     ppat_attributes = []}
+| x -> failwith (Printf.sprintf "to_real_ocaml_pattern %s" (Tinyocaml.to_string_pat x))
 
 and to_real_ocaml_binding (pat, t) =
   {pvb_pat = to_real_ocaml_pattern pat;
