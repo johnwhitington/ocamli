@@ -6,8 +6,7 @@
 
 (* Original to-be-compiled source: *)
 
-(*
-
+[%interpret]
 
 external c_function : int -> int = "c_function"
 
@@ -18,10 +17,8 @@ let _ = Callback.register "trip" trip
 let quad x = c_function (A.double x * 2)
 
 
-*)
-
 (* What ppx_interpret will create *)
-open Tinyocaml
+(*open Tinyocaml
 
 let _ =
   Pptinyocaml.simple := true;
@@ -71,5 +68,5 @@ let quad x =
        EnvBinding (false, ref [(PatVar "x", tiny_x)])]
     in
       let tiny_result = Eval.eval_until_value true false env program in
-        Tinyexternal.to_ocaml_value tiny_result
+        Tinyexternal.to_ocaml_value tiny_result*)
 
