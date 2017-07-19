@@ -9,8 +9,6 @@ rm -f oftvb/Chapter\ 16/a.out
 make clean
 cd ppx_eval
 make clean
-cd ../test
-make clean
 cd ../newtype
 make clean
 ocamlfind remove ocamli
@@ -23,9 +21,7 @@ cd ../ppx_auto
 make clean
 cd ../ppx_eval/example
 make clean
-cd ../../interfacing_with_C
+cd ../../ppx_interpret
 make clean
-cd ../ppx_interpret
-make clean
-cd ../ppx_interpret/example
+cd example
 make clean

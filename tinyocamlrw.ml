@@ -374,7 +374,6 @@ let rec to_real_ocaml_expression_desc = function
       Pexp_apply (to_real_ocaml e, [(Nolabel, to_real_ocaml e')])
   | Seq (e, e') ->
       Pexp_sequence (to_real_ocaml e, to_real_ocaml e')
-  | Struct (_, [x]) -> to_real_ocaml_expression_desc x (* FIXME *)
   | e ->
       Printf.printf "Unknown thing in to_real_ocaml_expression_desc: %s\n"
       (to_string e);
@@ -411,10 +410,25 @@ and to_real_ocaml_apply l r n =
 and to_real_ocaml x =
   Ocamliutil.with_desc (to_real_ocaml_expression_desc x)
 
-(* Just a single structure item for now *)
-let to_real_ocaml x =
-  [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
-    pstr_loc = Location.none}]
+let to_real_ocaml = function
+  | Struct (_, xs) ->
+      Printf.printf "Processing a struct of %i items\n" (List.length xs);
+      List.map
+        (function
+           LetDef (recflag, bindings) ->
+             {pstr_desc =
+                Pstr_value
+                  ((if recflag then Recursive else Nonrecursive),
+                   List.map to_real_ocaml_binding bindings);
+              pstr_loc = Location.none}
+         | x -> 
+           {pstr_desc = Pstr_eval (to_real_ocaml x, []);
+            pstr_loc = Location.none})
+        xs
+  | x ->
+      Printf.printf "Processing something else at top level\n";
+      [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
+        pstr_loc = Location.none}]
 
 (* For debug, take something like:
   *
