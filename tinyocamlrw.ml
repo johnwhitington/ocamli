@@ -359,7 +359,8 @@ let rec to_real_ocaml_expression_desc = function
         ({txt = Longident.Lident (string_of_bool b); loc = Location.none},
           None)
   | Var v ->
-      Pexp_ident {txt = Longident.Lident v; loc = Location.none}
+      (* Build the dotted representation from the plain string *)
+      Pexp_ident ({txt = Longident.parse v; loc = Location.none})
   | Op (op, l, r) -> to_real_ocaml_apply l r (string_of_op op)
   | And (l, r) -> to_real_ocaml_apply l r "&&"
   | Or (l, r) -> to_real_ocaml_apply l r "||"
@@ -421,7 +422,7 @@ and to_real_ocaml x =
 
 let to_real_ocaml = function
   | Struct (_, xs) ->
-      Printf.printf "Processing a struct of %i items\n" (List.length xs);
+      (*Printf.printf "Processing a struct of %i items\n" (List.length xs);*)
       List.map
         (function
            LetDef (recflag, bindings) ->
@@ -435,7 +436,7 @@ let to_real_ocaml = function
             pstr_loc = Location.none})
         xs
   | x ->
-      Printf.printf "Processing something else at top level\n";
+      (*Printf.printf "Processing something else at top level\n";*)
       [{pstr_desc = Pstr_eval (to_real_ocaml x, []);
         pstr_loc = Location.none}]
 

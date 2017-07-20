@@ -6,18 +6,31 @@ open Longident
 
 (* We remove the [%interpret] structure item, then process all the others via Tinyocaml. *)
 
-(* To process via Tinyocaml, seperate out "external" declarations, and keep
+let _ = Ocamliutil.typecheck := false
+
+(* To process via Tinyocaml, separate out "external" declarations, and keep
  * these. All others should survive roundtripping with Tinyocaml. *)
+let make_shims structitems = structitems
+
+(* The preamble, as an OCaml parse tree *)
+let preamble =
+ Ocamliutil.ast
+  {|open Tinyocaml
+  
+    let _ =
+      Pptinyocaml.simple := true;
+      Ocamliutil.typecheck := false
+  
+    let exception_from_ocaml e = Unit|}
+
 let process structure =
-  Printf.printf "%i items in the structure\n" (List.length structure);
   let externals, nonexternals =
     List.partition
       (function {pstr_desc = Pstr_primitive _} -> true | _ -> false)
       structure
   in
-    Printf.printf "%i externals and %i nonexternals\n" (List.length externals) (List.length nonexternals);
-    externals @
-    Tinyocamlrw.to_real_ocaml (snd (Tinyocamlrw.of_real_ocaml [] nonexternals))
+    let tinyocaml_repr = snd (Tinyocamlrw.of_real_ocaml [] nonexternals) in
+      externals @ preamble @ Tinyocamlrw.to_real_ocaml (make_shims tinyocaml_repr)
 
 let interpret_mapper argv =
   {default_mapper with

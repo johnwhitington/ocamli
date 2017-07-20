@@ -7,15 +7,10 @@
 (* Original to-be-compiled source: *)
 
 [%interpret]
-
 external c_function : int -> int = "c_function"
-
-let trip x = x * 3
-
-let _ = Callback.register "trip" trip
-
-let quad x = c_function (A.double x * 2)
-
+let trip x = x * 3 
+let _ = (Callback.register "trip") trip
+let quad x = c_function ((A.double x) * 2)
 
 (* What ppx_interpret will create *)
 (*open Tinyocaml
