@@ -15,22 +15,22 @@ let incrname () =
 let conv_type isin t =
   let addx s = if isin then s ^ " " ^ (string_of_char !name) else s in
     match t.ptyp_desc with
-    Ptyp_constr ({txt = Lident "unit"}, _) -> "Unit"
-  | Ptyp_constr ({txt = Lident "int"}, _) -> addx "Int"
-  | Ptyp_constr ({txt = Lident "bool"}, _) -> addx "Bool"
-  | Ptyp_constr ({txt = Lident "int32"}, _) -> addx "Int32"
-  | Ptyp_constr ({txt = Lident "int64"}, _) -> addx "Int64"
-  | Ptyp_constr ({txt = Lident "float"}, _) -> addx "Float"
-  | Ptyp_constr ({txt = Lident "char"}, _) -> addx "Char"
-  | Ptyp_constr ({txt = Lident "nativeint"}, _) -> addx "NativeInt"
-  | Ptyp_constr ({txt = Lident "in_channel"}, _) -> addx "InChannel"
-  | Ptyp_constr ({txt = Lident "out_channel"}, _) -> addx "OutChannel"
-  | Ptyp_constr ({txt = Lident ("string" | "bytes")}, _) -> addx "String"
+    Ptyp_constr ({txt = Lident "unit"}, _) -> "Tinyocaml.Unit"
+  | Ptyp_constr ({txt = Lident "int"}, _) -> addx "Tinyocaml.Int"
+  | Ptyp_constr ({txt = Lident "bool"}, _) -> addx "Tinyocaml.Bool"
+  | Ptyp_constr ({txt = Lident "int32"}, _) -> addx "Tinyocaml.Int32"
+  | Ptyp_constr ({txt = Lident "int64"}, _) -> addx "Tinyocaml.Int64"
+  | Ptyp_constr ({txt = Lident "float"}, _) -> addx "Tinyocaml.Float"
+  | Ptyp_constr ({txt = Lident "char"}, _) -> addx "Tinyocaml.Char"
+  | Ptyp_constr ({txt = Lident "nativeint"}, _) -> addx "Tinyocaml.NativeInt"
+  | Ptyp_constr ({txt = Lident "in_channel"}, _) -> addx "Tinyocaml.InChannel"
+  | Ptyp_constr ({txt = Lident "out_channel"}, _) -> addx "Tinyocaml.OutChannel"
+  | Ptyp_constr ({txt = Lident ("string" | "bytes")}, _) -> addx "Tinyocaml.String"
   | Ptyp_var "a" -> if isin then "a" else ""
   | _ -> failwith "conv_type"
 
 let constr_of_type = function
-  "Unit" -> "()"
+  "Tinyocaml.Unit" -> "()"
 | _ -> string_of_char !name
 
 (* Extract a -> b -> c -> d to ([a; b; c], d) etc. *)
@@ -76,7 +76,7 @@ let convert_nstr s =
 let rec mkvars = function
   0 -> ""
 | n ->
-    let l = {|Var "*|} ^ string_of_char !name ^ {|"; |} in
+    let l = {|Tinyocaml.Var "*|} ^ string_of_char !name ^ {|"; |} in
      incrname ();
      l ^ mkvars (n - 1)
 
@@ -85,10 +85,10 @@ let mkvars x =
   "[" ^ mkvars x ^ "]"
 
 let rec make_centre oarity nstr = function
-  0 -> {|CallBuiltIn (None, "|} ^ nstr ^ {|", |} ^ mkvars oarity ^ {|, f)|}
+  0 -> {|Tinyocaml.CallBuiltIn (None, "|} ^ nstr ^ {|", |} ^ mkvars oarity ^ {|, f)|}
 | n ->
     let l = 
-      {|Fun (NoLabel, PatVar "*|} ^ string_of_char !name ^ {|", |}
+      {|Tinyocaml.Fun (Tinyocaml.NoLabel, Tinyocaml.PatVar "*|} ^ string_of_char !name ^ {|", |}
     in
       incrname ();
       l ^ make_centre oarity nstr (n - 1) ^ {|, [])|}
@@ -99,8 +99,8 @@ let mkmk arity nstr =
 
 let function_of_tins_tout tins t_out nstr n =
   let out =
-    if t_out = "Unit"
-      then n ^ " " ^ List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map snd tins) ^ "; Unit"
+    if t_out = "Tinyocaml.Unit"
+      then n ^ " " ^ List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map snd tins) ^ "; Tinyocaml.Unit"
       else t_out ^ " (" ^ n ^ " " ^ List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map snd tins) ^ ")"
   in
     let ins =

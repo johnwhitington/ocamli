@@ -13,7 +13,7 @@ let _ = (Callback.register "trip") trip
 let quad x = c_function ((A.double x) * 2)
 
 (* What ppx_interpret will create *)
-(*open Tinyocaml
+(*
 
 let _ =
   Pptinyocaml.simple := true;

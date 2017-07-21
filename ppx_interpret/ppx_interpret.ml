@@ -15,13 +15,23 @@ let make_shims structitems = structitems
 (* The preamble, as an OCaml parse tree *)
 let preamble =
  Ocamliutil.ast
-  {|open Tinyocaml
-  
-    let _ =
+  {|let _ =
       Pptinyocaml.simple := true;
       Ocamliutil.typecheck := false
   
-    let exception_from_ocaml e = Unit|}
+    let exception_from_ocaml e = Tinyocaml.Unit|}
+
+(* For each external, we keep it, and also create a %%auto instance for it. *)
+let process_external e =
+  let name =
+    match e with
+      {pstr_desc = Pstr_primitive {pval_name = {txt}}} -> txt
+   | _ -> assert false
+  in
+  let auto = "[%%auto {|" ^ Pprintast.string_of_structure [e] ^ "|}]" in
+  let fix = "let " ^ name ^ "_builtin  = snd " ^ name in
+  let str = auto ^ " " ^ fix in
+    Ocamliutil.ast str
 
 let process structure =
   let externals, nonexternals =
@@ -30,7 +40,9 @@ let process structure =
       structure
   in
     let tinyocaml_repr = snd (Tinyocamlrw.of_real_ocaml [] nonexternals) in
-      externals @ preamble @ Tinyocamlrw.to_real_ocaml (make_shims tinyocaml_repr)
+        preamble
+      @ List.flatten (List.map process_external externals)
+      @ Tinyocamlrw.to_real_ocaml (make_shims tinyocaml_repr)
 
 let interpret_mapper argv =
   {default_mapper with

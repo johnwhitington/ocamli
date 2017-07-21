@@ -1,4 +1,3 @@
-open Tinyocaml
 open Ocamliutil
 open Parsetree
 
@@ -77,6 +76,7 @@ let exception_from_ocaml e =
 [%%auto {|external caml_int_of_string : string -> int = "caml_int_of_string"|}]
 [%%auto {|external bytes_length : bytes -> int = "%bytes_length"|}]
 
+open Tinyocaml
 
 let exe = ref ""
 let argv = ref [||]
