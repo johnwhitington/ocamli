@@ -7,10 +7,10 @@
 (* Original to-be-compiled source: *)
 
 [%interpret]
-external c_function : int -> int = "c_function"
+(*external c_function : int -> int = "c_function"*)
 let trip x = x * 3 
-let _ = (Callback.register "trip") trip
-let quad x = c_function ((A.double x) * 2)
+(*let _ = (Callback.register "trip") trip
+let quad x = c_function ((A.double x) * 2)*)
 
 (* What ppx_interpret will create *)
 (*
@@ -35,6 +35,7 @@ let trip x =
     let tiny_result = Eval.eval_until_value true false env program in
       Tinyexternal.to_ocaml_value tiny_result
 
+(* FIXME. How do we recognise Callback.register and treat specially? Need we at all -- do it inside ocamliprim from interpreted? *)
 let _ = Callback.register "trip" trip
 
 (* Shim for calling A.double *)

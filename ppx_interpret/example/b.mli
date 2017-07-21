@@ -1,1 +1,1 @@
-val quad : int -> int
+(*val quad : int -> int*)
