@@ -14,24 +14,26 @@ let _ = Ocamliutil.typecheck := false
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim = function
-  | LetDef (false, [(PatVar fun_name, Fun (NoLabel, PatVar var_name, code, _))]) ->
-      let code = "x + 3" in (* FIXME *)
+  | LetDef (false, [(PatVar fun_name, Fun (NoLabel, PatVar var_name, body, _))]) ->
+      let code = Pptinyocaml.to_string body in
       let in_type = "int" in (* FIXME *)
+      let out_type = "int" in (* FIXME *)
       let code_str =
         {|let |} ^ fun_name ^ " " ^ var_name ^ {| =
           let open Tinyocaml in
-          let tiny_|} ^ var_name ^ {| = Tinyexternal.of_ocaml_value [] |} ^ var_name ^ " " ^ {| "int" in
+          let tiny_|} ^ var_name ^ {| = Tinyexternal.of_ocaml_value [] |} ^ var_name ^ " " ^ "{|" ^ in_type ^ "|}" ^ {| in
           let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ code ^ "|}" ^ {| in
           let env = [EnvBinding (false, ref [(PatVar |} ^ var_name ^ {|, tiny_|} ^ var_name ^ {|)])] in
           let tiny_result = Eval.eval_until_value true false env program in
-            Tinyexternal.to_ocaml_value tiny_result |}
+          (Tinyexternal.to_ocaml_value tiny_result : |} ^ out_type   (* FIXME *)
       in
-      Printf.eprintf "make_shim: found a normal function like trip...code is %s\n" code_str; []
-  | _ -> Printf.eprintf "make_shim: unknown structure item, ignoring...\n"; []
+      Printf.eprintf "make_shim: found a normal function like trip...\n";
+      Ocamliutil.ast code_str
+  | _ -> Printf.eprintf "make_shim: unknown structure item, ignoring...\n"; Ocamliutil.ast "()"
 
 let make_shims = function
   Struct (_, structitems) ->
-    Struct (false, List.flatten (List.map make_shim structitems))
+    List.map make_shim structitems
 | _ -> failwith "make_shims: not a struct"
 
 (* The preamble, as an OCaml parse tree *)
@@ -64,7 +66,7 @@ let process structure =
     let tinyocaml_repr = snd (Tinyocamlrw.of_real_ocaml [] nonexternals) in
         preamble
       @ List.flatten (List.map process_external externals)
-      @ Tinyocamlrw.to_real_ocaml (make_shims tinyocaml_repr)
+      @ List.flatten (make_shims tinyocaml_repr)
 
 let interpret_mapper argv =
   {default_mapper with

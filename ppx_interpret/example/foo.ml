@@ -1,7 +1,10 @@
 let _ = Pptinyocaml.simple := true; Ocamliutil.typecheck := false 
 let exception_from_ocaml e = Tinyocaml.Unit 
-[%%auto {|external c_function : int -> int = "c_function"|}]
-let c_function_builtin = snd c_function 
-let trip x = x * 3 
-let _ = (Callback.register "trip") trip 
-let quad x = c_function ((A.double x) * 2) 
+let trip x =
+  let open Tinyocaml in
+    let tiny_x = Tinyexternal.of_ocaml_value [] x {|int|}  in
+    let (_,program) = Tinyocamlrw.of_string {|x * 3|}  in
+    let env = [EnvBinding (false, (ref [((PatVar x), tiny_x)]))]  in
+    let tiny_result = Eval.eval_until_value true false env program  in
+    Tinyexternal.to_ocaml_value tiny_result
+  
