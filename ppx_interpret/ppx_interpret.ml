@@ -7,7 +7,8 @@ open Tinyocaml
 
 (* We remove the [%interpret] structure item, then process all the others via Tinyocaml. *)
 
-let _ = Ocamliutil.typecheck := false
+let _ =
+  Ocamliutil.typecheck := false
 
 (* To process via Tinyocaml, separate out "external" declarations, and keep
  * these. All others should survive roundtripping with Tinyocaml. *)
@@ -17,17 +18,17 @@ let _ = Ocamliutil.typecheck := false
 
 (* This creates a_dot_double_builtin *)
 let make_external_call_shim text =
-  (* FIXME: Need to make the tinyocaml of this, so make_external_call_shims below can
-   * use it in Tinyocaml.recurse *)
-  {|let a_dot_double_builtin =
-    let f env = function
-      | [x] ->
-          let heap_x = Tinyexternal.to_ocaml_value x in
-          let result = |} ^ text ^ {| heap_x in
-            Tinyexternal.of_ocaml_value env result "int"
-      | _ -> failwith "a_dot_double_builtin: arity"
-    in
-      mk |} ^ text ^ {| f|}
+  snd (Tinyocamlrw.of_real_ocaml []
+         (Ocamliutil.ast
+            ({|let a_dot_double_builtin =
+              let f env = function
+                | [x] ->
+                    let heap_x = Tinyexternal.to_ocaml_value x in
+                    let result = |} ^ text ^ {| heap_x in
+                      Tinyexternal.of_ocaml_value env result "int"
+                | _ -> failwith "a_dot_double_builtin: arity"
+              in
+                mk |} ^ text ^ {| f|})))
 
 (* Find every use of A.double and replace with a_dot_double_builtin. FIXME generalize *)
 let make_external_call_shims (body : Tinyocaml.t) =
@@ -37,12 +38,15 @@ let make_external_call_shims (body : Tinyocaml.t) =
         Var v when v = varname -> f
        | x -> Tinyocaml.recurse (replace_vars varname f) x) 
     in
-      replace_vars "A.double" a_dot_double_builtin
+      replace_vars "A.double" a_dot_double_builtin body
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim = function
   | LetDef (false, [(PatVar fun_name, Fun (NoLabel, PatVar var_name, body, _))]) ->
+      let saved = !Pptinyocaml.syntax in
+      let _ = Pptinyocaml.syntax := false in
       let code = Pptinyocaml.to_string (make_external_call_shims body) in
+      let _ = Pptinyocaml.syntax := saved in
       let in_type = "int" in (* FIXME *)
       let out_type = "int" in (* FIXME *)
       let code_str =
