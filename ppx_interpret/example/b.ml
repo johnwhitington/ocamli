@@ -9,6 +9,8 @@
 [%interpret]
 (*external c_function : int -> int = "c_function"*)
 let trip x = x * 3 
+let double x = A.double x
+
 (*let _ = (Callback.register "trip") trip
 let quad x = c_function ((A.double x) * 2)*)
 
