@@ -25,25 +25,18 @@ let make_external_call_shim_ocaml_part name text =
           let heap_x = Tinyexternal.to_ocaml_value x in
           let result = |} ^ text ^ {| heap_x in
             Tinyexternal.of_ocaml_value env result "int"
-      | _ -> failwith "a_dot_double_builtin: arity"|}
+      | _ -> failwith "|} ^ name ^ {|: arity"|}
 
 let make_external_call_shims (body : Tinyocaml.t) =
-  let rec replace_vars varname f =
-    (function 
-      Var v when v = varname -> Var f
-     | x -> Tinyocaml.recurse (replace_vars varname f) x) 
-  in
-    (replace_vars "A.double" "a_dot_double_builtin" body,
-    (* FIXME only generate the shims which actually occured in the body, and all of them. *)
-    make_external_call_shim_ocaml_part "a_dot_double_builtin" "A.double")
+  [make_external_call_shim_ocaml_part "a_dot_double_builtin" "A.double"]
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim = function
   | LetDef (false, [(PatVar fun_name, Fun (NoLabel, PatVar var_name, body, _))]) ->
       let saved = !Pptinyocaml.syntax in
       let _ = Pptinyocaml.syntax := false in
-      let code_replaced, ocaml_part = make_external_call_shims body in
-      let code = Pptinyocaml.to_string code_replaced in
+      let ocaml_part = make_external_call_shims body in
+      let body_str = Pptinyocaml.to_string body in
       let _ = Pptinyocaml.syntax := saved in
       let in_type = "int" in (* FIXME *)
       let out_type = "int" in (* FIXME *)
@@ -51,7 +44,7 @@ let make_shim = function
         {|let |} ^ fun_name ^ " " ^ var_name ^ {| =
           let open Tinyocaml in
           let tiny_|} ^ var_name ^ {| = Tinyexternal.of_ocaml_value [] |} ^ var_name ^ " " ^ "{|" ^ in_type ^ "|}" ^ {| in
-          let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ code ^ "|}" ^ {| in
+          let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ body_str ^ "|}" ^ {| in
           let env =
             [EnvBinding (false, ref [(PatVar |} ^ "\"" ^ var_name ^ "\"" ^ {|, tiny_|} ^ var_name ^ {|)]);
              EnvBinding (false, ref [(PatVar "A.double", mk "a_dot_double_builtin" a_dot_double_builtin)])]
@@ -59,11 +52,8 @@ let make_shim = function
           let tiny_result = Eval.eval_until_value true false env program in
           (Tinyexternal.to_ocaml_value tiny_result : |} ^ out_type ^ ")"   (* FIXME *)
       in
-      Printf.eprintf "make_shim: found a normal function like trip...\n";
-      Printf.eprintf "Code is: %s\n" code_str;
-      [Ocamliutil.ast ocaml_part; Ocamliutil.ast code_str]
+        List.map Ocamliutil.ast ocaml_part @ [Ocamliutil.ast code_str]
   | _ ->
-      Printf.eprintf "make_shim: unknown structure item, ignoring...\n";
       [Ocamliutil.ast "()"; Ocamliutil.ast "()"]
 
 let make_shims = function

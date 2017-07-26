@@ -435,7 +435,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
         Printf.printf "Malformed app applying %s\n to %s\n - got %s\n"
         v (Tinyocaml.to_string x) (Tinyocaml.to_string got);
         failwith "malformed app"
-    | None -> failwith "malformed app None"
+    | None -> failwith (Printf.sprintf "malformed app -- did not find function %s\n" v)
     end
 | App (App _, _) when !fastcurry && suitable_for_curry expr ->
     (* 3. FIXME: closure-env-fastcurry *)

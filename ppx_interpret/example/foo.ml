@@ -18,7 +18,11 @@ let trip x =
     let (_,program) = Tinyocamlrw.of_string {|x * 3|}  in
     let env =
       [EnvBinding (false, (ref [((PatVar "x"), tiny_x)]));
-      EnvBinding (false, (ref [((PatVar "A.double"), a_dot_double_builtin)]))]
+      EnvBinding
+        (false,
+          (ref
+             [((PatVar "A.double"),
+                (mk "a_dot_double_builtin" a_dot_double_builtin))]))]
        in
     let tiny_result = Eval.eval_until_value true false env program  in
     (Tinyexternal.to_ocaml_value tiny_result : int)
@@ -36,7 +40,11 @@ let double x =
     let (_,program) = Tinyocamlrw.of_string {|a_dot_double_builtin x|}  in
     let env =
       [EnvBinding (false, (ref [((PatVar "x"), tiny_x)]));
-      EnvBinding (false, (ref [((PatVar "A.double"), a_dot_double_builtin)]))]
+      EnvBinding
+        (false,
+          (ref
+             [((PatVar "A.double"),
+                (mk "a_dot_double_builtin" a_dot_double_builtin))]))]
        in
     let tiny_result = Eval.eval_until_value true false env program  in
     (Tinyexternal.to_ocaml_value tiny_result : int)
