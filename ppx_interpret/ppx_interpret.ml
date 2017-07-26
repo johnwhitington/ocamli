@@ -55,8 +55,9 @@ let make_shim = function
           (Tinyexternal.to_ocaml_value tiny_result : |} ^ out_type ^ ")"   (* FIXME *)
       in
         List.map Ocamliutil.ast ocaml_part @ [Ocamliutil.ast code_str]
-  | _ ->
-      [Ocamliutil.ast "()"; Ocamliutil.ast "()"]
+  | x ->
+      Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
+      []
 
 let make_shims = function
   Struct (_, structitems) ->

@@ -46,8 +46,6 @@ let double x =
     let tiny_result = Eval.eval_until_value true false env program  in
     (Tinyexternal.to_ocaml_value tiny_result : int)
   
-;;()
-;;()
 let a_dot_double_builtin env =
   function
   | x::[] ->
@@ -58,7 +56,10 @@ let a_dot_double_builtin env =
 let trip x =
   let open Tinyocaml in
     let tiny_x = Tinyexternal.of_ocaml_value [] x {|int|}  in
-    let (_,program) = Tinyocamlrw.of_string {|c_function x * 3|}  in
+    let (_,program) =
+      Tinyocamlrw.of_string
+        {|let () = Callback.register "double" double in c_function x * 3|}
+       in
     let env =
       [EnvBinding (false, (ref [((PatVar "x"), tiny_x)]));
       EnvBinding
