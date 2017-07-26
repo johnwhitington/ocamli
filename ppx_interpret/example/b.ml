@@ -7,9 +7,16 @@
 (* Original to-be-compiled source: *)
 
 [%interpret]
-(*external c_function : int -> int = "c_function"*)
-let trip x = x * 3 
+external c_function : int -> int = "c_function"
+
+(* A simple function *)
+let trip x = c_function x * 3 
+
+(* Here, a function which calls something in another module. *)
 let double x = A.double x
+
+(* Here, a function which calls something in this module *)
+let f x = double x
 
 (*let _ = (Callback.register "trip") trip
 let quad x = c_function ((A.double x) * 2)*)

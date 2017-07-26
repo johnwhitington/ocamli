@@ -8,8 +8,8 @@
 CAMLprim value c_function(value x)
 {
   CAMLparam1(x);
-  CAMLlocal1(y);
-  y = caml_callback(*caml_named_value("trip"), x);
-  CAMLreturn(y);
+  //CAMLlocal1(y);
+  //y = caml_callback(*caml_named_value("trip"), x);
+  CAMLreturn(x);
 }
 

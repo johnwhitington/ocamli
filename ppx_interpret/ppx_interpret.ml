@@ -47,7 +47,9 @@ let make_shim = function
           let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ body_str ^ "|}" ^ {| in
           let env =
             [EnvBinding (false, ref [(PatVar |} ^ "\"" ^ var_name ^ "\"" ^ {|, tiny_|} ^ var_name ^ {|)]);
-             EnvBinding (false, ref [(PatVar "A.double", mk "a_dot_double_builtin" a_dot_double_builtin)])]
+             EnvBinding (false, ref [(PatVar "A.double", mk "a_dot_double_builtin" a_dot_double_builtin)]);
+             EnvBinding (false, ref [(PatVar "c_function", c_function_builtin)])
+            ]
           in
           let tiny_result = Eval.eval_until_value true false env program in
           (Tinyexternal.to_ocaml_value tiny_result : |} ^ out_type ^ ")"   (* FIXME *)
