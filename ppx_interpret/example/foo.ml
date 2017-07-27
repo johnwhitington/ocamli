@@ -1,4 +1,7 @@
-let _ = Pptinyocaml.simple := true; Ocamliutil.typecheck := false 
+let _ =
+  Pptinyocaml.simple := true;
+  Ocamliutil.typecheck := false;
+  Ocamlilib.load_library () 
 let mk name f =
   let open Tinyocaml in
     Fun
