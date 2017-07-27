@@ -32,7 +32,7 @@ let make_external_call_shims (body : Tinyocaml.t) =
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim = function
-  | LetDef (false, [(PatVar fun_name, Fun (NoLabel, PatVar var_name, body, _))]) ->
+  | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, _))]) ->      
       let saved = !Pptinyocaml.syntax in
       let _ = Pptinyocaml.syntax := false in
       let ocaml_part = make_external_call_shims body in
@@ -47,8 +47,6 @@ let make_shim = function
           let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ body_str ^ "|}" ^ {| in
           let env =
             [EnvBinding (false, ref [(PatVar |} ^ "\"" ^ var_name ^ "\"" ^ {|, tiny_|} ^ var_name ^ {|)]);
-             EnvBinding (false, ref [(PatVar "A.double", mk "a_dot_double_builtin" a_dot_double_builtin)]);
-             EnvBinding (false, ref [(PatVar "c_function", c_function_builtin)])
             ]
           in
           let tiny_result = Eval.eval_until_value true false (env @ !Eval.lib) program in
@@ -59,6 +57,8 @@ let make_shim = function
       Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
       []
 
+             (*EnvBinding (false, ref [(PatVar "A.double", mk "a_dot_double_builtin" a_dot_double_builtin)]);
+             EnvBinding (false, ref [(PatVar "c_function", c_function_builtin)])*)
 let make_shims = function
   Struct (_, structitems) ->
     List.flatten (List.map make_shim structitems)
