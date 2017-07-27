@@ -7,7 +7,7 @@
 external c_function : int -> int = "c_function"
 
 (* Here, a function which calls something in another module. *)
-(*let double x = A.double x*)
+let double x = A.double x
 
 (* A simple function, using the C function *)
 let trip x =
@@ -17,5 +17,5 @@ let trip x =
     c_function x * 3 
 
 (* Here, a function which calls something in this module *)
-(*let f x = double x*)
+let f x = double x
 

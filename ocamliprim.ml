@@ -127,12 +127,10 @@ let caml_register_named_value =
         * arguments runs the code in func, and returns the answer to C. *)
        (* For now, assume int -> int. Also, no environment yet. *)
        let c_function x =
-         Printf.printf "Number in top callback %i\n" x;
          let tinyocaml_x = Tinyexternal.of_ocaml_value [] x "int" in
          let output =
            !eval_until_value true false [] (App (func, tinyocaml_x))
          in
-           Printf.printf "Number out top callback %s\n" (Tinyocaml.to_string output);
            Tinyexternal.to_ocaml_value output
        in
          Callback.register name c_function;

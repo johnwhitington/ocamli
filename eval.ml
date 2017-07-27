@@ -801,6 +801,8 @@ let rec eval_until_value show peek env e =
         end;
       eval_until_value show peek env (eval peek env e)
 
+let _ = Ocamliprim.eval_until_value := eval_until_value
+
 let tiny x = Tinyocamlutil.underline_redex x
 
 let peek x =
