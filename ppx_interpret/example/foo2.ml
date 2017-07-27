@@ -1,6 +1,7 @@
 let _ =
   Pptinyocaml.simple := true;
   Ocamliutil.typecheck := false;
+  Ocamlilib.load_stdlib := true;
   Ocamlilib.load_library () 
 let mk name f =
   let open Tinyocaml in
@@ -46,7 +47,8 @@ let double x =
                 (mk "a_dot_double_builtin" a_dot_double_builtin))]));
       EnvBinding (false, (ref [((PatVar "c_function"), c_function_builtin)]))]
        in
-    let tiny_result = Eval.eval_until_value true false env program  in
+    let tiny_result =
+      Eval.eval_until_value true false (env @ (!Eval.lib)) program  in
     (Tinyexternal.to_ocaml_value tiny_result : int)
   
 let a_dot_double_builtin env =
@@ -61,7 +63,8 @@ let trip x =
     let tiny_x = Tinyexternal.of_ocaml_value [] x {|int|}  in
     let (_,program) =
       Tinyocamlrw.of_string
-        {|let () = Callback.register "double" double in c_function x * 3|}
+        {|let double x = A.double x in let () = Callback.register "double" double in
+    c_function x * 3|}
        in
     let env =
       [EnvBinding (false, (ref [((PatVar "x"), tiny_x)]));
@@ -72,7 +75,8 @@ let trip x =
                 (mk "a_dot_double_builtin" a_dot_double_builtin))]));
       EnvBinding (false, (ref [((PatVar "c_function"), c_function_builtin)]))]
        in
-    let tiny_result = Eval.eval_until_value true false env program  in
+    let tiny_result =
+      Eval.eval_until_value true false (env @ (!Eval.lib)) program  in
     (Tinyexternal.to_ocaml_value tiny_result : int)
   
 let a_dot_double_builtin env =
@@ -95,6 +99,7 @@ let f x =
                 (mk "a_dot_double_builtin" a_dot_double_builtin))]));
       EnvBinding (false, (ref [((PatVar "c_function"), c_function_builtin)]))]
        in
-    let tiny_result = Eval.eval_until_value true false env program  in
+    let tiny_result =
+      Eval.eval_until_value true false (env @ (!Eval.lib)) program  in
     (Tinyexternal.to_ocaml_value tiny_result : int)
   
