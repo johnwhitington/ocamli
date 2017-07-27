@@ -117,18 +117,22 @@ let mk5 ?(x1="x") ?(x2="y") ?(x3="z") ?(x4="q") ?(x5="p") name f =
              Fun (NoLabel, PatVar (star x5),
                CallBuiltIn (None, name, [Var (star x1); Var (star x2); Var (star x3); Var (star x4); Var (star x5)], f), []), []), []), []), []))
 
+let eval_until_value = ref (fun _ _ _ x -> x)
+
 let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function env ->
      function [String name; func] ->
        (* Build a function closure on the heap which, when called with
         * arguments runs the code in func, and returns the answer to C. *)
-       (* For now, assume int -> int. *)
+       (* For now, assume int -> int. Also, no environment yet. *)
        let c_function x =
+         Printf.printf "Number in top callback %i\n" x;
          let tinyocaml_x = Tinyexternal.of_ocaml_value [] x "int" in
          let output =
-
+           !eval_until_value true false [] (App (func, tinyocaml_x))
          in
+           Printf.printf "Number out top callback %s\n" (Tinyocaml.to_string output);
            Tinyexternal.to_ocaml_value output
        in
          Callback.register name c_function;
