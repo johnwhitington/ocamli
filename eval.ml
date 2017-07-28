@@ -792,7 +792,7 @@ let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
 
 let rec eval_until_value show peek env e =
-  if is_value e then e else
+  if is_value e then collect_unused_lets e else
     let e = collect_unused_lets e in
       if show then
         begin

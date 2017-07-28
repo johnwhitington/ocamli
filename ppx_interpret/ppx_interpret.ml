@@ -40,11 +40,12 @@ let make_shim = function
       let _ = Pptinyocaml.syntax := saved in
       let in_type = "int" in (* FIXME *)
       let out_type = "int" in (* FIXME *)
+      let new_body = "let rec double x = " ^ body_str ^ " in double x" in
       let code_str =
         {|let |} ^ fun_name ^ " " ^ var_name ^ {| =
           let open Tinyocaml in
           let tiny_|} ^ var_name ^ {| = Tinyexternal.of_ocaml_value [] |} ^ var_name ^ " " ^ "{|" ^ in_type ^ "|}" ^ {| in
-          let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ body_str ^ "|}" ^ {| in
+          let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ new_body ^ "|}" ^ {| in
           let env =
             [EnvBinding (false, ref [(PatVar |} ^ "\"" ^ var_name ^ "\"" ^ {|, tiny_|} ^ var_name ^ {|)]);
             ]
