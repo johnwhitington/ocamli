@@ -40,7 +40,9 @@ let make_shim = function
       let _ = Pptinyocaml.syntax := saved in
       let in_type = "int" in (* FIXME *)
       let out_type = "int" in (* FIXME *)
-      let new_body = "let rec double x = " ^ body_str ^ " in double x" in
+      let new_body =
+        "let rec " ^ fun_name ^ " " ^ var_name ^ " = " ^ body_str ^ " in " ^ fun_name ^ " " ^ var_name
+      in
       let code_str =
         {|let |} ^ fun_name ^ " " ^ var_name ^ {| =
           let open Tinyocaml in
