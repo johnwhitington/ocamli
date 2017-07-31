@@ -4,6 +4,7 @@ open Parsetree
 open Asttypes
 open Longident
 open Tinyocaml
+open Ocamliutil
 
 (* We remove the [%interpret] structure item, then process all the others via Tinyocaml. *)
 
@@ -19,17 +20,24 @@ let _ =
 (* This creates an ocaml function a_dot_double_builtin to appear in the output.
  * A CallBuiltIn for it will then be put in the environment for the Tinyocaml
  * program which calls A.double when it is interpreted. *)
-let make_external_call_shim_ocaml_part name text =
+let make_external_call_shim_ocaml_part name =
+  let modname, leafname =
+    Filename.remove_extension name,
+    implode (List.tl (explode (Filename.extension name)))
+  in
   let code =
-    {|let |} ^ name ^ {| env = function
-        | [x] ->
-            let heap_x = Tinyexternal.to_ocaml_value x in
-            let result = |} ^ text ^ {| heap_x in
-              Tinyexternal.of_ocaml_value env result "int"
-        | _ -> failwith "|} ^ name ^ {|: arity"|}
+    {|module |} ^ modname ^ {| =
+        struct
+          let |} ^ leafname ^ {| env = function
+            | [x] ->
+                let heap_x = Tinyexternal.to_ocaml_value x in
+                let result = |} ^ name ^ {| heap_x in
+                  Tinyexternal.of_ocaml_value env result "int"
+            | _ -> failwith "|} ^ name ^ {|: arity"
+        end|}
   in let env_binding =
     {|EnvBinding (false, ref [(PatVar "|} ^
-    text ^
+    name ^
     {|", mk "|} ^
     name ^
     {|" |} ^
@@ -39,7 +47,7 @@ let make_external_call_shim_ocaml_part name text =
     (code, env_binding)
 
 let make_external_call_shims (body : Tinyocaml.t) =
-  [make_external_call_shim_ocaml_part "a_dot_double_builtin" "A.double"]
+  [make_external_call_shim_ocaml_part "A.double"]
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim = function
