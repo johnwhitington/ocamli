@@ -20,12 +20,23 @@ let _ =
  * A CallBuiltIn for it will then be put in the environment for the Tinyocaml
  * program which calls A.double when it is interpreted. *)
 let make_external_call_shim_ocaml_part name text =
-  {|let |} ^ name ^ {| env = function
-      | [x] ->
-          let heap_x = Tinyexternal.to_ocaml_value x in
-          let result = |} ^ text ^ {| heap_x in
-            Tinyexternal.of_ocaml_value env result "int"
-      | _ -> failwith "|} ^ name ^ {|: arity"|}
+  let code =
+    {|let |} ^ name ^ {| env = function
+        | [x] ->
+            let heap_x = Tinyexternal.to_ocaml_value x in
+            let result = |} ^ text ^ {| heap_x in
+              Tinyexternal.of_ocaml_value env result "int"
+        | _ -> failwith "|} ^ name ^ {|: arity"|}
+  in let env_binding =
+    {|EnvBinding (false, ref [(PatVar "|} ^
+    text ^
+    {|", mk "|} ^
+    name ^
+    {|" |} ^
+    name ^
+    {|)]);|}
+  in
+    (code, env_binding)
 
 let make_external_call_shims (body : Tinyocaml.t) =
   [make_external_call_shim_ocaml_part "a_dot_double_builtin" "A.double"]
@@ -35,7 +46,7 @@ let make_shim = function
   | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, _))]) ->      
       let saved = !Pptinyocaml.syntax in
       let _ = Pptinyocaml.syntax := false in
-      let ocaml_part = make_external_call_shims body in
+      let ocaml_part, env_binding_strings = List.split (make_external_call_shims body) in
       let body_str = Pptinyocaml.to_string body in
       let _ = Pptinyocaml.syntax := saved in
       let in_type = "int" in (* FIXME *)
@@ -51,6 +62,9 @@ let make_shim = function
           let env =
             [EnvBinding (false, ref [(PatVar |} ^ "\"" ^ var_name ^ "\"" ^ {|, tiny_|} ^ var_name ^ {|)]);
             ]
+           |}
+            ^ "@ [" ^ List.fold_left ( ^ ) "" env_binding_strings ^ "]" ^
+           {|
           in
           let tiny_result = Eval.eval_until_value true false (env @ !Eval.lib) program in
           (Tinyexternal.to_ocaml_value tiny_result : |} ^ out_type ^ ")"   (* FIXME *)
@@ -60,8 +74,8 @@ let make_shim = function
       Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
       []
 
-             (*EnvBinding (false, ref [(PatVar "A.double", mk "a_dot_double_builtin" a_dot_double_builtin)]);
-             EnvBinding (false, ref [(PatVar "c_function", c_function_builtin)])*)
+             (*EnvBinding (false, ref [(PatVar "c_function", c_function_builtin)])*)
+
 let make_shims = function
   Struct (_, structitems) ->
     List.flatten (List.map make_shim structitems)
