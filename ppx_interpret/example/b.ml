@@ -15,7 +15,7 @@ let trip x =
   let double x = x * 2 in
   (* Use Callback.register, so c_function can call back to double. When values done, move to top level. *)
   let () = Callback.register "double" double in
-    c_function x * 3 
+    c_function x * 3
 
 (* Here, a function which calls something in this module *)
 let f x = double x
