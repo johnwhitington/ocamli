@@ -1,4 +1,6 @@
 (* For writing evalutors with *)
+val setify : 'a list -> 'a list
+
 type 'a result =
     Next of 'a
   | IsValue

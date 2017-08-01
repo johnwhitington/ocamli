@@ -2,6 +2,19 @@
 open Parsetree
 open Asttypes
 
+(* Return the set of distinct  elements in a list. Does not preserve order. *)
+let setify_simple l =
+  let rec setify_inner r = function
+    | [] -> r
+    | h::t ->
+        if List.mem h t
+          then setify_inner r t
+          else setify_inner (h::r) t
+  in
+    setify_inner [] l
+
+let setify = setify_simple
+
 (* Make a list of characters from a string, preserving order. *)
 let explode s =
   let l = ref [] in

@@ -46,11 +46,22 @@ let make_external_call_shim_ocaml_part name =
   in
     (code, env_binding)
 
+(* FIXME: scoping *)
+let find_dotted_names e =
+  let names = ref [] in
+    Tinyocaml.iter
+    (function Var v ->
+      if List.mem '.' (explode v) then names := v::!names
+     | _ -> ())
+    e;
+    setify !names
+
 let make_external_call_shims (body : Tinyocaml.t) =
-  [make_external_call_shim_ocaml_part "A.double"]
+  let dotted_names = find_dotted_names body in
+    List.map make_external_call_shim_ocaml_part dotted_names
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
-let make_shim = function
+let make_shim external_envbindings = function
   | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, _))]) ->      
       let saved = !Pptinyocaml.syntax in
       let _ = Pptinyocaml.syntax := false in
@@ -74,7 +85,8 @@ let make_shim = function
             [EnvBinding (false, ref [(PatVar |} ^ "\"" ^ var_name ^ "\"" ^ {|, tiny_|} ^ var_name ^ {|)]);
             ]
            |}
-            ^ "@ [" ^ List.fold_left ( ^ ) "" env_binding_strings ^ "]" ^
+            ^ "@ [" ^ List.fold_left ( ^ ) "" env_binding_strings ^ "]"
+            ^ "@ [" ^ List.fold_left ( ^ ) "" external_envbindings ^ "]" ^ 
            {|
           in
           let tiny_result = Eval.eval_until_value true false (env @ !Eval.lib) program in
@@ -85,11 +97,10 @@ let make_shim = function
       Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
       []
 
-             (*EnvBinding (false, ref [(PatVar "c_function", c_function_builtin)])*)
 
-let make_shims = function
+let make_shims external_envbindings = function
   Struct (_, structitems) ->
-    List.flatten (List.map make_shim structitems)
+    List.flatten (List.map (make_shim external_envbindings) structitems)
 | _ -> failwith "make_shims: not a struct"
 
 (* The preamble, as an OCaml parse tree *)
@@ -117,7 +128,8 @@ let process_external e =
   let auto = "[%%auto {|" ^ Pprintast.string_of_structure [e] ^ "|}]" in
   let fix = "let " ^ name ^ "_builtin  = snd " ^ name in
   let str = auto ^ " " ^ fix in
-    Ocamliutil.ast str
+    (Ocamliutil.ast str, 
+     "EnvBinding (false, ref [(PatVar \"" ^ name ^ "\", " ^ name ^ "_builtin)]);")
 
 let process structure =
   let externals, nonexternals =
@@ -125,10 +137,11 @@ let process structure =
       (function {pstr_desc = Pstr_primitive _} -> true | _ -> false)
       structure
   in
+    let processed_externals, external_envbindings = List.split (List.map process_external externals) in
     let tinyocaml_repr = snd (Tinyocamlrw.of_real_ocaml [] nonexternals) in
         preamble
-      @ List.flatten (List.map process_external externals)
-      @ List.flatten (make_shims tinyocaml_repr)
+      @ List.flatten processed_externals
+      @ List.flatten (make_shims external_envbindings tinyocaml_repr)
 
 let interpret_mapper argv =
   {default_mapper with
