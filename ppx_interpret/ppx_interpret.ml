@@ -62,8 +62,11 @@ let make_shim = function
       let new_body =
         "let rec " ^ fun_name ^ " " ^ var_name ^ " = " ^ body_str ^ " in " ^ fun_name ^ " " ^ var_name
       in
+      let ocaml_modules =
+        List.fold_left ( ^ ) "" (List.map (fun s -> " let " ^ s ^ " in ") ocaml_part)
+      in
       let code_str =
-        {|let |} ^ fun_name ^ " " ^ var_name ^ {| =
+        {|let |} ^ fun_name ^ " " ^ var_name ^ {| = |} ^ ocaml_modules ^ {|
           let open Tinyocaml in
           let tiny_|} ^ var_name ^ {| = Tinyexternal.of_ocaml_value [] |} ^ var_name ^ " " ^ "{|" ^ in_type ^ "|}" ^ {| in
           let _, program = Tinyocamlrw.of_string |} ^ "{|" ^ new_body ^ "|}" ^ {| in
@@ -77,7 +80,7 @@ let make_shim = function
           let tiny_result = Eval.eval_until_value true false (env @ !Eval.lib) program in
           (Tinyexternal.to_ocaml_value tiny_result : |} ^ out_type ^ ")"   (* FIXME *)
       in
-        List.map Ocamliutil.ast ocaml_part @ [Ocamliutil.ast code_str]
+        [Ocamliutil.ast code_str]
   | x ->
       Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
       []
