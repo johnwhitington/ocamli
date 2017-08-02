@@ -62,7 +62,7 @@ let make_external_call_shims (body : Tinyocaml.t) =
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim external_envbindings = function
-  | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, env_from_tinyocaml))]) ->      
+  | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, _))]) ->      
       let saved = !Pptinyocaml.syntax in
       let _ = Pptinyocaml.syntax := false in
       let ocaml_part, env_binding_strings = List.split (make_external_call_shims body) in
@@ -96,6 +96,43 @@ let make_shim external_envbindings = function
   | x ->
       Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
       []
+
+(* Build the Tinyocaml.t -> Tinyocaml.t inside shim for use in code which is below in the same module *)
+let make_inside_shim = function
+  | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, env_from_tinyocaml))]) ->
+      []
+      (* We are going to generate something lile:
+        *
+        *
+let inside_double (x : Tinyocaml.t) =
+  let module A =
+    struct
+      let double env =
+        function
+        | x::[] ->
+            let heap_x = Tinyexternal.to_ocaml_value x  in
+            let result = A.double heap_x  in
+            Tinyexternal.of_ocaml_value env result "int"
+        | _ -> failwith "A.double: arity" 
+    end
+  in
+    let env =
+      ([EnvBinding
+          (false,
+            (ref [((PatVar "A.double"), (mk "A.double" A.double))]))]
+         @
+         [EnvBinding
+            (false, (ref [((PatVar "c_function"), c_function_builtin)]))])
+    in
+       let program = App (....the program from the env, with A.doubles and externals fixed-up, and made recursive ...., x) in
+         Eval.eval_until_value true false (env @ !Eval.lib) program
+*)
+  | x ->
+      Printf.eprintf "Failed to make inside shim for %s\n" (Tinyocaml.to_string x);
+      []
+
+(* Now, the lower function let f x = double x, needs a CallBuiltIn pointing to
+ * this inside_double. Later we can tidy CallbuiltIn to not show *)
 
 let make_shims external_envbindings = function
   Struct (_, structitems) ->
