@@ -51,7 +51,7 @@ let find_dotted_names e =
   let names = ref [] in
     Tinyocaml.iter
     (function Var v ->
-      if List.mem '.' (explode v) then names := v::!names
+      if List.mem '.' (explode v) && v <> "Callback.register" then names := v::!names
      | _ -> ())
     e;
     setify !names

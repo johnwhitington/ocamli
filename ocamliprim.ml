@@ -123,6 +123,8 @@ let caml_register_named_value =
   mk2 "caml_register_named_value"
     (function env ->
      function [String name; func] ->
+       (*Printf.printf "caml_register_named_value: %s, %s\n" name (Tinyocaml.to_string func);
+       flush stdout;*)
        (* Build a function closure on the heap which, when called with
         * arguments runs the code in func, and returns the answer to C. *)
        (* For now, assume int -> int. Also, no environment yet. *)
@@ -134,6 +136,8 @@ let caml_register_named_value =
            Tinyexternal.to_ocaml_value output
        in
          Callback.register name c_function;
+         (*Printf.printf "Function registered...\n";
+         flush stdout;*)
          Unit
      | _ -> failwith "builtin_caml_register_value")
 

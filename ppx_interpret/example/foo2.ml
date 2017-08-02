@@ -58,37 +58,22 @@ let double x =
       (Tinyexternal.to_ocaml_value tiny_result : int)
   
 let trip x =
-  let module Callback =
-    struct
-      let register env =
-        function
-        | x::[] ->
-            let heap_x = Tinyexternal.to_ocaml_value x  in
-            let result = Callback.register heap_x  in
-            Tinyexternal.of_ocaml_value env result "int"
-        | _ -> failwith "Callback.register: arity" 
-    end in
-    let open Tinyocaml in
-      let tiny_x = Tinyexternal.of_ocaml_value [] x {|int|}  in
-      let (_,program) =
-        Tinyocamlrw.of_string
-          {|let rec trip x = let double x = x * 2 in let () = Callback.register "double" double in
+  let open Tinyocaml in
+    let tiny_x = Tinyexternal.of_ocaml_value [] x {|int|}  in
+    let (_,program) =
+      Tinyocamlrw.of_string
+        {|let rec trip x = let double x = x * 2 in let () = Callback.register "double" double in
     c_function x * 3 in trip x|}
-         in
-      let env =
-        [EnvBinding (false, (ref [((PatVar "x"), tiny_x)]))] @
-          ([EnvBinding
-              (false,
-                (ref
-                   [((PatVar "Callback.register"),
-                      (mk "Callback.register" Callback.register))]))]
-             @
-             [EnvBinding
-                (false, (ref [((PatVar "c_function"), c_function_builtin)]))])
-         in
-      let tiny_result =
-        Eval.eval_until_value true false (env @ (!Eval.lib)) program  in
-      (Tinyexternal.to_ocaml_value tiny_result : int)
+       in
+    let env =
+      [EnvBinding (false, (ref [((PatVar "x"), tiny_x)]))] @
+        ([] @
+           [EnvBinding
+              (false, (ref [((PatVar "c_function"), c_function_builtin)]))])
+       in
+    let tiny_result =
+      Eval.eval_until_value true false (env @ (!Eval.lib)) program  in
+    (Tinyexternal.to_ocaml_value tiny_result : int)
   
 let f x =
   let open Tinyocaml in
