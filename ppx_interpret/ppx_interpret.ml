@@ -62,7 +62,7 @@ let make_external_call_shims (body : Tinyocaml.t) =
 
 (* Given a Tinyocaml.t representing a structure item let x = ..., build the main shim, and any bits required to call it *)
 let make_shim external_envbindings = function
-  | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, _))]) ->      
+  | LetDef (_, [(PatVar fun_name, Fun (_, PatVar var_name, body, env_from_tinyocaml))]) ->      
       let saved = !Pptinyocaml.syntax in
       let _ = Pptinyocaml.syntax := false in
       let ocaml_part, env_binding_strings = List.split (make_external_call_shims body) in
@@ -96,7 +96,6 @@ let make_shim external_envbindings = function
   | x ->
       Printf.eprintf "Failed to make shim for %s\n" (Tinyocaml.to_string x);
       []
-
 
 let make_shims external_envbindings = function
   Struct (_, structitems) ->

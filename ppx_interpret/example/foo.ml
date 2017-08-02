@@ -1,3 +1,6 @@
+envitems in env_from_tinyocaml: 1
+envitems in env_from_tinyocaml: 2
+envitems in env_from_tinyocaml: 3
 let _ =
   Pptinyocaml.simple := true;
   Ocamliutil.typecheck := false;
