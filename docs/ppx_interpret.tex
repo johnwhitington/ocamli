@@ -112,7 +112,16 @@ let double x =
       (Tinyexternal.to_ocaml_value tiny_result : int)
 \end{verbatim}}
 
+\section*{How it works}
 
+For each top-level function definition in the module to be interpreted:
+
+\begin{itemize}
+\item Every call to an item from another module, like A.double must be reproduced as a local module, which can be called from within the interpreted code. It takes a Tinyocaml.t value to a real one, calls the function from the other module and reads the results back into a Tinyocaml.t.
+\item Every call to an external (e.g C) function must also be built in the same way. The \texttt{external} definition is retained, and a shim is built.
+\item Code which calls other functions internal to the module must also be shimmed in the same way.
+\item Callback.register in the standard library is replaced with a version which knows how to call back into an interpreted function.
+\end{itemize}
 
 \end{document}
 

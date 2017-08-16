@@ -143,7 +143,7 @@ The interpreter can be used at runtime, and the resulting value bought back into
 
 ```
 # let x : int list * int list =
-  Tinyocaml.to_ocaml_value\\
+  Tinyocaml.to_ocaml_value
     (Runeval.eval_string "List.split [(1, 2); (3, 4)]");;
 val x : int list * int list = ([1; 3], [2; 4])
 ```
@@ -184,7 +184,7 @@ In short, make it more than a proof-of-concept:
 * Extend it to the full language
 * Better pretty-printing
 * Make it fast enough for general use
-* Easy invocation as a debugger regardless of build system or source structure\columnbreak
+* Easy invocation as a debugger regardless of build system or source structure
 * Better tools for searching and eliding
 * Allow interpretation of just one module -- other modules run at full speed
 * An interactive interface
