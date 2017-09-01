@@ -39,7 +39,7 @@ You should be able to use some or most of the Standard Library functions. Presen
 **Searching**
 
 
-"I want to see the last few steps before `factorial (4 - 1)`:
+"I want to see the last few steps before `factorial (4 - 1)`":
 
 ![search](https://user-images.githubusercontent.com/1702581/28018930-02f0ab32-6577-11e7-9668-258a903a0b27.png)
 
