@@ -16,12 +16,9 @@ and envitem = bool * binding list ref
 
 and environment = envitem list
 
-and annotation = string
-
 and t =
   {t : t';
-   lets : (bool * binding list) list;
-   annots : annotation list}
+   lets : (bool * binding list) list}
 
 and t' =
   Int of int
@@ -37,7 +34,7 @@ and t' =
 | Struct of t list
 
 let mkt x =
-  {t = x; lets = []; annots = []}
+  {t = x; lets = []}
 
 let rec is_value_t' = function
 | Let (_, bs, a) -> is_value a && List.for_all is_value_binding bs
@@ -74,7 +71,7 @@ let rec of_tinyocaml env = function
     let of_e = of_tinyocaml env' e in
     (* If all bindings are values, put this in as an implicit let. *)
     if List.for_all is_value_binding !theref then
-      {t = of_e.t; lets = (recflag, !theref)::of_e.lets; annots = of_e.annots}
+      {t = of_e.t; lets = (recflag, !theref)::of_e.lets}
     else
       mkt (Let (recflag, !theref, of_e))
 | Tinyocaml.App (a, b) -> mkt (Apply (of_tinyocaml env a, of_tinyocaml env b))
@@ -84,11 +81,6 @@ let rec of_tinyocaml env = function
     mkt (Function (v, env, of_tinyocaml env rhs))
 | Tinyocaml.Struct (_, es) ->
     mkt (Struct (of_tinyocaml_many env es))
-| Tinyocaml.Annot (name, _, expr_annotated) ->
-    let inside = of_tinyocaml env expr_annotated in
-      {t = inside.t;
-       annots = name::inside.annots;
-       lets = [] @ inside.lets}
 | e -> failwith (Printf.sprintf "of_tinyocaml: unknown structure %s" (Tinyocaml.to_string e))
 
 and of_tinyocaml_many env = function
@@ -109,13 +101,6 @@ and of_tinyocaml_binding env = function
 let of_tinyocaml x = of_tinyocaml [] x
 
 let rec to_tinyocaml e =
-  match e.annots with
-    name::more ->
-      Tinyocaml.Annot
-        (name,
-         Struct (false, []),
-         to_tinyocaml {e with annots = more})
-  | [] ->
   match e.lets with
     (recflag, bindings)::t ->
       Tinyocaml.Let
@@ -319,7 +304,6 @@ let rec seval (env : environment) e =
         let new_bindings = seval_first_non_value_binding env bindings in
           if List.for_all is_value_binding new_bindings then
             {lets = (recflag, new_bindings)::e.lets @ e'.lets;
-             annots = e'.annots;
              t = e'.t}
           else
             {e with t = Let (recflag, new_bindings, e')}
@@ -367,60 +351,9 @@ let of_program_text s =
 let to_program_text x =
   Pptinyocaml.to_string (to_tinyocaml x)
 
-(* For now, just finds one, and not robustly *)
-let rec getshow_t = function
-  {annots = ["show"]; lets; t} ->
-    Some ({(mkt t) with lets})
-| x -> getshow_t' x.t
-
-and getshow_of_two a b =
-  match getshow_t a with
-    Some x -> Some x
-  | None -> getshow_t b
-
-and getshow_of_three a b c =
-  match getshow_t c with
-    Some x -> Some x
-  | None -> getshow_of_two a b
-
-and getshow_first = function
-  [] -> None
-| x::xs ->
-    match getshow_t x with
-      None -> getshow_first xs
-    | Some y -> Some y
-
-and getshow_bindings bs =
-  getshow_first (List.map snd bs)
-
-and getshow_t' = function
-  Int _ | Bool _ | Var _ -> None
-| Function (_, _, a) -> getshow_t a
-| Apply (a, b)
-| Equals (a, b)
-| Op (_, a, b) -> getshow_of_two a b
-| Struct items -> getshow_first items
-| If (a, b, c) -> getshow_of_three a b c
-| Let (_, bindings, a) ->
-    begin match getshow_bindings bindings with
-      None -> getshow_t a
-    | Some x -> Some x
-    end
-| LetDef (_, bindings) -> getshow_bindings bindings
-
-(* Show a step, unless -show-annot prevents us *)
 let show p =
-  if !showannot then
-    match getshow_t p with
-      None -> ()
-    | Some p' ->
-        print_string (to_program_text p');
-        print_string "\n"
-  else
-    begin
-      print_string (to_program_text p);
-      print_string "\n"
-    end
+  print_string (to_program_text p);
+  print_string "\n"
 
 (* Run the program p *)
 let run p = eval [] p
@@ -453,8 +386,7 @@ let step = ref false
 
 let argspec =
   [("-e", Arg.String settext, " Evaluate the program text given");
-   ("-step", Arg.Set step, " Evaluate step-by-step");
-   ("-show-annot", Arg.Set showannot, " Show only terms annotated with [@show]")]
+   ("-show-all", Arg.Set step, " Evaluate step-by-step")]
 
 let _ =
   Arg.parse argspec setfile "Syntax: newtype <filename | -e program>\n";

@@ -6,12 +6,9 @@ and envitem = bool * binding list ref
 
 and environment = envitem list
 
-and annotation = string
-
 and t =
   {t : t';
    lets : (bool * binding list) list; (* The implicit value-lets around any expression *)
-   annots : annotation list;
   }
 
 and t' =
