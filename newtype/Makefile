@@ -1,13 +1,13 @@
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 
-MODS = newtype
+MODS = nanocaml ocamli2
 
 SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli)
 
 PACKS = bigarray ocamli compiler-libs.common
 
-RESULT = newtype
+RESULT = ocamli2
 
 OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
 OCAMLBCFLAGS = -safe-string -g -w -3 -w -40
