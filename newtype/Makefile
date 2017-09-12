@@ -1,7 +1,7 @@
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 
-MODS = nanocaml nanocamlrw ocamli2
+MODS = nanocaml nanocamlrw eval2 ocamli2
 
 SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli)
 
