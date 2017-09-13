@@ -9,7 +9,9 @@ let real_op = function
 (* Eval-in-one-go. Implicit lets not really relevant here, because we just put
 them in the env. *)
 let rec eval (env : environment) e =
-  let env = add_implicit_lets_to_environment env (List.rev e.lets) in
+  Printf.printf "eval: %s\n" (Nanocaml.string_of_t e);
+  Printf.printf "env:\n"; Nanocaml.print_env env;
+  (*let env = add_implicit_lets_to_environment env (List.rev e.lets) in*)
     match e.t with
       Int _ | Bool _ | Function (_, _, _) -> e
     | Var v ->
@@ -19,24 +21,29 @@ let rec eval (env : environment) e =
            print_env env;
            raise Exit
         end
-    | If ({t = Bool b}, x, y) -> eval env (if b then x else y)
-    | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}
     | Op (op, x, y) ->
         begin match (eval env x).t, (eval env y).t with
           Int x, Int y -> mkt (Int (real_op op x y))
         | _ -> failwith "eval-minus"
         end
-    | Equals (x, y) ->
+    | Apply ({t = Function (fvar, fenv, b)}, y) ->
+        let new_envitem = envitem_of_bindings false [(fvar, eval env y)] in
+          eval (new_envitem :: (*fenv @*) env) b
+    | Apply (f, y) ->
+        eval env {e with t = Apply (eval env f, y)}
+    | Struct es ->
+        {e with t = Struct (eval_many env es)}
+
+    (*| If ({t = Bool b}, x, y) -> eval env (if b then x else y)
+    | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}*)
+
+    (*| Equals (x, y) ->
         begin match (eval env x).t, (eval env y).t with
           Int x, Int y -> mkt (Bool (x = y))
         | _ -> failwith "eval-equals"
-        end
-    | Apply ({t = Function (v, fenv, b)}, y) ->
-        let new_envitem = envitem_of_bindings false [(v, eval env y)] in
-          eval (new_envitem :: fenv @ env) b
-    | Apply (f, y) ->
-        eval env {e with t = Apply (eval env f, eval env y)}
-    | Let (recflag, bindings, e) ->
+        end*)
+
+    (*| Let (recflag, bindings, e) ->
         let env' =
            envitem_of_bindings recflag
              (List.map
@@ -56,9 +63,8 @@ let rec eval (env : environment) e =
           if recflag then envitem_of_bindings recflag bindings :: env else env
         in
           {e with t =
-            LetDef (recflag, List.map (fun (n, be) -> (n, eval benv be)) bindings)}
-    | Struct es ->
-        {e with t = Struct (eval_many env es)}
+            LetDef (recflag, List.map (fun (n, be) -> (n, eval benv be)) bindings)}*)
+
 
 and eval_many env = function
   [] -> []

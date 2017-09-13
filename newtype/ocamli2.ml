@@ -3,8 +3,8 @@ open Nanocaml
 let _ = Pptinyocaml.simple := true
 
 (* string -> ocaml ast -> tinyocaml ast -> newtype ast *)
-let of_program_text s =
-  Nanocamlrw.of_tinyocaml (snd (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s)))
+let tinyocaml_of_program_text s =
+  snd (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
 
 (* newtype ast -> tinyocaml ast -> pptinyocaml -> string *)
 let to_program_text x =
@@ -42,16 +42,23 @@ let load_code () =
   | None -> None
 
 let step = ref false
+let dnano = ref false
+let dtiny = ref false
 
 let argspec =
   [("-e", Arg.String settext, " Evaluate the program text given");
+   ("-dnano", Arg.Set dnano, " Show nanocaml representation");
+   ("-dtiny", Arg.Set dtiny, " Show tinyocaml representation");
    ("-show-all", Arg.Set step, " Evaluate step-by-step")]
 
 let _ =
   Arg.parse argspec setfile "Syntax: newtype <filename | -e program>\n";
   match load_code () with
     Some code ->
-      let p = of_program_text code in
+      let tiny = tinyocaml_of_program_text code in
+        if !dtiny then Printf.printf "%s\n" (Tinyocaml.to_string tiny);
+      let p = Nanocamlrw.of_tinyocaml tiny in
+        if !dnano then Printf.printf "%s\n" (Nanocaml.string_of_t p);
         if !step then
           run_step p
         else

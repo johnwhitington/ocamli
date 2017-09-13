@@ -75,7 +75,7 @@ and string_of_t e =
   string_of_t' e.t
 
 and string_of_binding (varname, t) =
-  Printf.sprintf "Binding %s" varname
+  Printf.sprintf "Binding %s = %s" varname (string_of_t t)
 
 and string_of_bindings bs =
   List.fold_left
