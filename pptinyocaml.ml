@@ -7,6 +7,9 @@ let debug = ref false
 (* Use bold and underlining *)
 let syntax = ref true
 
+(* To output \textbf{} and \underline{} for thesis writing. *)
+let syntax_tex = ref false
+
 (* If true, whole program printed on one line *)
 let simple = ref false
 
@@ -734,8 +737,14 @@ begin new ones *)
 let tags = ref []
 
 let output_tag f = function
-  "underline" -> Format.pp_print_string f ul
-| "bold" -> Format.pp_print_string f bold
+  "underline" ->
+    if !syntax_tex
+      then Format.pp_print_string f "\\underline{"
+      else Format.pp_print_string f ul
+| "bold" ->
+    if !syntax_tex
+      then Format.pp_print_string f "\\textbf{"
+      else Format.pp_print_string f bold
 | _ -> failwith "format: unknown tag"
 
 let output_tags f =
@@ -755,7 +764,10 @@ let print ?(preamble="") f t =
          (fun _ ->
             if !tags = [] then failwith "ill-matched tags: pop";
             tags := List.tl !tags;
-            Format.pp_print_string f code_end;
+            begin if !syntax_tex
+              then Format.pp_print_string f "}"
+              else Format.pp_print_string f code_end
+            end;
             if !tags <> [] then output_tags f)
        else
          (fun _ -> ()))}
