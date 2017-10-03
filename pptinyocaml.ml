@@ -286,7 +286,7 @@ let rec print_tiny_inner f isleft parent node =
   | NativeInt i -> str (Nativeint.to_string i ^ "n")
   | Bool b -> str (string_of_bool b)
   | Float f -> str (string_of_float f)
-  | String s -> str ("\"" ^ String.escaped s ^ "\"")
+  | String s -> str ("\"" ^ String.escaped (Bytes.to_string s) ^ "\"")
   | Char c -> str (Printf.sprintf "%C" c)
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"

@@ -35,7 +35,7 @@ let exception_from_ocaml e =
 [%%auto {|external percent_negint : int -> int = "%negint"|}]
 [%%auto {|external caml_ml_input_scan_line : in_channel -> int = "caml_ml_input_scan_line"|}]
 [%%auto {|external caml_create_string : int -> string = "caml_create_string"|}]
-[%%auto {|external caml_create_bytes : int -> bytes = "caml_create_bytes"|}]
+(*[%%auto {|external caml_create_bytes : int -> bytes = "caml_create_bytes"|}]
 [%%auto {|external caml_int64_float_of_bits : int64 -> float = "caml_int64_float_of_bits"|}]
 [%%auto {|external ignore : 'a -> unit = "%ignore"|}]
 [%%auto {|external caml_ml_input_char : in_channel -> char = "caml_ml_input_char"|}]
@@ -74,11 +74,11 @@ let exception_from_ocaml e =
 [%%auto {|external asrint : int -> int -> int = "%asrint"|}]
 [%%auto {|external addint : int -> int -> int = "%addint"|}]
 [%%auto {|external caml_int_of_string : string -> int = "caml_int_of_string"|}]
-[%%auto {|external bytes_length : bytes -> int = "%bytes_length"|}]
+[%%auto {|external bytes_length : bytes -> int = "%bytes_length"|}]*)
 
 open Tinyocaml
 
-let exe = ref ""
+let exe = ref (Bytes.of_string "")
 let argv = ref [||]
 
 let debug = ref false
@@ -135,11 +135,31 @@ let caml_register_named_value =
          in
            Tinyexternal.to_ocaml_value output
        in
-         Callback.register name c_function;
+         Callback.register (Bytes.to_string name) c_function;
          (*Printf.printf "Function registered...\n";
          flush stdout;*)
          Unit
      | _ -> failwith "builtin_caml_register_value")
+
+(*(* BYTES TEST for 4.06.0 *)
+external caml_create_string : int -> string = "caml_create_string"
+let caml_create_string =
+  let f =
+    function
+    | env ->
+        (function
+         | (Tinyocaml.Int a)::[] ->
+             (try
+                Tinyocaml.String (Bytes.of_string (caml_create_string a))
+              with | e -> exception_from_ocaml e)
+         | _ -> failwith "caml_create_string")
+     in
+  ("caml_create_string",
+    (Tinyocaml.Fun
+       (Tinyocaml.NoLabel, (Tinyocaml.PatVar "*a"),
+         (Tinyocaml.CallBuiltIn
+            (None, "caml_create_string", [Tinyocaml.Var "*a"], f)), [])))*)
+
 
 (* BEGINNING OF VALUE TESTS *)
 external array_safe_get : 'a array -> int -> 'a = "%array_safe_get"
@@ -228,7 +248,7 @@ let emulated_caml_int_of_string =
   mk "caml_int_of_string"
     (function env -> function [String s] ->
        begin try
-         Int (int_of_string s)
+         Int (int_of_string (Bytes.to_string s))
        with 
          e -> exception_from_ocaml e
        end
@@ -253,7 +273,7 @@ let emulated_caml_create_string =
   mk "caml_create_string"
     (function env -> function [Int i] ->
        begin try
-         String (String.create i)
+         String (Bytes.create i)
        with
          e -> exception_from_ocaml e
        end
@@ -281,14 +301,14 @@ external bytes_to_string : bytes -> string = "%bytes_to_string"
 
 let percent_bytes_to_string =
   mk "%bytes_to_string"
-    (function env -> function [String x] -> String (String.copy x)
+    (function env -> function [String x] -> String (Bytes.copy x)
      | _ -> failwith "%bytes_to_string")
 
 
 let percent_backend_type =
   mk "%backend_type"
     (function env -> function
-     | [Unit] -> Constr (0, "Other", Some (String "ocamli")) (* FIXME tag *)
+     | [Unit] -> Constr (0, "Other", Some (String (Bytes.of_string "ocamli"))) (* FIXME tag *)
      | _ -> failwith "percent_backend_type")
 
 let percent_raise =
@@ -345,7 +365,7 @@ external inet_addr_of_string : string -> Unix.inet_addr
 (* FIXME This Obj.magic stuff - can we avoid it? *)
 let unix_inet_addr_of_string =
   mk "unix_inet_addr_of_string"
-    (function env -> function [String s] -> String (Obj.magic (inet_addr_of_string s))
+    (function env -> function [String s] -> String (Obj.magic (inet_addr_of_string (Bytes.to_string s)))
      | _ -> failwith "unix_inet_addr_of_string")
 
 
@@ -363,7 +383,7 @@ let caml_sys_get_config =
   mk "caml_sys_get_config"
     (function env -> function [Unit] ->
        let s, i, b = get_config () in
-         Tuple [String s; Int i; Bool b]
+         Tuple [String (Bytes.of_string s); Int i; Bool b]
      | _ -> failwith "caml_sys_get_config")
 
 let caml_obj_tag =
@@ -390,7 +410,7 @@ external unsafe_fill : bytes -> int -> int -> char -> unit = "caml_fill_string" 
 let caml_fill_string =
   mk4 "caml_fill_string"
     (function env -> function
-       [String b; Int x; Int y; Char c] -> unsafe_fill (Bytes.unsafe_of_string b) x y c; Unit
+       [String b; Int x; Int y; Char c] -> unsafe_fill b x y c; Unit
      | _ -> failwith "caml_fill_string")
 
 type 'a w
@@ -408,7 +428,7 @@ external getenv: string -> string = "caml_sys_getenv"
 let caml_sys_getenv =
   mk "caml_sys_getenv"
     (function env -> function [String s] ->
-        begin try String (getenv s) with
+        begin try String (Bytes.of_string (getenv (Bytes.to_string s))) with
           Not_found -> Raise ("Not_found", None) 
         end
      | _ -> failwith "caml_sys_getenv")
@@ -450,8 +470,8 @@ external percent_string_safe_get : string -> int -> char = "%string_safe_get"
 let percent_string_safe_get =
   mk2 "%string_safe_get"
     (function env -> function [String s; Int i] ->
-      begin try Char s.[i] with _ ->
-         Raise ("Invalid_argument", Some (String "index out of bounds"))
+      begin try Char (Bytes.get s i) with _ ->
+         Raise ("Invalid_argument", Some (String (Bytes.of_string "index out of bounds")))
       end
      | _ -> failwith "percent_string_safe_get")
 
@@ -520,7 +540,7 @@ let rec convert_flags = function
 let caml_sys_open =
   mk3 "caml_sys_open"
     (function env -> function [String filename; flags; Int perm] ->
-       Int (caml_sys_open filename (convert_flags flags) perm)
+       Int (caml_sys_open (Bytes.to_string filename) (convert_flags flags) perm)
      | _ -> failwith "caml_sys_open")
 
 external caml_ml_set_channel_name : out_channel -> string -> int = "caml_ml_set_channel_name"
@@ -529,8 +549,8 @@ external caml_ml_set_channel_name' : in_channel -> string -> int = "caml_ml_set_
 let caml_ml_set_channel_name =
   mk2 "caml_ml_set_channel_name"
     (function env -> function
-       [OutChannel x; String y] -> Int (caml_ml_set_channel_name x y)
-     | [InChannel x; String y] -> Int (caml_ml_set_channel_name' x y)
+       [OutChannel x; String y] -> Int (caml_ml_set_channel_name x (Bytes.to_string y))
+     | [InChannel x; String y] -> Int (caml_ml_set_channel_name' x (Bytes.to_string y))
      | x -> failwith "caml_ml_set_channel_name")
 
 external caml_ml_close_channel : out_channel -> unit = "caml_ml_close_channel"
@@ -572,7 +592,7 @@ let caml_ml_out_channels_list =
      | _ -> failwith "caml_ml_out_channels_list")
 
 let builtin_primitives_common =
-  [caml_sys_exit;
+  [(*caml_sys_exit;
   caml_ml_out_channels_list;
   caml_blit_bytes;
   caml_ml_close_channel;
@@ -662,25 +682,25 @@ let builtin_primitives_common =
   percent_ostype_unix;
   percent_ostype_win32;
   percent_ostype_cygwin;
-  percent_lsrint;
+  percent_lsrint;*)
 ]
 
 let builtin_primitives =
-  [percent_array_safe_get;
+  [(*percent_array_safe_get;
    percent_boolnot;
    percent_negfloat;
    caml_int_of_string;
    caml_create_string;
-   caml_ba_init]
+   caml_ba_init*)]
   @ builtin_primitives_common
 
 let builtin_primitives_emulated =
-  [emulated_percent_array_safe_get;
+  [(*emulated_percent_array_safe_get;
    emulated_percent_boolnot;
    emulated_percent_negfloat;
    emulated_caml_int_of_string;
    emulated_caml_create_string;
-   emulated_caml_ba_init]
+   emulated_caml_ba_init*)]
   @ builtin_primitives_common
 
 (* For %identity, we need to annotate the output type, so that eval.ml can do

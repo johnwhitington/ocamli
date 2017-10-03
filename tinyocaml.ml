@@ -62,7 +62,7 @@ and t =
 | Int of int                  (* 1 *)
 | Bool of bool                (* false *)
 | Float of float              (* 1.0 *)
-| String of string            (* "foo" *)
+| String of bytes            (* "foo" *)
 | OutChannel of out_channel   (* e.g stdout, stderr *)
 | InChannel of in_channel     (* e.g stdin *)
 | Record of (string * t ref) list  (* Records. *)
@@ -267,7 +267,7 @@ let rec to_string = function
 | NativeInt i -> Printf.sprintf "NativeInt %ni" i
 | Bool b -> Printf.sprintf "Bool %b" b
 | Float f -> Printf.sprintf "Float %f" f
-| String s -> Printf.sprintf "String %s" s
+| String s -> Printf.sprintf "String %s" (Bytes.to_string s)
 | Char c -> Printf.sprintf "Char %C" c
 | OutChannel o -> Printf.sprintf "OutChannel"
 | InChannel i -> Printf.sprintf "InChannel"

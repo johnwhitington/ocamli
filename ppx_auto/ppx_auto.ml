@@ -25,7 +25,11 @@ let conv_type isin t =
   | Ptyp_constr ({txt = Lident "nativeint"}, _) -> addx "Tinyocaml.NativeInt"
   | Ptyp_constr ({txt = Lident "in_channel"}, _) -> addx "Tinyocaml.InChannel"
   | Ptyp_constr ({txt = Lident "out_channel"}, _) -> addx "Tinyocaml.OutChannel"
-  | Ptyp_constr ({txt = Lident ("string" | "bytes")}, _) -> addx "Tinyocaml.String"
+  | Ptyp_constr ({txt = Lident ("bytes")}, _) -> addx "Tinyocaml.String"
+  | Ptyp_constr ({txt = Lident ("string")}, _) ->
+      if isin
+        then "Tinyocaml.String" ^ " " ^ (string_of_char !name)
+        else "Tinyocaml.String (* *) Bytes.of_string "
   | Ptyp_var "a" -> if isin then "a" else ""
   | _ -> failwith "conv_type"
 

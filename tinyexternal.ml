@@ -71,7 +71,7 @@ let rec read_untyped env debug_typ v typ =
   | UInt 0, Ptyp_constr ({txt = Longident.Lident "unit"}, _) ->
       Unit
   | UString s, Ptyp_constr ({txt = Longident.Lident "string"}, _) ->
-      String s
+      String (Bytes.of_string s)
   | UDouble d, Ptyp_constr ({txt = Longident.Lident "float"}, _) ->
       Float d
   | UBlock (0, vs), Ptyp_tuple ts when Array.length vs = List.length ts ->

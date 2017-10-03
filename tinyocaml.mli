@@ -59,7 +59,7 @@ and t =
 | Int of int                   (** 1 *)
 | Bool of bool                 (** false *)
 | Float of float               (** 1.0 *)
-| String of string             (** "foo" *)
+| String of bytes             (** "foo" *)
 | OutChannel of out_channel    (** e.g stdout *)
 | InChannel of in_channel      (** e.g stdin *)
 | Record of (string * t ref) list (** {a = e; b = e' ...} *)

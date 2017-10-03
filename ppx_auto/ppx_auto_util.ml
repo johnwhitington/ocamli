@@ -21,7 +21,7 @@ let implode l =
 let string_of_char c =
   let s = String.create 1 in
     String.unsafe_set s 0 c;
-    s
+    Bytes.to_string s
 
 let getexpr = function
   [{pstr_desc = Pstr_eval (e, _)}] -> e 
