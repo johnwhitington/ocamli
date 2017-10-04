@@ -65,7 +65,7 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_constant (Pconst_integer (s, Some 'L')) -> Int64 (Int64.of_string s)
 | Pexp_constant (Pconst_integer (s, Some 'n')) -> NativeInt (Nativeint.of_string s)
 | Pexp_constant (Pconst_char c) -> Char c
-| Pexp_constant (Pconst_string (s, None)) -> String s
+| Pexp_constant (Pconst_string (s, None)) -> String (Bytes.of_string s)
 | Pexp_constant (Pconst_float (s, None)) -> Float (float_of_string s)
 | Pexp_construct ({txt = Lident "()"}, _) -> Unit
 | Pexp_construct ({txt = Lident "true"}, _) -> Bool true (*FIXME what if it's redefined? Also false, Nil, :: etc. *)
@@ -353,7 +353,7 @@ let rec to_real_ocaml_expression_desc = function
   | Control (_, x) -> to_real_ocaml_expression_desc x
   | Unit -> Pexp_construct ({txt = Longident.Lident "()"; loc = Location.none}, None)
   | Int i -> Pexp_constant (Pconst_integer (string_of_int i, None)) 
-  | String s -> Pexp_constant (Pconst_string (s, None))
+  | String s -> Pexp_constant (Pconst_string (Bytes.to_string s, None))
   | Bool b ->
       Pexp_construct
         ({txt = Longident.Lident (string_of_bool b); loc = Location.none},

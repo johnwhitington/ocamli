@@ -53,10 +53,10 @@ let make_regexp reference str =
 let times = ref 1
 
 let _ =
-  Ocamliprim.exe := "-e"
+  Ocamliprim.exe := Bytes.of_string "-e"
 
 let argv str =
-  Ocamliprim.argv := Array.of_list (Array.to_list !Ocamliprim.argv @ [str])
+  Ocamliprim.argv := Array.of_list (Array.to_list !Ocamliprim.argv @ [Bytes.of_string str])
 
 let ename = ref ""
 

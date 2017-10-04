@@ -27,7 +27,7 @@ let source = ref []
 
 let setfile s =
   source := (modname_of_filename s, FromFile s)::!source;
-  Ocamliprim.exe := s
+  Ocamliprim.exe := (Bytes.of_string s)
 
 let settext ?(modname="") s =
   source := (modname, FromText s)::!source

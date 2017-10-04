@@ -4,8 +4,8 @@ val debug : bool ref
  * around the C interface not being finished yet. *)
 val emulated : bool ref
 
-val exe : string ref
-val argv : string array ref
+val exe : bytes ref
+val argv : bytes array ref
 
 val lookup_primitive : ?typ:Parsetree.core_type -> string -> Tinyocaml.t
 

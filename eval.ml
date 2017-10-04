@@ -207,7 +207,7 @@ let rec matches expr pattern rhs =
     | Int32 i, PatInt32 i' when i = i' -> yes
     | Int64 i, PatInt64 i' when i = i' -> yes
     | NativeInt i, PatNativeInt i' when i = i' -> yes
-    | String s, PatString s' when s = s' -> yes
+    | String s, PatString s' when Bytes.to_string s = s' -> yes
     | Char c, PatChar c' when c = c' -> yes
     | Char x, PatCharRange (c, c') when x >= c && x <= c' -> yes 
     | e, PatVar v -> Some (Let (false, [(PatVar v, e)], rhs))
@@ -287,7 +287,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | Constr (tag, n, Some x) -> Constr (tag, n, Some (eval peek env x))
 | Annot (n, x, y) -> Annot (n, x, eval peek env y)
 | Assert (Bool false) ->
-    Raise ("Assert_failure", Some (Tuple [String "//unknown//"; Int 0; Int 0]))
+    Raise ("Assert_failure", Some (Tuple [String (Bytes.of_string "//unknown//"); Int 0; Int 0]))
 | Assert (Bool true) -> Unit
 | Assert e -> Assert (eval peek env e)
 | Control (_, x) -> eval peek env x
@@ -387,7 +387,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       then build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
       else App (Fun f, eval peek env x)
 | App (Function ([], fenv), x) ->
-    Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
+    Raise ("Match_failure", Some (Tuple [String (Bytes.of_string "FIXME"); Int 0; Int 0]))
 | App (Function ((p::ps), fenv), x) ->
     if is_value x then 
       let p =
@@ -534,7 +534,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     else if is_value x then Append (x, eval peek env y)
     else Append (eval peek env x, y)
 | Match (_, []) ->
-    Raise ("Match_failure", Some (Tuple [String "FIXME"; Int 0; Int 0]))
+    Raise ("Match_failure", Some (Tuple [String (Bytes.of_string "FIXME"); Int 0; Int 0]))
 | Match (x, p::ps) ->
     if not (is_value x) then
       try Match (eval peek env x, p::ps) with

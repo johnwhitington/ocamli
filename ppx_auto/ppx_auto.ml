@@ -29,13 +29,17 @@ let conv_type isin t =
   | Ptyp_constr ({txt = Lident ("string")}, _) ->
       if isin
         then "Tinyocaml.String" ^ " " ^ (string_of_char !name)
-        else "Tinyocaml.String (* *) Bytes.of_string "
+        else "Tinyocaml.String (Bytes.of_string"
   | Ptyp_var "a" -> if isin then "a" else ""
   | _ -> failwith "conv_type"
 
 let constr_of_type = function
   "Tinyocaml.Unit" -> "()"
-| _ -> string_of_char !name
+| x when String.length x >= 16 && String.sub x 0 16 = "Tinyocaml.String" ->
+    (*Printf.printf "NOTICED IT**************************\n";
+    flush stdout;*)
+    "(Bytes.to_string " ^ string_of_char !name ^ ")"
+| x -> (*Printf.printf "constr_of_type: %s\n" x;*) string_of_char !name
 
 (* Extract a -> b -> c -> d to ([a; b; c], d) etc. *)
 let rec find_types t =
@@ -105,6 +109,8 @@ let function_of_tins_tout tins t_out nstr n =
   let out =
     if t_out = "Tinyocaml.Unit"
       then n ^ " " ^ List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map snd tins) ^ "; Tinyocaml.Unit"
+      else if t_out = "Tinyocaml.String (Bytes.of_string"
+      then t_out ^ " (" ^ n ^ " " ^ List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map snd tins) ^ "))"
       else t_out ^ " (" ^ n ^ " " ^ List.fold_left (fun a b -> a ^ " " ^ b) "" (List.map snd tins) ^ ")"
   in
     let ins =

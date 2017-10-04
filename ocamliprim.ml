@@ -35,7 +35,7 @@ let exception_from_ocaml e =
 [%%auto {|external percent_negint : int -> int = "%negint"|}]
 [%%auto {|external caml_ml_input_scan_line : in_channel -> int = "caml_ml_input_scan_line"|}]
 [%%auto {|external caml_create_string : int -> string = "caml_create_string"|}]
-(*[%%auto {|external caml_create_bytes : int -> bytes = "caml_create_bytes"|}]
+[%%auto {|external caml_create_bytes : int -> string = "caml_create_bytes"|}]
 [%%auto {|external caml_int64_float_of_bits : int64 -> float = "caml_int64_float_of_bits"|}]
 [%%auto {|external ignore : 'a -> unit = "%ignore"|}]
 [%%auto {|external caml_ml_input_char : in_channel -> char = "caml_ml_input_char"|}]
@@ -74,7 +74,7 @@ let exception_from_ocaml e =
 [%%auto {|external asrint : int -> int -> int = "%asrint"|}]
 [%%auto {|external addint : int -> int -> int = "%addint"|}]
 [%%auto {|external caml_int_of_string : string -> int = "caml_int_of_string"|}]
-[%%auto {|external bytes_length : bytes -> int = "%bytes_length"|}]*)
+[%%auto {|external bytes_length : string -> int = "%bytes_length"|}]
 
 open Tinyocaml
 
@@ -140,26 +140,6 @@ let caml_register_named_value =
          flush stdout;*)
          Unit
      | _ -> failwith "builtin_caml_register_value")
-
-(*(* BYTES TEST for 4.06.0 *)
-external caml_create_string : int -> string = "caml_create_string"
-let caml_create_string =
-  let f =
-    function
-    | env ->
-        (function
-         | (Tinyocaml.Int a)::[] ->
-             (try
-                Tinyocaml.String (Bytes.of_string (caml_create_string a))
-              with | e -> exception_from_ocaml e)
-         | _ -> failwith "caml_create_string")
-     in
-  ("caml_create_string",
-    (Tinyocaml.Fun
-       (Tinyocaml.NoLabel, (Tinyocaml.PatVar "*a"),
-         (Tinyocaml.CallBuiltIn
-            (None, "caml_create_string", [Tinyocaml.Var "*a"], f)), [])))*)
-
 
 (* BEGINNING OF VALUE TESTS *)
 external array_safe_get : 'a array -> int -> 'a = "%array_safe_get"
@@ -592,7 +572,7 @@ let caml_ml_out_channels_list =
      | _ -> failwith "caml_ml_out_channels_list")
 
 let builtin_primitives_common =
-  [(*caml_sys_exit;
+  [caml_sys_exit;
   caml_ml_out_channels_list;
   caml_blit_bytes;
   caml_ml_close_channel;
@@ -682,25 +662,25 @@ let builtin_primitives_common =
   percent_ostype_unix;
   percent_ostype_win32;
   percent_ostype_cygwin;
-  percent_lsrint;*)
+  percent_lsrint;
 ]
 
 let builtin_primitives =
-  [(*percent_array_safe_get;
+  [percent_array_safe_get;
    percent_boolnot;
    percent_negfloat;
    caml_int_of_string;
    caml_create_string;
-   caml_ba_init*)]
+   caml_ba_init]
   @ builtin_primitives_common
 
 let builtin_primitives_emulated =
-  [(*emulated_percent_array_safe_get;
+  [emulated_percent_array_safe_get;
    emulated_percent_boolnot;
    emulated_percent_negfloat;
    emulated_caml_int_of_string;
    emulated_caml_create_string;
-   emulated_caml_ba_init*)]
+   emulated_caml_ba_init]
   @ builtin_primitives_common
 
 (* For %identity, we need to annotate the output type, so that eval.ml can do
