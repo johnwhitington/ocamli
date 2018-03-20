@@ -41,7 +41,7 @@ let exception_from_ocaml e =
 [%%auto {|external caml_ml_input_char : in_channel -> char = "caml_ml_input_char"|}]
 [%%auto {|external open_descriptor_out : int -> out_channel = "caml_ml_open_descriptor_out"|}]
 [%%auto {|external open_descriptor_in : int -> in_channel = "caml_ml_open_descriptor_in"|}]
-[%%auto {|external caml_ba_init : unit -> unit = "caml_ba_init"|}]
+(*[%%auto {|external caml_ba_init : unit -> unit = "caml_ba_init"|}]*)
 [%%auto {|external caml_ml_flush : out_channel -> unit = "caml_ml_flush"|}]
 [%%auto {|external caml_sqrt_float : float -> float = "caml_sqrt_float"|}]
 [%%auto {|external caml_ceil_float : float -> float = "caml_ceil_float"|}]
@@ -260,9 +260,9 @@ let emulated_caml_create_string =
      | _ -> failwith "caml_create_string")
 
 (* UNIT IN / UNIT OUT *)
-external caml_ba_init : unit -> unit = "caml_ba_init"
+(*external caml_ba_init : unit -> unit = "caml_ba_init"*)
 
-let emulated_caml_ba_init =
+(*let emulated_caml_ba_init =
   mk "caml_ba_init"
     (function env -> function [Unit] ->
       caml_ba_init (); Unit
@@ -272,7 +272,7 @@ let caml_ba_init =
   mk "caml_ba_init"
     (function env -> function [Unit] ->
       Tinyexternal.of_ocaml_value [] (caml_ba_init (Tinyexternal.to_ocaml_value Unit)) "unit"
-     | _ -> failwith "caml_ba_init")
+     | _ -> failwith "caml_ba_init")*)
 
 (** END OF VALUE TESTS *)
 
@@ -671,7 +671,7 @@ let builtin_primitives =
    percent_negfloat;
    caml_int_of_string;
    caml_create_string;
-   caml_ba_init]
+   (*caml_ba_init*)]
   @ builtin_primitives_common
 
 let builtin_primitives_emulated =
@@ -680,7 +680,7 @@ let builtin_primitives_emulated =
    emulated_percent_negfloat;
    emulated_caml_int_of_string;
    emulated_caml_create_string;
-   emulated_caml_ba_init]
+   (*emulated_caml_ba_init*)]
   @ builtin_primitives_common
 
 (* For %identity, we need to annotate the output type, so that eval.ml can do
