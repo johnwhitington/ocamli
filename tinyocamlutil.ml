@@ -118,7 +118,7 @@ let rec underline_redex e =
           SetField (underline a, n, b)
     | Raise _ -> underline e
     | TryWith (a, cases) ->
-        if is_value a then underline e else TryWith (underline a, cases)
+        if is_value a then underline e else TryWith (underline_redex a, cases)
     | CallBuiltIn (typ, name, args, fn) ->
         if List.for_all is_value args
           then underline e
@@ -147,6 +147,8 @@ let rec underline_redex e =
         if is_value x then Cons (x, underline_redex y) else Cons (underline x, y)
     | Match (x, patmatch) ->
         if is_value x then underline e else Match (underline_redex x, patmatch)
+    | LocalOpen (n, e) ->
+        LocalOpen (n, underline_redex e)
     | _ ->
         raise UnderlineValueUnderLets
   with
