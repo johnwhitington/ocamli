@@ -216,7 +216,7 @@ let lets = ref []
 let rec find_sidelets allowed_names x =
   match x with
   | (Let (recflag, [(PatVar v, e)], t)) when Tinyocamlutil.is_value e && List.mem v allowed_names ->
-      lets := (PatVar v, e)::!lets;
+      if !remove_rec_all && recflag then () else lets := (PatVar v, e)::!lets;
       find_sidelets allowed_names t
   | x -> Tinyocaml.recurse (find_sidelets allowed_names) x
 
@@ -236,7 +236,8 @@ let rec remove_items_with_duplicates = function
 let find_sidelets tiny =
   let bound = bound_names tiny in
     let singly_bound_names = remove_items_with_duplicates bound in
-      find_sidelets singly_bound_names tiny
+      let allowed = List.filter (fun x -> not (List.mem x !remove_recs)) singly_bound_names in
+        find_sidelets allowed tiny
 
 let really_print_line sls line =
   if !upto > 0 then print_string "\n";
