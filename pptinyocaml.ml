@@ -187,12 +187,12 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt "match ";
       print_tiny_inner f false (Some node) e;
       boldtxt " with ";
-      List.iter (print_case f false (Some node)) patmatch;
+      print_cases f false (Some node) patmatch;
       str rp
   | Function (patmatch, _) ->
       str lp;
       boldtxt "function ";
-      List.iter (print_case f false (Some node)) patmatch;
+      print_cases f false (Some node) patmatch;
       str rp
   | Struct (b, structure_items) ->
       if b then boldtxt "struct \n";
@@ -464,7 +464,7 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt "try ";
       print_tiny_inner f false (Some node) e;
       boldtxt " with ";
-      List.iter (print_case f false (Some node)) patmatch;
+      print_cases f false (Some node) patmatch;
       str rp
   | ExceptionDef (e, t) ->
       str lp;
@@ -611,13 +611,20 @@ and print_series_of_funs lp rp f isleft parent e =
     txt "-> ";
     print_tiny_inner f false (Some e) exp;
     str rp
-    
-and print_case f isleft parent (pattern, guard, rhs) =
+
+and print_cases f isleft parent cases =
+  match cases with
+    [] -> ()
+  | h::t ->
+      print_case ~bar:false f isleft parent h;
+      List.iter (print_case f isleft parent) t
+
+and print_case ?(bar=true) f isleft parent (pattern, guard, rhs) =
   let txt = Format.pp_print_text f in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
-  txt "| ";
+  if bar then txt "| ";
   print_pattern f isleft parent pattern NoLabel;
   begin match guard with
   | None -> ()

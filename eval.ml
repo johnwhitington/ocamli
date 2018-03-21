@@ -328,8 +328,8 @@ let rec eval peek (env : Tinyocaml.env) expr =
     Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
 | Cmp (op, a, b) when is_value a && is_value b -> Bool (comp op a b)
-| Cmp (op, a, b) when is_value b -> Cmp (op, eval peek env a, b)
-| Cmp (op, a, b) -> Cmp (op, a, eval peek env b)
+| Cmp (op, a, b) when is_value a -> Cmp (op, a, eval peek env b)
+| Cmp (op, a, b) -> Cmp (op, eval peek env a, b)
 | If (Bool true, a, _) -> last := IfBool::!last; a
 | If (Bool false, _, None) -> last := IfBool::!last; Unit
 | If (Bool false, _, Some b) -> last := IfBool::!last; b
