@@ -119,6 +119,7 @@ let argspec =
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
    ("-show-pervasives", Arg.Set showpervasives, " Show Pervasives such as :=");
    ("-fast-curry", Arg.Set fastcurry, " Apply all curried arguments at once. ");
+   ("-fast-for", Arg.Set Eval.fastfor, " Elide the evaluation of the inside of a FOR loop");
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Unit setdebug, " Debug (for OCAMLRUNPARAM=b)");

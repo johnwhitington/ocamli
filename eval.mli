@@ -31,6 +31,8 @@ val newlines : t -> bool
 
 val fastcurry : bool ref
 
+val fastfor : bool ref
+
 val dopeek : bool ref
 
 val docollectunusedlets : bool ref

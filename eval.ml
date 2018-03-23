@@ -9,10 +9,11 @@ let debug = ref false
 
 let fastcurry = ref false
 
+let fastfor = ref false
+
 let dopeek = ref true
 
 let docollectunusedlets = ref true
-
 
 (* True if a variable appears not shadowed. *)
 let rec appears var = function
@@ -460,7 +461,10 @@ let rec eval peek (env : Tinyocaml.env) expr =
 | For (v, Int x, ud, e', e'', copy) when is_value e'' ->
     For (v, Int (x + 1), ud, e', copy, copy)
 | For (v, x, ud, e', e'', copy) ->
-    For (v, x, ud, e', eval peek (EnvBinding (false, ref [(PatVar v, x)])::env) e'', copy)
+    if !fastfor then
+      For (v, x, ud, e', eval_until_value false peek (EnvBinding (false, ref [(PatVar v, x)])::env) e'', copy)
+    else
+      For (v, x, ud, e', eval peek (EnvBinding (false, ref [(PatVar v, x)])::env) e'', copy)
 | Record items ->
     eval_first_non_value_record_item peek env items;
     Record items
@@ -767,6 +771,16 @@ and eval_first_non_value_record_item peek env items =
   with
     Exit -> ()
 
+and eval_until_value show peek env e =
+  if is_value e then collect_unused_lets e else
+    let e = collect_unused_lets e in
+      if show then
+        begin
+          print_string (to_string e);
+          print_string "\n";
+        end;
+      eval_until_value show peek env (eval peek env e)
+
 let lib = ref []
 
 let init x = x
@@ -791,15 +805,7 @@ let next e =
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
 
-let rec eval_until_value show peek env e =
-  if is_value e then collect_unused_lets e else
-    let e = collect_unused_lets e in
-      if show then
-        begin
-          print_string (to_string e);
-          print_string "\n";
-        end;
-      eval_until_value show peek env (eval peek env e)
+
 
 let _ = Ocamliprim.eval_until_value := eval_until_value
 
