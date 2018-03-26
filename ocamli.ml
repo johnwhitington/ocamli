@@ -117,7 +117,8 @@ let argspec =
    ("-top", Arg.Set top, " Do nothing, exit cleanly (for top level)");
    ("-remove-rec", Arg.String add_remove_rec, " Do not print the given recursive function");
    ("-remove-rec-all", Arg.Set remove_rec_all, " Do not print any recursive functions");
-   ("-show-pervasives", Arg.Set showpervasives, " Show Pervasives such as :=");
+   ("-show-pervasives", Arg.Set showpervasives, " Show more of pervasives");
+   ("-real-ops", Arg.Set Tinyocamlrw.realops, " Don't treat :=, ref etc. as operators");
    ("-fast-curry", Arg.Set fastcurry, " Apply all curried arguments at once. ");
    ("-fast-for", Arg.Set Eval.fastfor, " Elide the evaluation of the inside of a FOR loop");
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");

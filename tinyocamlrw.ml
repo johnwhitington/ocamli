@@ -3,6 +3,8 @@ open Asttypes
 open Tinyocaml
 open Ocamliutil
 
+let realops = ref false
+
 exception UnknownNode of string
 
 let rec tag_of_constructor_name_constdecls valnum blocknum str = function
@@ -82,6 +84,9 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
+| Pexp_ident {txt = Lident "!"} when not !realops -> Var "*!" (* FIXME redefined *)
+| Pexp_ident {txt = Lident ":="} when not !realops -> Var "*:=" (* FIXME redefined *)
+| Pexp_ident {txt = Lident "ref"} when not !realops -> Var "*ref" (* FIXME redefined *)
 | Pexp_ident {txt = v} -> Var (Tinyocaml.string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml env e, of_real_ocaml env e1, Some (of_real_ocaml env e2))
