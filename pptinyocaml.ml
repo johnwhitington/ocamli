@@ -20,6 +20,7 @@ let is_operator_char = function
 
 let is_operator = function
   "lsl" | "lsr" | "asr" | "mod" | "land" | "lor" | "lxor" -> true
+| "[:=" -> true
 | v -> is_operator_char v.[0]
 
 (* Width to format to *)
@@ -384,6 +385,7 @@ let rec print_tiny_inner f isleft parent node =
       (*if !debug then begin txt "|E|"; txt (to_string_env fenv); txt "|E|" end;*)
       print_series_of_funs lp rp f true (Some node) (Fun fn)
   | (App (App (Var v, a), b) | App (Control (_, App (Var v, a)), b)) when is_operator v ->
+      let v = if String.length v > 0 && v.[0] = '[' then String.sub v 1 (String.length v - 1) else v in
       str lp;
       print_tiny_inner f true (Some node) a;
       txt (" " ^ v ^ " ");

@@ -116,14 +116,12 @@ let getexpr = function
 | _ -> failwith "Not a single structure item"
 
 let isstarred s =
-  String.length s > 1 && String.sub s 0 1 = "*"
+  String.length s > 1 && (String.sub s 0 1 = "*" || String.sub s 0 1 = "[")
 
 let star s = "*" ^ s
 
 let unstar s =
-  if String.length s > 1 && String.sub s 0 1 = "*"
-    then String.sub s 1 (String.length s - 1)
-    else s
+  if isstarred s then String.sub s 1 (String.length s - 1) else s
 
 let rec option_map f = function
   | [] -> []

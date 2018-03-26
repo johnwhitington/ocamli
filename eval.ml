@@ -383,11 +383,13 @@ let rec eval peek (env : Tinyocaml.env) expr =
         failwith "letdef already a value"
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
-| App (Var "*!", Record [(_, t)]) -> !t
-| App (Var "*!", e) -> eval peek env e
-| App (Var "*ref", v) when is_value v -> Record [("contents", ref v)]
-| App (Var "*ref", e) -> eval peek env e
-(*| App (Var "*:=", Record [], v) when is_value v -> Record [("contents", v)]*)
+| App (App (Var "[:=", Record [(n, vr)]), y) when is_value y ->
+    vr := y;
+    Record [(n, vr)]
+| App (Var "[!", Record [(_, t)]) -> !t
+| App (Var "[!", e) -> eval peek env e
+| App (Var "[ref", v) when is_value v -> Record [("contents", ref v)]
+| App (Var "[ref", e) -> eval peek env e
 | App (Fun ((flabel, fname, fexp, fenv) as f), x) ->
     if is_value x
       then build_lets_from_fenv fenv (Let (false, [fname, x], fexp))

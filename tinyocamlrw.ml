@@ -84,9 +84,8 @@ let rec of_real_ocaml_expression_desc env = function
 | Pexp_ident {txt = Lident "stdout"} -> OutChannel stdout (* FIXME As above, may be redefined *)
 | Pexp_ident {txt = Lident "stderr"} -> OutChannel stderr
 | Pexp_ident {txt = Lident "stdin"} -> InChannel stdin
-| Pexp_ident {txt = Lident "!"} when not !realops -> Var "*!" (* FIXME redefined *)
-| Pexp_ident {txt = Lident ":="} when not !realops -> Var "*:=" (* FIXME redefined *)
-| Pexp_ident {txt = Lident "ref"} when not !realops -> Var "*ref" (* FIXME redefined *)
+| Pexp_ident {txt = Lident "!"} when not !realops -> Var "[!" (* FIXME redefined *)
+| Pexp_ident {txt = Lident "ref"} when not !realops -> Var "[ref" (* FIXME redefined *)
 | Pexp_ident {txt = v} -> Var (Tinyocaml.string_of_longident v)
 | Pexp_ifthenelse (e, e1, Some e2) ->
     If (of_real_ocaml env e, of_real_ocaml env e1, Some (of_real_ocaml env e2))
@@ -123,6 +122,7 @@ let rec of_real_ocaml_expression_desc env = function
            "&&" -> And (e, e')
          | "||" -> Or (e, e')
          | "@" -> Append (e, e')
+         | ":=" when not !realops -> App (App (Var "[:=", e), e')
          | ("*" | "+" | "-" | "/") as op  -> Op (op_of_string op, e, e')
          | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
              Cmp (cmp_of_string cmp , e, e')
