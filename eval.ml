@@ -278,7 +278,9 @@ let build_lets_from_fenv (fenv : Tinyocaml.env) e =
       | EnvType _ -> e (* FIXME? *))
     e
     fenv
-  
+
+exception RuntimeTypeError of string
+
 let rec eval peek (env : Tinyocaml.env) expr =
   (*Printf.printf "env %i\n%!" (List.length env);*)
   (*Printf.printf "EVAL: %s\n\n" (Tinyocaml.to_string expr);*)
@@ -297,6 +299,10 @@ let rec eval peek (env : Tinyocaml.env) expr =
     begin try Int (calc op a b) with
       Division_by_zero -> Raise ("Division_by_zero", None)
     end
+| Op (op, a, b) when is_value a && is_value b ->
+    raise
+      (RuntimeTypeError
+         (Printf.sprintf "operation %s can operate only on integers" (string_of_op op)))
 | Op (op, Int a, b) -> Op (op, Int a, eval peek env b)
 | Op (op, a, b) -> Op (op, eval peek env a, b)
 | And (Bool false, _) ->
@@ -804,6 +810,9 @@ let next e =
       else Next ((if !docollectunusedlets then collect_unused_lets else (fun x ->x)) (eval false !lib e))
   with
     ExceptionRaised (s, payload) -> raise (ExceptionRaised (s, payload))
+  | RuntimeTypeError x ->
+      Printf.printf "Run time type error:\n  %s\n" x;
+      exit 2
   | x ->
       Printf.printf "Error in Eval.next %s\n" (Printexc.to_string x);
       if !debug then reraise x;

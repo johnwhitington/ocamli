@@ -266,11 +266,12 @@ let rec sections b e codes count before during after = function
   '\x1b'::'['::'0'::'m'::t ->
     let l = ['\x1b'; '['; 'm'] in
     let before, during, after = update count b e l before during after in
-      sections b e [] count before during after t
+      sections b e codes count before during after t
 | '\x1b'::'['::x::'m'::t ->
-    let l = ['\x1b'; '['; x; 'm'] in
+   let l = ['\x1b'; '['; x; 'm'] in
     let before, during, after = update count b e l before during after in
-      sections b e (l::codes) count before during after t
+      let codes' = if count > b then codes else l::codes in
+      sections b e codes' count before during after t
 | h::t ->
     let before, during, after = update count b e [h] before during after in
       sections b e codes (count + 1) before during after t
@@ -290,8 +291,6 @@ let highlight_search regexp plainstr str =
   let beginning = Str.match_beginning () + 4 in
   let theend = Str.match_end () + 4 in
     highlight_string beginning theend str
-
-
 
 let print_line newline preamble tiny =
   let invert x = if x then not else (fun x -> x) in
