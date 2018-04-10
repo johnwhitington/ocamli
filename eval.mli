@@ -1,6 +1,8 @@
 (* The type of the internal state of the evaluator *)
 type t
 
+val runtime_typecheck : bool ref
+
 val lib : Tinyocaml.env ref
 
 exception ExceptionRaised of string * Tinyocaml.t option

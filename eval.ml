@@ -15,6 +15,45 @@ let dopeek = ref true
 
 let docollectunusedlets = ref true
 
+let runtime_typecheck = ref false
+
+(* Same-type approximation. Only for values. If the function says they are the
+ * same type, that means they are not *known* to be different types. *)
+let rec same_type_approx a b =
+  match a with
+  (* First, check the second being known the same as the first *)
+    Unit -> b = Unit
+  | Int _ -> (match b with Int _ -> true | _ -> false)
+  | Bool _ -> (match b with Bool _ -> true | _ -> false)
+  | Float _ -> (match b with Float _ -> true | _ -> false)
+  | String _ -> (match b with String _ -> true | _ -> false)
+  | OutChannel _ -> (match b with OutChannel _ -> true | _ -> false)
+  | InChannel _ -> (match b with InChannel _ -> true | _ -> false)
+  | Nil -> b = Nil
+  | Int32 _ -> (match b with Int32 _ -> true | _ -> false)
+  | Int64 _ -> (match b with Int64 _ -> true | _ -> false)
+  | NativeInt _ -> (match b with NativeInt _ -> true | _ -> false)
+  | Char _ -> (match b with Char _ -> true | _ -> false)
+  | Fun _ -> (match b with Fun _ | Function _ -> true | _ -> false)
+  | Function _ -> (match b with Function _ | Fun _ -> true | _ -> false)
+  (* Harder in the more complex cases... *)
+  | Record elts ->
+      (match b with Record elts2 ->
+         List.map fst elts = List.map fst elts2 | _ -> false)
+  | Tuple elts ->
+      (match b with Tuple elts2 ->
+         List.length elts = List.length elts2 && List.for_all2 same_type_approx elts elts2 | _ -> false)
+  | Cons (h, _) ->
+      (match b with Cons (h2, _) -> same_type_approx h h2 | _ -> false)
+  | Array [||] ->
+      (match b with Array _ -> true | _ -> false)
+  | Array aa ->
+      (match b with Array [||] -> true | Array ab -> same_type_approx aa.(0) ab.(0) | _ -> false)
+  | Constr _ ->
+      (match b with Constr _ -> true | _ -> false)
+  (* Then, if we cannot say either way, we must say they approximate to equal *)
+  | _ -> true
+
 (* True if a variable appears not shadowed. *)
 let rec appears var = function
   Var v when v = var -> true

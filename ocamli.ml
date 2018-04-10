@@ -88,6 +88,10 @@ let printversion () =
   print_string "\n";
   exit 0
 
+let set_notypecheck =
+  Ocamliutil.typecheck := false;
+  Eval.runtime_typecheck := true
+
 let argspec =
   [("-version", Arg.Unit printversion, " Print the version number of ocamli");
    ("-search", Arg.String (fun x -> make_regexp searchfor x; showall := true), " Show only matching evaluation steps");
