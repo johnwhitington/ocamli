@@ -88,7 +88,7 @@ let printversion () =
   print_string "\n";
   exit 0
 
-let set_notypecheck =
+let set_notypecheck () =
   Ocamliutil.typecheck := false;
   Eval.runtime_typecheck := true
 
@@ -135,7 +135,7 @@ let argspec =
    ("-no-peek", Arg.Clear Eval.dopeek, " Avoid peeking for debug");
    ("-no-syntax", Arg.Clear Pptinyocaml.syntax, " Don't use syntax highlighting");
    ("-tex-syntax", Arg.Set Pptinyocaml.syntax_tex, " Output tex instead of ANSI control codes");
-   ("-no-typecheck", Arg.Clear Ocamliutil.typecheck, " Don't typecheck");
+   ("-no-typecheck", Arg.Unit set_notypecheck, " Don't typecheck");
    ("-no-collect", Arg.Clear Eval.docollectunusedlets, " Don't collect unused lets");
    ("-no-stdlib", Arg.Clear Ocamlilib.load_stdlib, " Don't load the standard library");
    ("-side-lets", Arg.Set sidelets, "Show value-lets at the side");

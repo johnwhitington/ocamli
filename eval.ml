@@ -360,6 +360,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     Bool b
 | Or (Bool false, b) -> eval peek env b
 | Or (a, b) -> Or (eval peek env a, b)
+(* Special cases for integers *)
 | Cmp (op, Int a, Int b) ->
     last := Comparison::!last;
     Bool (comp op a b)
@@ -373,7 +374,16 @@ let rec eval peek (env : Tinyocaml.env) expr =
     last := VarLookup::Comparison::!last;
     Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
 | Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
-| Cmp (op, a, b) when is_value a && is_value b -> Bool (comp op a b)
+(* Ordinary cases *)
+| Cmp (op, a, b) when is_value a && is_value b ->
+    (* If -no-typecheck, see that they have same type. *)
+    if !runtime_typecheck then
+      if same_type_approx a b then
+        Bool (comp op a b)
+      else
+        raise (RuntimeTypeError "Comparison between values of differing types")
+    else
+      Bool (comp op a b)
 | Cmp (op, a, b) when is_value a -> Cmp (op, a, eval peek env b)
 | Cmp (op, a, b) -> Cmp (op, eval peek env a, b)
 | If (Bool true, a, _) -> last := IfBool::!last; a
@@ -580,10 +590,28 @@ let rec eval peek (env : Tinyocaml.env) expr =
         failwith (Printf.sprintf "Var %s not found" v)
     end
 | Cons (x, y) ->
-    if is_value x then
-      Cons (x, eval peek env y)
-    else
-      Cons (eval peek env x, y)
+    (* In the -no-typecheck case, we need to check afterwards to see if we have
+     * x, y both values. Then we check y is a list type, and that, if the list
+     * is non-empty, its first elt has same_type_approx as x *)
+    let r =
+      if is_value x then
+        Cons (x, eval peek env y)
+      else
+        Cons (eval peek env x, y)
+    in
+      if not !runtime_typecheck then r else
+        begin match r with
+          Cons (x, y) when is_value x && is_value y ->
+            begin match y with
+              Nil -> r
+            | Cons (y', _) ->
+                if same_type_approx x y' then r else
+                  raise (RuntimeTypeError (Printf.sprintf "Cannot cons onto this list: differing element types"))
+            | _ ->
+               raise (RuntimeTypeError (Printf.sprintf "Attempt to cons onto non-list"))
+            end
+        | _ -> r
+        end
 | Append (x, y) ->
     if is_value x && is_value y then
       append_values x y
