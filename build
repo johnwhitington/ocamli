@@ -1,7 +1,14 @@
+echo "*****BUILDING PPX_AUTO"
 cd ppx_auto && make
+echo "*****BUILDING MAIN"
 cd .. && make install
+echo "*****BUILDING PPX_EVAL"
 cd ppx_eval && make 
+echo "*****BUILDING PPX_EVAL example"
 cd example && make
+echo "*****BUILDING PPX_INTERPRET"
 cd ../../ppx_interpret && make
+echo "*****BUILDING PPX_INTERPRET example"
 cd example && make
+echo "*****BUILDING NEWTYPE"
 cd ../../newtype && make

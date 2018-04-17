@@ -318,7 +318,7 @@ let build_lets_from_fenv (fenv : Tinyocaml.env) e =
     e
     fenv
 
-exception RuntimeTypeError of string
+
 
 let rec eval peek (env : Tinyocaml.env) expr =
   (*Printf.printf "env %i\n%!" (List.length env);*)

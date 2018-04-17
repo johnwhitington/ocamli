@@ -2,6 +2,8 @@
 open Parsetree
 open Asttypes
 
+exception RuntimeTypeError of string
+
 (* Return the set of distinct  elements in a list. Does not preserve order. *)
 let setify_simple l =
   let rec setify_inner r = function

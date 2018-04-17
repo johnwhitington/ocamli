@@ -116,7 +116,15 @@ let function_of_tins_tout tins t_out nstr n =
     let ins =
       List.fold_left (fun a b -> a ^ " " ^ b ^";") "" (List.map fst tins)
     in
-      {|function env -> function [|} ^ ins ^ {|] -> |} ^ "begin try " ^ out ^ " with e -> exception_from_ocaml e end " ^ {|| _ -> failwith "|} ^ nstr ^ {|"|}
+        {|function env -> function [|} ^ ins ^ {|] -> |}
+      ^ "begin try "
+      ^ out
+      ^ " with e -> exception_from_ocaml e end "
+      ^ {|| _ -> raise (Ocamliutil.RuntimeTypeError ("|}
+      ^ nstr
+      ^ " expected argument types "
+      ^ ins
+      ^ {|"))|}
 
 let build_auto tins t_out n nstr =
   let thetuple = mkmk (List.length tins) nstr in

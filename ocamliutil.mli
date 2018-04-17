@@ -1,3 +1,5 @@
+exception RuntimeTypeError of string
+
 (* For writing evalutors with *)
 val setify : 'a list -> 'a list
 
