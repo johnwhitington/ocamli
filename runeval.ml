@@ -106,7 +106,7 @@ let show_this_pervasive_stage last =
 let skipped = ref false
 
 let wait_for_enter () =
-  ignore (input_line stdin)
+  ignore (input_char stdin)
 
 let print_string x =
   print_string x;

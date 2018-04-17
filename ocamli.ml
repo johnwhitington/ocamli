@@ -32,6 +32,7 @@ let regexp = ref false
 let showregexps = ref false
 let noparens = ref false
 let sidelets = ref false
+let interactivesearch = ref false
 
 let set_until_any s =
   untilany := true;
@@ -49,6 +50,12 @@ let make_regexp reference str =
         let r = Ocamlipat.regexp_of_lexbuf (Lexing.from_string str) in 
           if !showregexps then Printf.printf "Made search term %S\n" (Ocamlipat.regexp_of_string str);
           Str.regexp r
+
+(* In this mode, we stop after the first search and enter interactive mode then. *)
+let set_interactive_search str =
+  showall := true;
+  interactivesearch := true;
+  make_regexp searchfor str
 
 let times = ref 1
 
@@ -142,6 +149,7 @@ let argspec =
    ("-otherlibs", Arg.Set_string Ocamlilib.otherlibs, " Location of OCaml otherlibs");
    ("-emulated-stdlib", Arg.Set Ocamliprim.emulated, " Use emulated Standard Library %externals");
    ("-times", Arg.Set_int times, " Do many times");
+   ("-i-search", Arg.String set_interactive_search, "Set interactive mode with search");
    ("--", Arg.Rest argv, "")]
 
 let linecount = ref 0
@@ -318,6 +326,12 @@ let print_line newline preamble tiny =
     (* If it matches the search, and we are in the range, print the line *)
     if !inrange && matched then
       begin
+        (* If interactive search, set prompt and unset the search term *)
+        if !interactivesearch then
+          begin
+            prompt := true;
+            searchfor := Str.regexp "" 
+          end;
         let tiny, sls = if !sidelets then let t, sls = find_sidelets tiny in t, filter_sls sls else tiny, [] in
         let str = string_of_tiny ~preamble tiny in
         let str = if !highlight then highlight_search !searchfor s str else str in
