@@ -381,7 +381,11 @@ let go () =
   (*if !searchfor <> "" || !searchuntil <> "" || !searchafter <> "" then showall
    * := true;*)
   let rec really_run first state =
-    if !prompt then wait_for_enter ();
+    let state =
+      match if !prompt then wait_for_enter () else None with
+        Some newcode -> Eval.change_state state newcode
+      | None -> state
+    in
     Unix.sleepf !step;
     match Eval.next state with
       Next state' ->

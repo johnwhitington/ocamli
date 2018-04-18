@@ -1,3 +1,4 @@
+set -e
 echo "*****BUILDING PPX_AUTO"
 cd ppx_auto && make
 echo "*****BUILDING MAIN"

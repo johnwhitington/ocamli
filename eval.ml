@@ -885,6 +885,8 @@ let next e =
       if !debug then reraise x;
       Malformed "environment"
 
+let change_state state newcode = state
+
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
 

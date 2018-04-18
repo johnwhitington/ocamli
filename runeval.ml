@@ -105,8 +105,29 @@ let show_this_pervasive_stage last =
 
 let skipped = ref false
 
-let wait_for_enter () =
-  ignore (input_char stdin)
+let call_editor () =
+  let editor =
+    match Sys.getenv_opt "EDITOR" with
+      Some x -> x
+    | None -> "vim"
+  in
+    let fname = Filename.temp_file "ocamli" "editcall" in
+    let temp = open_out fname in
+    output_string temp "1 + 2 * 3";
+    close_out temp;
+    let newtext =
+      match Sys.command (editor ^ " " ^ fname) with
+        0 -> load_file fname
+      | _ -> failwith "calling editor failed"
+    in
+      Sys.remove fname;
+      newtext
+
+let rec wait_for_enter () =
+  match input_line stdin with
+    "" -> None
+  | "edit" -> Some (call_editor ())
+  | _ -> Printf.printf "unknown command\n%!"; wait_for_enter ()
 
 let print_string x =
   print_string x;

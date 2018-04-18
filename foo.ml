@@ -1,3 +1,4 @@
+(* -no-typecheck example *)
 let g x = x + 1
 
 let rec map f = function

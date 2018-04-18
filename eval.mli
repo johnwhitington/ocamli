@@ -15,6 +15,9 @@ val init_from_tinyocaml : Tinyocaml.t -> t
 (* Evaluate one step. None if some problem occurs. *)
 val next : t -> t Ocamliutil.result
 
+(* Hotload new code halfway through *)
+val change_state : t -> string -> t
+
 (* The representation of the current state as a parse tree. *)
 (*val tree : t -> Parsetree.structure*)
 
