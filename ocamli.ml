@@ -384,7 +384,8 @@ let go () =
     let state =
       match if !prompt then wait_for_enter state else None with
         Some newcode ->
-          Eval.init (snd (Tinyocamlrw.of_real_ocaml !Eval.lib (ast newcode))) 
+          Printf.printf "%s%!" newcode;
+          Eval.init (snd (Tinyocamlrw.of_real_ocaml !Eval.lib (ast newcode)))
       | None -> state
     in
     Unix.sleepf !step;
