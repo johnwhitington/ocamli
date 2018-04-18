@@ -105,7 +105,7 @@ let show_this_pervasive_stage last =
 
 let skipped = ref false
 
-let call_editor () =
+let call_editor (current_state : Eval.t) =
   let editor =
     match Sys.getenv_opt "EDITOR" with
       Some x -> x
@@ -113,7 +113,7 @@ let call_editor () =
   in
     let fname = Filename.temp_file "ocamli" "editcall" in
     let temp = open_out fname in
-    output_string temp "1 + 2 * 3";
+    output_string temp (Pptinyocaml.to_string current_state);
     close_out temp;
     let newtext =
       match Sys.command (editor ^ " " ^ fname) with
@@ -123,11 +123,11 @@ let call_editor () =
       Sys.remove fname;
       newtext
 
-let rec wait_for_enter () =
+let rec wait_for_enter (current_state : Eval.t) =
   match input_line stdin with
     "" -> None
-  | "edit" -> Some (call_editor ())
-  | _ -> Printf.printf "unknown command\n%!"; wait_for_enter ()
+  | "edit" -> Some (call_editor current_state)
+  | _ -> Printf.printf "unknown command\n%!"; wait_for_enter current_state
 
 let print_string x =
   print_string x;

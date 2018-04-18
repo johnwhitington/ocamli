@@ -885,12 +885,8 @@ let next e =
       if !debug then reraise x;
       Malformed "environment"
 
-let change_state state newcode = state
-
 let to_string x =
   Pptinyocaml.to_string (Tinyocamlutil.underline_redex x) 
-
-
 
 let _ = Ocamliprim.eval_until_value := eval_until_value
 
