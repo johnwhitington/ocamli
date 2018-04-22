@@ -5,6 +5,8 @@ val runtime_typecheck : bool ref
 
 val lib : Tinyocaml.env ref
 
+val pop_state : unit -> t option
+
 exception ExceptionRaised of string * Tinyocaml.t option
 
 (* Initialise the evaluator with an ast *)

@@ -381,13 +381,11 @@ let go () =
   (*if !searchfor <> "" || !searchuntil <> "" || !searchafter <> "" then showall
    * := true;*)
   let rec really_run first state =
-    let state =
-      match if !prompt then wait_for_enter state else None with
-        Some newcode ->
-          Printf.printf "%s%!" newcode;
-          Eval.init (snd (Tinyocamlrw.of_real_ocaml !Eval.lib (ast newcode)))
-      | None -> state
-    in
+    match if !prompt then wait_for_enter state else None with
+      Some newcode ->
+        Printf.printf "=>  %s%!" newcode;
+        really_run false (Eval.init (snd (Tinyocamlrw.of_real_ocaml !Eval.lib (ast newcode))))
+    | None ->
     Unix.sleepf !step;
     match Eval.next state with
       Next state' ->

@@ -17,6 +17,12 @@ let docollectunusedlets = ref true
 
 let runtime_typecheck = ref false
 
+let states = ref []
+
+let push_state s = states := s::!states
+
+let pop_state () = match !states with [] -> None | h::t -> states := t; Some h
+
 (* Same-type approximation. Only for values. If the function says they are the
  * same type, that means they are not *known* to be different types. *)
 let rec same_type_approx a b =
@@ -870,6 +876,7 @@ let init_from_tinyocaml x = x
 external reraise : exn -> 'a = "%reraise"
 
 let next e =
+  push_state e;
   last := [];
   try
     if is_value e
