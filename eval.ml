@@ -876,7 +876,7 @@ let init_from_tinyocaml x = x
 external reraise : exn -> 'a = "%reraise"
 
 let next e =
-  push_state e;
+  push_state (Pptinyocaml.to_string e);
   last := [];
   try
     if is_value e

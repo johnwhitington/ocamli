@@ -131,7 +131,7 @@ let rec wait_for_enter (current_state : Eval.t) =
   | "back" ->
       begin match Eval.pop_state () with
         None -> None
-      | Some x -> Some (Pptinyocaml.to_string x)
+      | Some x -> Some x
       end
   | _ -> Printf.printf "unknown command\n%!"; wait_for_enter current_state
 
