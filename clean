@@ -9,6 +9,8 @@ rm -f oftvb/Chapter\ 16/a.out
 make clean
 cd ppx_eval
 make clean
+cd ../final
+make clean
 cd ../newtype
 make clean
 ocamlfind remove ocamli

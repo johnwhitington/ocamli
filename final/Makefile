@@ -1,0 +1,22 @@
+OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
+export OCAMLFIND_IGNORE_DUPS_IN
+
+MODS =
+
+SOURCES = finalc.c $(foreach x,$(MODS),$(x).ml $(x).mli) final.ml
+
+PACKS = compiler-libs.common
+
+RESULT = ocamli
+
+OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
+OCAMLBCFLAGS = -safe-string -g -w -3 -w -40
+OCAMLLDFLAGS = -g
+
+all : native-code
+
+clean ::
+	rm -rf doc foo foo2 a.out
+
+-include OCamlMakefile
+
