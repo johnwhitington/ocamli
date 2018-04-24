@@ -1,2 +1,2 @@
 make bc
-ocamlfind ocamlmktop -warn-error -31 -package bigarray -package str -package unix -package ocamli -package compiler-libs.common -linkpkg -custom -g -o ocamli2.top ocamli2.cmo
+ocamlfind ocamlmktop -warn-error -31 -package compiler-libs.common -linkpkg -custom -g -o final.top finalc.o final.cmo

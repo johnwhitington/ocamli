@@ -36,10 +36,10 @@ let rec eval = function
     Float (build'a (perform_op op (from'a x) (from'a y)))
 | FOp (op, Float x, y) -> FOp (op, Float x, eval y)
 | FOp (op, x, y) -> FOp (op, eval x, y)
-| ArrayGet (arr, i) ->
+(*| ArrayGet (arr, i) ->
     (* We don't know the type, so what data can we make? *)
 | ArraySet (arr, i, newval) ->
-| Array x -> (* not all its elts are values *)
+| Array x -> (* not all its elts are values *)*)
 | _ -> failwith "Already a value or malformed"
 
 let example =
