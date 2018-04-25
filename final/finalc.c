@@ -5,9 +5,9 @@
 #include <stdio.h>
 
 /* Take an OCaml value representing a float (always boxed here) and give it straight back. */
-CAMLprim value magic (value ocamlfloat)
+CAMLprim value magic (value x)
 {
-  CAMLparam1(ocamlfloat);
-  CAMLreturn(ocamlfloat);
+  CAMLparam1(x);
+  CAMLreturn(x);
 }
 

@@ -7,7 +7,7 @@ SOURCES = finalc.c $(foreach x,$(MODS),$(x).ml $(x).mli) final.ml
 
 PACKS = compiler-libs.common
 
-RESULT = ocamli
+RESULT = final
 
 OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
 OCAMLBCFLAGS = -safe-string -g -w -3 -w -40
