@@ -10,5 +10,5 @@ type 'a t' =
 
 and 'a t =
   {typ : string;
-   expr : 'a t'}
+   e : 'a t'}
 

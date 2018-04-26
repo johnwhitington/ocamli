@@ -11,7 +11,7 @@ let is_value_t' = function
   Value _ -> true
 | ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ -> false
 
-let is_value {expr} = is_value_t' expr
+let is_value {e} = is_value_t' e
 
 let string_of_op = function
     Add -> "Add"
@@ -41,8 +41,8 @@ let rec string_of_tinyocaml_t' = function
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_tinyocaml items)
 
-and string_of_tinyocaml {expr} =
-  string_of_tinyocaml_t' expr
+and string_of_tinyocaml {e} =
+  string_of_tinyocaml_t' e
 
 (* Now, the evaluator *)
 let perform_float_op op x y =
@@ -65,13 +65,14 @@ let perform_int_op op x y =
  * but not (yet) a value *)
 let rec array_expr_should_be_value arr =
   Array.for_all
-    (function {expr = ArrayExpr a} -> array_expr_should_be_value a
+    (function {e = ArrayExpr a} -> array_expr_should_be_value a
             | x -> is_value x)
     arr
 
-let rec eval = function
-  FOp (op, Value x, Value y) ->
-    Value (build'a (perform_float_op op (from'a x) (from'a y)))
+let rec eval (expr : 'a t) =
+  match expr.e with
+  FOp (op, {e = Value x}, {e = Value y}) ->
+    {expr with e = Value (build'a (perform_float_op op (from'a x) (from'a y)))}
 | FOp (op, Value x, y) -> FOp (op, Value x, eval y)
 | FOp (op, x, y) -> FOp (op, eval x, y)
 | ArrayExpr a ->
