@@ -1,7 +1,5 @@
 open Tinyocaml
 
-(*FIXME Add ints. Floatarray is an unneeded complication for now. *)
-
 (* Now, to build a Tinyocaml.t from a Real OCaml one, we must use a C function
 to build the pointer to the float *)
 
@@ -9,9 +7,11 @@ external build'a : 'a -> 'b = "magic"
 
 external from'a : 'a -> 'b = "magic"
 
-let is_value = function
-  Unit | Int _ | Bool _ | Value _ -> true
-| ArrayExpr _ | FOp _ | ArrayGet _ | ArraySet _ -> false
+let is_value_t' = function
+  Value _ -> true
+| ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ -> false
+
+let is_value {expr} = is_value_t' expr
 
 let string_of_op = function
     Add -> "Add"
@@ -19,16 +19,17 @@ let string_of_op = function
   | Mul -> "Mul"
   | Div -> "Div" 
 
-let rec string_of_tinyocaml = function
-  Unit -> "Unit"
-| Int i -> Printf.sprintf "Int %i" i
-| Bool b -> Printf.sprintf "Bool %b" b
-| Value _ -> "<heap>"
+let rec string_of_tinyocaml_t' = function
+  Value _ -> "<value>"
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
 | FOp (op, a, b) ->
     Printf.sprintf
       "FOp (%s, %s, %s)"
+      (string_of_op op) (string_of_tinyocaml a) (string_of_tinyocaml b)
+| IntOp (op, a, b) ->
+    Printf.sprintf
+      "IntOp (%s, %s, %s)"
       (string_of_op op) (string_of_tinyocaml a) (string_of_tinyocaml b)
 | ArrayGet (arr, i) ->
     Printf.sprintf "ArrayGet (%s, %s)" (string_of_tinyocaml arr) (string_of_tinyocaml i)
@@ -40,8 +41,18 @@ let rec string_of_tinyocaml = function
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_tinyocaml items)
 
+and string_of_tinyocaml {expr} =
+  string_of_tinyocaml_t' expr
+
 (* Now, the evaluator *)
-let perform_op op x y =
+let perform_float_op op x y =
+  match op with
+    Add -> x +. y
+  | Sub -> x -. y
+  | Mul -> x *. y
+  | Div -> x *. y
+
+let perform_int_op op x y =
   match op with
     Add -> x +. y
   | Sub -> x -. y
@@ -54,13 +65,13 @@ let perform_op op x y =
  * but not (yet) a value *)
 let rec array_expr_should_be_value arr =
   Array.for_all
-    (function ArrayExpr a -> array_expr_should_be_value a
+    (function {expr = ArrayExpr a} -> array_expr_should_be_value a
             | x -> is_value x)
     arr
 
 let rec eval = function
   FOp (op, Value x, Value y) ->
-    Value (build'a (perform_op op (from'a x) (from'a y)))
+    Value (build'a (perform_float_op op (from'a x) (from'a y)))
 | FOp (op, Value x, y) -> FOp (op, Value x, eval y)
 | FOp (op, x, y) -> FOp (op, eval x, y)
 | ArrayExpr a ->
@@ -91,7 +102,7 @@ let rec eval = function
           Unit
       | _ -> assert false
       end
-| Int _ | Bool _ | Value _ -> failwith "already a value"
+| Value _ -> failwith "already a value"
 | _ -> failwith "unimplemented or a type error"
 
 and eval_first_non_value_element arr =
