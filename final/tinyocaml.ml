@@ -1,14 +1,14 @@
 type op = Add | Sub | Mul | Div
 
-type 'a t' =
-  Value of 'a
-| ArrayExpr of 'a t array (* Array not yet a value e.g [|1 + 2; 3|] *)
-| IntOp of (op * 'a t * 'a t)
-| FOp of (op * 'a t * 'a t)
-| ArrayGet of ('a t * 'a t)
-| ArraySet of ('a t * 'a t * 'a t)
+type t' =
+  Value of Obj.t
+| ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
+| IntOp of (op * t * t)
+| FOp of (op * t * t)
+| ArrayGet of (t * t)
+| ArraySet of (t * t * t)
 
-and 'a t =
+and t =
   {typ : string;
-   e : 'a t'}
+   e : t'}
 

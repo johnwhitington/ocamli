@@ -1,12 +1,5 @@
 open Tinyocaml
 
-(* Now, to build a Tinyocaml.t from a Real OCaml one, we must use a C function
-to build the pointer to the float *)
-
-external build'a : 'a -> 'b = "magic"
-
-external from'a : 'a -> 'b = "magic"
-
 let is_value_t' = function
   Value _ -> true
 | ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ -> false
@@ -19,8 +12,20 @@ let string_of_op = function
   | Mul -> "Mul"
   | Div -> "Div" 
 
-let rec string_of_tinyocaml_t' = function
-  Value _ -> "<value>"
+let to_ocaml_heap_value = function
+  Value _ -> failwith "already a heap value"
+| ArrayExpr arr ->
+    (* This arrayexpr contains only values. Turn it into a value itself. *)
+    Obj.repr 0
+| _ -> failwith "to_ocaml_heap_value: unknown"
+
+let string_of_ocaml_heap_value typ (value : Obj.t) =
+  match typ with
+    "int" -> string_of_int (Obj.magic value : int)
+  | _ -> failwith "string_of_ocaml_heap_value: unknown type"
+
+let rec string_of_tinyocaml_t' typ = function
+  Value x -> string_of_ocaml_heap_value typ x
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
 | FOp (op, a, b) ->
@@ -41,8 +46,8 @@ let rec string_of_tinyocaml_t' = function
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_tinyocaml items)
 
-and string_of_tinyocaml {e} =
-  string_of_tinyocaml_t' e
+and string_of_tinyocaml {typ; e} =
+  string_of_tinyocaml_t' typ e
 
 (* Now, the evaluator *)
 let perform_float_op op x y =
@@ -50,14 +55,14 @@ let perform_float_op op x y =
     Add -> x +. y
   | Sub -> x -. y
   | Mul -> x *. y
-  | Div -> x *. y
+  | Div -> x /. y
 
 let perform_int_op op x y =
   match op with
-    Add -> x +. y
-  | Sub -> x -. y
-  | Mul -> x *. y
-  | Div -> x *. y
+    Add -> x + y
+  | Sub -> x - y
+  | Mul -> x * y
+  | Div -> x / y
 
 (* If an ArrayExpr contains only things which are values, we need to identify
  * it and turn it into a heap object. However, it cannot be considered really a
@@ -69,17 +74,23 @@ let rec array_expr_should_be_value arr =
             | x -> is_value x)
     arr
 
-let rec eval (expr : 'a t) =
+let rec eval expr =
   match expr.e with
   FOp (op, {e = Value x}, {e = Value y}) ->
-    {expr with e = Value (build'a (perform_float_op op (from'a x) (from'a y)))}
+    {expr with e = Value (Obj.repr (perform_float_op op (Obj.magic x : float) (Obj.magic y : float)))}
 | FOp (op, ({e = Value _} as x), y) ->
     {expr with e = FOp (op, x, eval y)}
 | FOp (op, x, y) ->
     {expr with e = FOp (op, eval x, y)}
+| IntOp (op, {e = Value x}, {e = Value y}) ->
+    {expr with e = Value (Obj.repr (perform_int_op op (Obj.magic x : int) (Obj.magic y : int)))}
+| IntOp (op, ({e = Value _} as x), y) ->
+    {expr with e = IntOp (op, x, eval y)}
+| IntOp (op, x, y) ->
+    {expr with e = IntOp (op, eval x, y)}
 | ArrayExpr a ->
     if array_expr_should_be_value a then
-      {expr with e = Value (External.to_ocaml_value (ArrayExpr a))}
+      {expr with e = Value (to_ocaml_heap_value (ArrayExpr a))}
     else 
       begin
         if eval_first_non_value_element a
@@ -90,7 +101,7 @@ let rec eval (expr : 'a t) =
     if is_value arr then
       match arr, i with
         {e = Value array_val}, {e = Value index} ->
-          {expr with e = Value ((Obj.magic array_val : 'a array).(index))}
+          {expr with e = Value ((Obj.magic array_val : 'a array).((Obj.magic index : int)))}
       | _ -> {expr with e = ArrayGet (arr, eval i)}
     else
       {expr with e = ArrayGet (eval arr, i)}
@@ -101,12 +112,11 @@ let rec eval (expr : 'a t) =
     else
       begin match arr, i, e with
       | {e = Value array_val}, {e = Value i}, {e = Value newval} ->
-          (Obj.magic array_val : 'a array).(i) <- newval;
-          {expr with e = Value 1} (* unit *)
+          (Obj.magic array_val : 'a array).((Obj.magic i : int)) <- newval;
+          {expr with e = Value (Obj.repr ())}
       | _ -> assert false
       end
 | Value _ -> failwith "already a value"
-| _ -> failwith "unimplemented or a type error"
 
 and eval_first_non_value_element arr =
   try
@@ -121,11 +131,11 @@ and eval_first_non_value_element arr =
   with
     Exit -> true
 
-let example : 'a t =
+let example : t =
   {e =
-    FOp (Add,
-         {e = Value (build'a 1); typ = "int"},
-         {e = Value (build'a 2); typ = "int"});
+    IntOp (Add,
+         {e = Value (Obj.repr 1); typ = "int"},
+         {e = Value (Obj.repr 2); typ = "int"});
    typ = "int"}
 
 let rec eval_full v =
@@ -134,6 +144,6 @@ let rec eval_full v =
 
 let _ =
   match eval_full example with
-    {e = Value x} -> Printf.printf "Answer is %f\n" (from'a x)
-  | _ -> failwith "answer not a float"
+    {e = Value x} -> Printf.printf "Answer is %s\n" (string_of_ocaml_heap_value "int" x)
+  | _ -> failwith "answer not an integer"
 

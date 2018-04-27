@@ -1,2 +1,2 @@
-val to_ocaml_value : 'a Tinyocaml.t' -> 'a
+val to_ocaml_value : Tinyocaml.t' -> Obj.t
 

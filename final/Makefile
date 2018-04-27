@@ -1,9 +1,9 @@
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 
-MODS = tinyocaml external
+MODS = tinyocaml
 
-SOURCES = ocamlival.c finalc.c $(foreach x,$(MODS),$(x).ml $(x).mli) final.ml
+SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli) final.ml
 
 PACKS = compiler-libs.common
 
