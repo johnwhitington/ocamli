@@ -73,34 +73,36 @@ let rec eval (expr : 'a t) =
   match expr.e with
   FOp (op, {e = Value x}, {e = Value y}) ->
     {expr with e = Value (build'a (perform_float_op op (from'a x) (from'a y)))}
-| FOp (op, Value x, y) -> FOp (op, Value x, eval y)
-| FOp (op, x, y) -> FOp (op, eval x, y)
+| FOp (op, ({e = Value _} as x), y) ->
+    {expr with e = FOp (op, x, eval y)}
+| FOp (op, x, y) ->
+    {expr with e = FOp (op, eval x, y)}
 | ArrayExpr a ->
     if array_expr_should_be_value a then
-      Value (External.to_ocaml_value (ArrayExpr a))
+      {expr with e = Value (External.to_ocaml_value (ArrayExpr a))}
     else 
       begin
         if eval_first_non_value_element a
-          then ArrayExpr a
+          then {expr with e = ArrayExpr a}
           else assert false
       end
 | ArrayGet (arr, i) ->
     if is_value arr then
       match arr, i with
-        Value array_val, Int index ->
-          Value ((Obj.magic array_val : 'a array).(index))
-      | _ -> ArrayGet (arr, eval i)
+        {e = Value array_val}, {e = Value index} ->
+          {expr with e = Value ((Obj.magic array_val : 'a array).(index))}
+      | _ -> {expr with e = ArrayGet (arr, eval i)}
     else
-      ArrayGet (eval arr, i)
+      {expr with e = ArrayGet (eval arr, i)}
 | ArraySet (arr, i, e) ->
-    if not (is_value arr) then ArraySet (eval arr, i, e)
-    else if not (is_value i) then ArraySet (arr, eval i, e)
-    else if not (is_value e) then ArraySet (arr, i, eval e)
+    if not (is_value arr) then {expr with e = ArraySet (eval arr, i, e)}
+    else if not (is_value i) then {expr with e = ArraySet (arr, eval i, e)}
+    else if not (is_value e) then {expr with e = ArraySet (arr, i, eval e)}
     else
       begin match arr, i, e with
-      | Value array_val, Int i, Value newval ->
+      | {e = Value array_val}, {e = Value i}, {e = Value newval} ->
           (Obj.magic array_val : 'a array).(i) <- newval;
-          Unit
+          {expr with e = Value 1} (* unit *)
       | _ -> assert false
       end
 | Value _ -> failwith "already a value"
@@ -110,7 +112,7 @@ and eval_first_non_value_element arr =
   try
     for x = 0 to Array.length arr - 1 do
       match arr.(x) with
-        ArrayExpr arr' ->
+        {e = ArrayExpr arr'} ->
           if eval_first_non_value_element arr' then raise Exit
       | elt ->
           if not (is_value elt) then (arr.(x) <- eval elt; raise Exit)
@@ -119,10 +121,12 @@ and eval_first_non_value_element arr =
   with
     Exit -> true
 
-(* The "unit" here is to prevent "...contains type variables which cannot be
- * generalized." *)
-let example : unit t =
-  FOp (Add, Value (build'a 1.), Value (build'a 2.))
+let example : 'a t =
+  {e =
+    FOp (Add,
+         {e = Value (build'a 1); typ = "int"},
+         {e = Value (build'a 2); typ = "int"});
+   typ = "int"}
 
 let rec eval_full v =
   Printf.printf "%s\n" (string_of_tinyocaml v);
@@ -130,6 +134,6 @@ let rec eval_full v =
 
 let _ =
   match eval_full example with
-    Value x -> Printf.printf "Answer is %f\n" (from'a x)
+    {e = Value x} -> Printf.printf "Answer is %f\n" (from'a x)
   | _ -> failwith "answer not a float"
 
