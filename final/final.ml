@@ -149,16 +149,30 @@ and eval_first_non_value_element arr =
   with
     Exit -> true
 
-let example : t =
+(* 1 + 2 *)
+let example =
   {e =
     IntOp (Add,
          {e = Value (Obj.repr 1); typ = "int"},
          {e = Value (Obj.repr 2); typ = "int"});
    typ = "int"}
 
+(* [|1 + 2; 3|] *)
+
+let example2 =
+  {e =
+    ArrayExpr
+      [|{e = IntOp (Add, {e = Value (Obj.repr 1); typ = "int"}, {e = Value (Obj.repr 2); typ = "int"});
+         typ = "int"};
+        {e = Value (Obj.repr 1);
+         typ = "int"}
+      |];
+   typ = "int array"
+  }
+
 let rec eval_full v =
   Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v.typ v.e));
   if is_value v then v else eval_full (eval v)
 
-let _ = eval_full example
+let _ = eval_full example2
 
