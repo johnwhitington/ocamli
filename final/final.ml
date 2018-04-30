@@ -1,4 +1,4 @@
-open Tinyocaml
+open Finaltype
 
 let is_value_t' = function
   Value _ -> true
@@ -19,35 +19,53 @@ let to_ocaml_heap_value = function
     Obj.repr 0
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
-let string_of_ocaml_heap_value typ (value : Obj.t) =
+let tinyocaml_of_ocaml_heap_value typ (value : Obj.t) =
   match typ with
-    "int" -> string_of_int (Obj.magic value : int)
-  | _ -> failwith "string_of_ocaml_heap_value: unknown type"
+    "int" -> Tinyocaml.Int (Obj.magic value : int)
+  | _ -> failwith "tinyocaml_of_ocaml_heap_value: unknown type"
 
-let rec string_of_tinyocaml_t' typ = function
-  Value x -> string_of_ocaml_heap_value typ x
+(* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
+let tinyocaml_op_of_finaltype_op = function
+  Add -> Tinyocaml.Add
+| Sub -> Tinyocaml.Sub
+| Mul -> Tinyocaml.Mul
+| Div -> Tinyocaml.Div
+
+let rec tinyocaml_of_finaltype typ = function
+  Value x -> tinyocaml_of_ocaml_heap_value typ x
+| ArrayExpr arr -> Tinyocaml.Array (Array.map (fun {typ; e} -> tinyocaml_of_finaltype typ e) arr)
+| IntOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
+    Tinyocaml.Op (tinyocaml_op_of_finaltype_op op, tinyocaml_of_finaltype typx ex, tinyocaml_of_finaltype typy ey)
+| FOp (op, x, y) -> failwith "tinyocaml_op_of_finaltype: FOp"
+| ArrayGet (arr, index) -> failwith "tinyocaml_op_of_finaltype: arrayget"
+| ArraySet (arr, index, newval) -> failwith "tinyocaml_op_of_finaltype: arrayset"
+
+let string_of_tinyocaml = Pptinyocaml.to_string
+
+let rec string_of_finaltype_t' typ = function
+  Value x -> string_of_tinyocaml (tinyocaml_of_ocaml_heap_value typ x)
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
 | FOp (op, a, b) ->
     Printf.sprintf
       "FOp (%s, %s, %s)"
-      (string_of_op op) (string_of_tinyocaml a) (string_of_tinyocaml b)
+      (string_of_op op) (string_of_finaltype a) (string_of_finaltype b)
 | IntOp (op, a, b) ->
     Printf.sprintf
       "IntOp (%s, %s, %s)"
-      (string_of_op op) (string_of_tinyocaml a) (string_of_tinyocaml b)
+      (string_of_op op) (string_of_finaltype a) (string_of_finaltype b)
 | ArrayGet (arr, i) ->
-    Printf.sprintf "ArrayGet (%s, %s)" (string_of_tinyocaml arr) (string_of_tinyocaml i)
+    Printf.sprintf "ArrayGet (%s, %s)" (string_of_finaltype arr) (string_of_finaltype i)
 | ArraySet (arr, i, newval) ->
     Printf.sprintf
       "ArraySet (%s, %s, %s)"
-      (string_of_tinyocaml arr) (string_of_tinyocaml i) (string_of_tinyocaml newval)
+      (string_of_finaltype arr) (string_of_finaltype i) (string_of_finaltype newval)
 
 and string_of_items items =
-  List.fold_left ( ^ ) "" (List.map string_of_tinyocaml items)
+  List.fold_left ( ^ ) "" (List.map string_of_finaltype items)
 
-and string_of_tinyocaml {typ; e} =
-  string_of_tinyocaml_t' typ e
+and string_of_finaltype {typ; e} =
+  string_of_finaltype_t' typ e
 
 (* Now, the evaluator *)
 let perform_float_op op x y =
@@ -139,11 +157,8 @@ let example : t =
    typ = "int"}
 
 let rec eval_full v =
-  Printf.printf "%s\n" (string_of_tinyocaml v);
+  Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v.typ v.e));
   if is_value v then v else eval_full (eval v)
 
-let _ =
-  match eval_full example with
-    {e = Value x} -> Printf.printf "Answer is %s\n" (string_of_ocaml_heap_value "int" x)
-  | _ -> failwith "answer not an integer"
+let _ = eval_full example
 
