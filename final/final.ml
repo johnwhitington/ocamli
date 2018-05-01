@@ -1,4 +1,5 @@
 open Finaltype
+open Typedtree
 
 let is_value_t' = function
   Value _ -> true
@@ -12,16 +13,25 @@ let string_of_op = function
   | Mul -> "Mul"
   | Div -> "Div" 
 
-let to_ocaml_heap_value = function
-  Value _ -> failwith "already a heap value"
+let rec to_ocaml_heap_value = function
+  Value x -> x
 | ArrayExpr arr ->
     (* This arrayexpr contains only values. Turn it into a value itself. *)
-    Obj.repr 0
+    let x = Obj.new_block 0 (Array.length arr) in
+      for i = 0 to Array.length arr - 1 do
+        Obj.set_field x i (to_ocaml_heap_value arr.(i).e)
+      done;
+      x
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
-let tinyocaml_of_ocaml_heap_value typ (value : Obj.t) =
+let rec tinyocaml_of_ocaml_heap_value typ (value : Obj.t) =
   match typ with
     "int" -> Tinyocaml.Int (Obj.magic value : int)
+  | "int array" ->
+      Tinyocaml.Array
+        (Array.init
+          (Obj.size value)
+          (fun i -> tinyocaml_of_ocaml_heap_value "int" (Obj.field value i)))
   | _ -> failwith "tinyocaml_of_ocaml_heap_value: unknown type"
 
 (* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
@@ -174,5 +184,57 @@ let rec eval_full v =
   Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v.typ v.e));
   if is_value v then v else eval_full (eval v)
 
-let _ = eval_full example2
+(*let _ = eval_full example2*)
 
+let load_file f =
+  let ic = open_in f in
+  let n = in_channel_length ic in
+  let s = Bytes.create n in
+  really_input ic s 0 n;
+  close_in ic;
+  Bytes.to_string s
+
+let finaltype_of_expression_desc = function
+  Texp_constant (Const_int x) ->
+    {e = Value (Obj.repr x); typ = "int"}
+| Texp_apply
+    ({exp_desc = Texp_ident ("Pervasives!.+", _, _)},
+     {exp_desc = [(_, Some arg1); (_, Some arg2)]}) ->
+      IntOp (Add, finaltype_of_expression_desc arg1.exp_desc arg2.expr_desc)
+
+let finaltype_of_typedtree {str_items; str_type} =
+  match (List.hd str_items).str_desc with
+    Tstr_value (_, [vb]) ->
+      finaltype_of_expression_desc vb.vb_expr.exp_desc
+  | _ -> failwith "finaltype_of_expression"
+
+let env =
+  Compmisc.init_path false;
+  Compmisc.initial_env ()
+
+let typedtree_of_string ?(filename="") code =
+  let ast =
+    let lexer = Lexing.from_string code in
+    Location.init lexer filename;
+    Parse.implementation lexer
+  in
+    try
+      let typedtree, _ = Typemod.type_implementation "foo.ml" "" "example" env ast in
+      typedtree
+    with
+      e ->
+        Location.report_exception Format.std_formatter e;
+        exit 2
+
+(* Arg. -e or filename. -dfinal to debug initial program as final, and also each step. *)
+let programtext = ref ""
+
+let setfile filename =
+  programtext := load_file filename
+
+let argspec =
+  ["-e", Arg.Set_string programtext, " Set program text"]
+
+let _ =
+  Arg.parse argspec setfile "Syntax: final <filename | -e program>\n";
+  eval_full (finaltype_of_typedtree (typedtree_of_string !programtext))
