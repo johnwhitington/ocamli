@@ -24,14 +24,20 @@ let rec to_ocaml_heap_value = function
       x
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
-let rec tinyocaml_of_ocaml_heap_value typ (value : Obj.t) =
+let string_of_ocaml_type = function
+  Types.Tconstr (path, _, _) -> "Tconstr"
+| Types.Tnil -> "Tnil"
+| _ -> "FIXUP string_of_ocaml_type"
+
+let rec tinyocaml_of_ocaml_heap_value (typ : Types.type_desc) (value : Obj.t) =
+  Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ); 
   match typ with
-    "int" -> Tinyocaml.Int (Obj.magic value : int)
-  | "int array" ->
+    Types.Tnil -> Tinyocaml.Int (Obj.magic value : int)
+  | Types.Tnil ->
       Tinyocaml.Array
         (Array.init
           (Obj.size value)
-          (fun i -> tinyocaml_of_ocaml_heap_value "int" (Obj.field value i)))
+          (fun i -> tinyocaml_of_ocaml_heap_value Types.Tnil (Obj.field value i)))
   | _ -> failwith "tinyocaml_of_ocaml_heap_value: unknown type"
 
 (* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
@@ -163,21 +169,21 @@ and eval_first_non_value_element arr =
 let example =
   {e =
     IntOp (Add,
-         {e = Value (Obj.repr 1); typ = "int"},
-         {e = Value (Obj.repr 2); typ = "int"});
-   typ = "int"}
+         {e = Value (Obj.repr 1); typ = Types.Tnil},
+         {e = Value (Obj.repr 2); typ = Types.Tnil});
+   typ = Types.Tnil}
 
 (* [|1 + 2; 3|] *)
 
 let example2 =
   {e =
     ArrayExpr
-      [|{e = IntOp (Add, {e = Value (Obj.repr 1); typ = "int"}, {e = Value (Obj.repr 2); typ = "int"});
-         typ = "int"};
+      [|{e = IntOp (Add, {e = Value (Obj.repr 1); typ = Types.Tnil}, {e = Value (Obj.repr 2); typ = Types.Tnil});
+         typ = Types.Tnil};
         {e = Value (Obj.repr 1);
-         typ = "int"}
+         typ = Types.Tnil}
       |];
-   typ = "int array"
+   typ = Types.Tnil
   }
 
 let rec eval_full v =
@@ -196,7 +202,7 @@ let load_file f =
 
 let rec finaltype_of_expression_desc = function
   Texp_constant (Const_int x) ->
-    {e = Value (Obj.repr x); typ = "int"}
+    {e = Value (Obj.repr x); typ = Types.Tnil}
 | Texp_apply
     ({exp_desc =
         Texp_ident (Path.Pdot (Path.Pident {Ident.name = "+"}, "Pervasives!", _), _, _)},
@@ -205,7 +211,7 @@ let rec finaltype_of_expression_desc = function
               (Add,
                finaltype_of_expression_desc arg1.exp_desc,
                finaltype_of_expression_desc arg2.exp_desc);
-        typ = "int"}
+        typ = Types.Tnil}
 | _ -> failwith "finaltype_of_expression_desc: unknown"
 
 let finaltype_of_typedtree {str_items; str_type} =

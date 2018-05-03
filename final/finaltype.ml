@@ -9,6 +9,6 @@ type t' =
 | ArraySet of (t * t * t)
 
 and t =
-  {typ : string;
+  {typ : Types.type_desc;
    e : t'}
 
