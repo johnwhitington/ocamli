@@ -205,7 +205,7 @@ let rec finaltype_of_expression_desc = function
     {e = Value (Obj.repr x); typ = Types.Tnil}
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident {Ident.name = "+"}, "Pervasives!", _), _, _)},
+        Texp_ident (Path.Pdot (Path.Pident {Ident.name = "Pervasives"}, "+", _), _, _)},
      [(_, Some arg1); (_, Some arg2)]) ->
        {e = IntOp
               (Add,
@@ -218,7 +218,7 @@ let finaltype_of_typedtree {str_items; str_type} =
   match (List.hd str_items).str_desc with
     Tstr_value (_, [vb]) ->
       finaltype_of_expression_desc vb.vb_expr.exp_desc
-  | _ -> failwith "finaltype_of_expression"
+  | _ -> failwith "finaltype_of_typedtree"
 
 let env =
   Compmisc.init_path false;
