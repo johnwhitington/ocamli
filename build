@@ -14,4 +14,4 @@ cd example && make
 echo "*****BUILDING NEWTYPE"
 cd ../../newtype && make
 echo "*****BUILDING FINAL"
-cd ../../final && make
+cd ../final && make
