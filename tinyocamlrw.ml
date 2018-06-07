@@ -122,7 +122,7 @@ let rec of_real_ocaml_expression_desc env = function
            "&&" -> And (e, e')
          | "||" -> Or (e, e')
          | "@" -> Append (e, e')
-         | ":=" when not !realops -> App (App (Var "[:=", e), e')
+         | ":=" when not !realops -> App (App (Var ":=", e), e')
          | ("*" | "+" | "-" | "/") as op  -> Op (op_of_string op, e, e')
          | ("=" | ">" | "<" | "<=" | ">=" | "<>") as cmp ->
              Cmp (cmp_of_string cmp , e, e')
