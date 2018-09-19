@@ -133,8 +133,10 @@ let argspec =
    ("-fast-curry", Arg.Set fastcurry, " Apply all curried arguments at once. ");
    ("-fast-for", Arg.Set Eval.fastfor, " Elide the evaluation of the inside of a FOR loop");
    ("-dtiny", Arg.Set debugtiny, " Show Tinyocaml representation");
+   ("-dtinyall", Arg.Set debugtinyall, " Show Tinyocaml representation at each step");
    ("-dpp", Arg.Set debugpp, " Show the pretty-printed program");
    ("-debug", Arg.Unit setdebug, " Debug (for OCAMLRUNPARAM=b)");
+   ("-debug-rules", Arg.Set Eval.debugrules, " Show each rule");
    ("-debug-show-regexps", Arg.Set showregexps, " Debug output of computed regular expressions");
    ("-no-arith", Arg.Clear show_simple_arithmetic, " Ellide simple arithmetic");
    ("-no-if-bool", Arg.Set noifbool, "Don't show if false, if true stage");
@@ -389,6 +391,12 @@ let go () =
     Unix.sleepf !step;
     match Eval.next state with
       Next state' ->
+         if !debugtinyall then
+           begin
+             print_string (Tinyocaml.to_string (Eval.tiny state));
+             print_string "\n";
+             flush stdout;
+           end;
         (*Printf.printf "Considering printing stage %s...skipped last is %b\n"
         (string_of_tiny ~preamble:"" (I.tiny state')) !skipped;*)
         begin if

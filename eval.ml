@@ -7,6 +7,8 @@ type t = Tinyocaml.t
 
 let debug = ref false
 
+let debugrules = ref false
+
 let fastcurry = ref false
 
 let fastfor = ref false
@@ -330,58 +332,98 @@ let rec eval peek (env : Tinyocaml.env) expr =
   (*Printf.printf "env %i\n%!" (List.length env);*)
   (*Printf.printf "EVAL: %s\n\n" (Tinyocaml.to_string expr);*)
   match expr with
-| Lazy e -> Lazy (eval peek env e)
-| LocalOpen (n, e) -> LocalOpen (n, eval peek (open_module n env) e)
-| Constr (tag, n, Some x) -> Constr (tag, n, Some (eval peek env x))
-| Annot (n, x, y) -> Annot (n, x, eval peek env y)
+| Lazy e ->
+    if !debugrules then print_endline "Lazy";
+    Lazy (eval peek env e)
+| LocalOpen (n, e) ->
+    if !debugrules then print_endline "LocalOpen";
+    LocalOpen (n, eval peek (open_module n env) e)
+| Constr (tag, n, Some x) ->
+    if !debugrules then print_endline "Constr";
+    Constr (tag, n, Some (eval peek env x))
+| Annot (n, x, y) ->
+    if !debugrules then print_endline "Annot";
+    Annot (n, x, eval peek env y)
 | Assert (Bool false) ->
+    if !debugrules then print_endline "Assert-false";
     Raise ("Assert_failure", Some (Tuple [String (Bytes.of_string "//unknown//"); Int 0; Int 0]))
-| Assert (Bool true) -> Unit
-| Assert e -> Assert (eval peek env e)
-| Control (_, x) -> eval peek env x
+| Assert (Bool true) ->
+    if !debugrules then print_endline "Assert-true";
+    Unit
+| Assert e ->
+    if !debugrules then print_endline "Assert-expr";
+    Assert (eval peek env e)
+| Control (_, x) ->
+    if !debugrules then print_endline "Control";
+    eval peek env x
 | Op (op, Int a, Int b) ->
+    if !debugrules then print_endline "Op-Int-Int";
     last := Arith::!last;
     begin try Int (calc op a b) with
       Division_by_zero -> Raise ("Division_by_zero", None)
     end
 | Op (op, a, b) when is_value a && is_value b ->
+    if !debugrules then print_endline "Op-Val-Val";
     raise
       (RuntimeTypeError
          (Printf.sprintf "operation %s can operate only on integers" (string_of_op op)))
-| Op (op, Int a, b) -> Op (op, Int a, eval peek env b)
-| Op (op, a, b) -> Op (op, eval peek env a, b)
+| Op (op, Int a, b) ->
+    if !debugrules then print_endline "Op-Int-Expr";
+    Op (op, Int a, eval peek env b)
+| Op (op, a, b) ->
+    if !debugrules then print_endline "Op-Expr-Int";
+    Op (op, eval peek env a, b)
 | And (Bool false, _) ->
+    if !debugrules then print_endline "And-False-Expr";
     last := Boolean::!last;
     Bool false
 | And (Bool true, Bool b) ->
+    if !debugrules then print_endline "And-True-Bool";
     last := Boolean::!last;
     Bool b
-| And (Bool true, b) -> eval peek env b
-| And (a, b) -> And (eval peek env a, b)
+| And (Bool true, b) ->
+    if !debugrules then print_endline "And-True-Expr";
+    eval peek env b
+| And (a, b) ->
+    if !debugrules then print_endline "And-Expr-Expr";
+    And (eval peek env a, b)
 | Or (Bool true, _) ->
+    if !debugrules then print_endline "Or-True-Expr";
     last := Boolean::!last;
     Bool true
 | Or (Bool false, Bool b) ->
+    if !debugrules then print_endline "Or-False-Bool";
     last := Boolean::!last;
     Bool b
-| Or (Bool false, b) -> eval peek env b
-| Or (a, b) -> Or (eval peek env a, b)
+| Or (Bool false, b) -> 
+    if !debugrules then print_endline "Or-False-Expr";
+    eval peek env b
+| Or (a, b) ->
+    if !debugrules then print_endline "Or-Expr-Expr";
+    Or (eval peek env a, b)
 (* Special cases for integers *)
 | Cmp (op, Int a, Int b) ->
+    if !debugrules then print_endline "Cmp-Int-Int";
     last := Comparison::!last;
     Bool (comp op a b)
 | Cmp (op, Var a, Int b) ->
+    if !debugrules then print_endline "Cmp-Var-Int";
     last := VarLookup::Comparison::!last;
     Bool (comp op (lookup_int_var env a) b)
 | Cmp (op, Int a, Var b) ->
+    if !debugrules then print_endline "Cmp-Int-Var";
     last := VarLookup::Comparison::!last;
     Bool (comp op a (lookup_int_var env b))
 | Cmp (op, Var a, Var b) ->
+    if !debugrules then print_endline "Cmp-Var-Var";
     last := VarLookup::Comparison::!last;
     Bool (comp op (lookup_int_var env a) (lookup_int_var env b))
-| Cmp (op, Int a, b) -> Cmp (op, Int a, eval peek env b)
+| Cmp (op, Int a, b) ->
+    if !debugrules then print_endline "Cmp-Int-Expr";
+    Cmp (op, Int a, eval peek env b)
 (* Ordinary cases *)
 | Cmp (op, a, b) when is_value a && is_value b ->
+    if !debugrules then print_endline "Cmp-Val-Val";
     (* If -no-typecheck, see that they have same type. *)
     if !runtime_typecheck then
       if same_type_approx a b then
@@ -390,13 +432,26 @@ let rec eval peek (env : Tinyocaml.env) expr =
         raise (RuntimeTypeError "Comparison between values of differing types")
     else
       Bool (comp op a b)
-| Cmp (op, a, b) when is_value a -> Cmp (op, a, eval peek env b)
-| Cmp (op, a, b) -> Cmp (op, eval peek env a, b)
-| If (Bool true, a, _) -> last := IfBool::!last; a
-| If (Bool false, _, None) -> last := IfBool::!last; Unit
-| If (Bool false, _, Some b) -> last := IfBool::!last; b
-| If (cond, a, b) -> If (eval peek env cond, a, b)
+| Cmp (op, a, b) when is_value a ->
+    if !debugrules then print_endline "Cmp-Val-Expr";
+    Cmp (op, a, eval peek env b)
+| Cmp (op, a, b) ->
+    if !debugrules then print_endline "Cmp-Expr-Expr";
+    Cmp (op, eval peek env a, b)
+| If (Bool true, a, _) ->
+    if !debugrules then print_endline "If-True";
+    last := IfBool::!last; a
+| If (Bool false, _, None) ->
+    if !debugrules then print_endline "If-False-SingleIf";
+    last := IfBool::!last; Unit
+| If (Bool false, _, Some b) ->
+    if !debugrules then print_endline "If-False-DoubleIf";
+    last := IfBool::!last; b
+| If (cond, a, b) ->
+    if !debugrules then print_endline "If-Expr";
+    If (eval peek env cond, a, b)
 | Let (recflag, bindings, e) ->
+    if !debugrules then print_endline "Let";
     if List.exists (function (PatVar v, e) -> isstarred v | _ -> false) bindings then
       last := InsidePervasive::!last;
     if List.for_all (fun (_, e) -> is_value e) bindings then
@@ -439,25 +494,38 @@ let rec eval peek (env : Tinyocaml.env) expr =
     else
       Let (recflag, eval_first_non_value_binding peek false env [] bindings, e)
 | LetDef (recflag, bindings) ->
+    if !debugrules then print_endline "LetDef";
     if List.for_all (fun (_, e) -> is_value e) bindings
       then
         failwith "letdef already a value"
       else
         LetDef (recflag, eval_first_non_value_binding peek recflag env [] bindings)
 | App (App (Var "[:=", Record [(n, vr)]), y) when is_value y ->
+    if !debugrules then print_endline "App-:=-Val";
     vr := y;
     Record [(n, vr)]
-| App (Var "[!", Record [(_, t)]) -> !t
-| App (Var "[!", e) -> eval peek env e
-| App (Var "[ref", v) when is_value v -> Record [("contents", ref v)]
-| App (Var "[ref", e) -> eval peek env e
+| App (Var "[!", Record [(_, t)]) ->
+    if !debugrules then print_endline "App-!-Record";
+    !t
+| App (Var "[!", e) ->
+    if !debugrules then print_endline "App-!-Expr";
+    App (Var "[!", eval peek env e)
+| App (Var "[ref", v) when is_value v ->
+    if !debugrules then print_endline "App-ref-Val";
+    Record [("contents", ref v)]
+| App (Var "[ref", e) ->
+    if !debugrules then print_endline "App-ref-Expr";
+    App (Var "[ref", eval peek env e)
 | App (Fun ((flabel, fname, fexp, fenv) as f), x) ->
+    if !debugrules then print_endline "App-Fun-Expr";
     if is_value x
       then build_lets_from_fenv fenv (Let (false, [fname, x], fexp))
       else App (Fun f, eval peek env x)
 | App (Function ([], fenv), x) ->
+    if !debugrules then print_endline "App-Fun-MatchFailure";
     Raise ("Match_failure", Some (Tuple [String (Bytes.of_string "FIXME"); Int 0; Int 0]))
 | App (Function ((p::ps), fenv), x) ->
+    if !debugrules then print_endline "App-Fun-Pattern";
     if is_value x then 
       let p =
         (* add the closure bindings to guard and rhs if not occluded by particular pattern *)
@@ -488,6 +556,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     else
       App (Function ((p::ps), fenv), eval peek env x) (* 2 *)
 | App (Var v, x) ->
+    if !debugrules then print_endline "App-Var-Expr";
     begin match lookup_value v env with
       Some (Fun (flabel, fname, fexp, fenv)) ->
         if is_value x then
@@ -507,45 +576,70 @@ let rec eval peek (env : Tinyocaml.env) expr =
     | None -> failwith (Printf.sprintf "malformed app -- did not find function %s\n" v)
     end
 | App (App _, _) when !fastcurry && suitable_for_curry expr ->
+    if !debugrules then print_endline "App-App-Curry";
     (* 3. FIXME: closure-env-fastcurry *)
     eval_curry peek env expr
-| App (f, x) -> App (eval peek env f, x)
+| App (f, x) ->
+    if !debugrules then print_endline "App-Expr-Expr";
+    App (eval peek env f, x)
 | Seq (e, e') ->
+    if !debugrules then print_endline "Seq-Expr-Expr";
     if is_value e then e' else Seq (eval peek env e, e')
 | While (Bool false, _, _, _) ->
+    if !debugrules then print_endline "While-false";
     Unit
 | While (Bool true, e', cg, cb) when not (is_value e') ->
+    if !debugrules then print_endline "While-true";
     While (Bool true, eval peek env e', cg, cb)
 | While (Bool true, e', cg, cb) when is_value e' ->
+    if !debugrules then print_endline "While-Value";
     While (cg, cb, cg, cb)
 | While (e, e', cg, cb) ->
+    if !debugrules then print_endline "While-Main";
     While (eval peek env e, e', cg, cb)
 | For (v, e, ud, e', e'', copy) when not (is_value e) ->
+    if !debugrules then print_endline "For-1";
     For (v, eval peek env e, ud, e', e'', copy)
 | For (v, e, ud, e', e'', copy) when not (is_value e') ->
+    if !debugrules then print_endline "For-2";
     For (v, e, ud, eval peek env e', e'', copy)
-| For (_, Int x, UpTo, Int y, _, _) when x > y -> Unit
-| For (_, Int x, DownTo, Int y, _, _) when y > x -> Unit
+| For (_, Int x, UpTo, Int y, _, _) when x > y ->
+    if !debugrules then print_endline "For-3";
+    Unit
+| For (_, Int x, DownTo, Int y, _, _) when y > x ->
+    if !debugrules then print_endline "For-4";
+    Unit
 | For (v, Int x, ud, e', e'', copy) when is_value e'' ->
+    if !debugrules then print_endline "For-5";
     For (v, Int (x + 1), ud, e', copy, copy)
 | For (v, x, ud, e', e'', copy) ->
+    if !debugrules then print_endline "For-6";
     if !fastfor then
       For (v, x, ud, e', eval_until_value false peek (EnvBinding (false, ref [(PatVar v, x)])::env) e'', copy)
     else
       For (v, x, ud, e', eval peek (EnvBinding (false, ref [(PatVar v, x)])::env) e'', copy)
 | Record items ->
+    if !debugrules then print_endline "Record";
     eval_first_non_value_record_item peek env items;
     Record items
 | Struct (b, ls) ->
+    if !debugrules then print_endline "Struct";
     Struct (b, eval_first_non_value_item peek env [] ls)
 | Tuple ls ->
+    if !debugrules then print_endline "Tuple";
     Tuple (eval_first_non_value_item peek env [] ls)
 | Array items ->
+    if !debugrules then print_endline "Array";
     eval_first_non_value_item_array peek env items;
     Array (items)
-| Field (Record items, n) -> !(List.assoc n items)
-| Field (e, n) -> Field (eval peek env e, n)
+| Field (Record items, n) ->
+    if !debugrules then print_endline "Field-Record";
+    !(List.assoc n items)
+| Field (e, n) ->
+    if !debugrules then print_endline "Field-Expr";
+    Field (eval peek env e, n)
 | SetField (Record items, n, e) ->
+    if !debugrules then print_endline "SetField-Record";
     if is_value e
       then
         begin
@@ -561,8 +655,10 @@ let rec eval peek (env : Tinyocaml.env) expr =
           SetField (Record items, n, eval peek env e)
         end
 | SetField (e, n, e') ->
+    if !debugrules then print_endline "SetField";
     SetField (eval peek env e, n, e')
 | Raise (e, payload) ->
+    if !debugrules then print_endline "Raise";
     begin match payload with
       Some x when not (is_value x) ->
         Raise (e, Some (eval peek env x))
@@ -571,6 +667,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       raise (ExceptionRaised (e, payload))
     end
 | CallBuiltIn (typ, name, args, fn) ->
+    if !debugrules then print_endline "CallBuiltIn";
     (*Printf.printf "CallBuiltIn: peek = %b\n" peek;*)
     let really_coerce typ input =
       match typ, input with
@@ -588,6 +685,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
     else
       CallBuiltIn (typ, name, eval_first_non_value_item peek env [] args, fn)
 | Var v ->
+    if !debugrules then print_endline "Var";
     last := VarLookup::!last;
     begin match lookup_value v env with
       Some x -> x
@@ -596,6 +694,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
         failwith (Printf.sprintf "Var %s not found" v)
     end
 | Cons (x, y) ->
+    if !debugrules then print_endline "Cons";
     (* In the -no-typecheck case, we need to check afterwards to see if we have
      * x, y both values. Then we check y is a list type, and that, if the list
      * is non-empty, its first elt has same_type_approx as x *)
@@ -619,13 +718,16 @@ let rec eval peek (env : Tinyocaml.env) expr =
         | _ -> r
         end
 | Append (x, y) ->
+    if !debugrules then print_endline "Append";
     if is_value x && is_value y then
       append_values x y
     else if is_value x then Append (x, eval peek env y)
     else Append (eval peek env x, y)
 | Match (_, []) ->
+    if !debugrules then print_endline "Match-Failure";
     Raise ("Match_failure", Some (Tuple [String (Bytes.of_string "FIXME"); Int 0; Int 0]))
 | Match (x, p::ps) ->
+    if !debugrules then print_endline "Match";
     if not (is_value x) then
       try Match (eval peek env x, p::ps) with
         ExceptionRaised (x, payload) ->
@@ -649,6 +751,7 @@ let rec eval peek (env : Tinyocaml.env) expr =
       | FailedToMatch -> Match (x, ps)
       end
 | TryWith (e, cases) ->
+    if !debugrules then print_endline "TryWith";
     if is_value e then e else
       begin try TryWith (eval peek env e, cases) with
         ExceptionRaised (x, payload) ->
@@ -658,8 +761,10 @@ let rec eval peek (env : Tinyocaml.env) expr =
           | Matched e' -> e'
       end
 | ModuleBinding (n, x) ->
+    if !debugrules then print_endline "ModuleBinding";
     ModuleBinding (n, eval peek env x)
 | ModuleApply (n, Struct x) ->
+    if !debugrules then print_endline "ModuleApply";
     ModuleApply (n, eval peek env (Struct x))
 | Int _ | Bool _ | Float _ | Fun _ | Unit | OutChannel _
 | Int32 _ | Int64 _ | NativeInt _ | Char _

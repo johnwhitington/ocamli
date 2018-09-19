@@ -3,6 +3,8 @@ type t = Tinyocaml.t
 
 val runtime_typecheck : bool ref
 
+val debugrules : bool ref
+
 val lib : Tinyocaml.env ref
 
 val pop_state : unit -> string option

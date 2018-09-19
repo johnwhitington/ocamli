@@ -1,1 +1,4 @@
-let trip x = x * 3
+let r = ref 3
+
+let () = for x = (r := 1; 2) to !r do () done
+

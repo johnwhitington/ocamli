@@ -7,6 +7,7 @@ val printer : string ref
 val width : int ref
 val show_simple_arithmetic : bool ref
 val debugtiny : bool ref
+val debugtinyall : bool ref
 val debugpp : bool ref
 val prompt : bool ref
 val step : float ref

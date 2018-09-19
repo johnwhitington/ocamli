@@ -11,6 +11,7 @@ let printer = ref "simple"
 let width = ref 80
 let show_simple_arithmetic = ref true
 let debugtiny = ref false
+let debugtinyall = ref false
 let debugpp = ref false
 let prompt = ref false
 let step = ref 0.0
