@@ -306,54 +306,61 @@ let highlight_search regexp plainstr str =
   let theend = Str.match_end () + 4 in
     highlight_string beginning theend str
 
+let last_s = ref ""
+
 let print_line newline preamble tiny =
   let invert x = if x then not else (fun x -> x) in
   let s = string_of_tiny ~preamble:"" ~codes:false (Tinyocamlutil.strip_control tiny) in
-  let matched =
-    (invert !invertsearch)
-    (try ignore (Str.search_forward !searchfor s 0); true with Not_found -> false)
-  in
-  let matched_until =
-    (!untilany || matched) &&
-    (invert !invertuntil)
-    (try ignore (Str.search_forward !searchuntil s 0); true with Not_found -> false)
-  in
-  let matched_after =
-    (!afterany || matched) &&
-    (invert !invertafter)
-    (try ignore (Str.search_forward !searchafter s 0); true with Not_found -> false)
-  in
-    (* Check if we are entering the range *)
-    if not !inrange && matched_after then inrange := true;
-    (* If it matches the search, and we are in the range, print the line *)
-    if !inrange && matched then
-      begin
-        (* If interactive search, set prompt and unset the search term *)
-        if !interactivesearch then
+  (* If it's the same as the last line, simply don't print it. *)
+  if s <> !last_s then
+    begin
+      last_s := s;
+      let matched =
+        (invert !invertsearch)
+        (try ignore (Str.search_forward !searchfor s 0); true with Not_found -> false)
+      in
+      let matched_until =
+        (!untilany || matched) &&
+        (invert !invertuntil)
+        (try ignore (Str.search_forward !searchuntil s 0); true with Not_found -> false)
+      in
+      let matched_after =
+        (!afterany || matched) &&
+        (invert !invertafter)
+        (try ignore (Str.search_forward !searchafter s 0); true with Not_found -> false)
+      in
+        (* Check if we are entering the range *)
+        if not !inrange && matched_after then inrange := true;
+        (* If it matches the search, and we are in the range, print the line *)
+        if !inrange && matched then
           begin
-            prompt := true;
-            searchfor := Str.regexp "" 
+            (* If interactive search, set prompt and unset the search term *)
+            if !interactivesearch then
+              begin
+                prompt := true;
+                searchfor := Str.regexp "" 
+              end;
+            let tiny, sls = if !sidelets then let t, sls = find_sidelets tiny in t, filter_sls sls else tiny, [] in
+            let str = string_of_tiny ~preamble tiny in
+            let str = if !highlight then highlight_search !searchfor s str else str in
+            if not !silenced then really_print_line sls str;
+            if newline && not !silenced then print_string "\n";
+            flush stdout;
+            incr linecount;
           end;
-        let tiny, sls = if !sidelets then let t, sls = find_sidelets tiny in t, filter_sls sls else tiny, [] in
-        let str = string_of_tiny ~preamble tiny in
-        let str = if !highlight then highlight_search !searchfor s str else str in
-        if not !silenced then really_print_line sls str;
-        if newline && not !silenced then print_string "\n";
-        flush stdout;
-        incr linecount;
-      end;
-    (* Check if we are leaving the range. If so, set numresults = 0 to prevent
-    more printing, but allow computation to continue (unless -stop is set). If
-    'repeat' is set, we continue as normal, waiting for the next -after
-    condition. If repeat, we output an extra newline to demarcate the results. *)
-    if !inrange && matched_until then
-      begin
-        inrange := false;
-        if !repeat then print_string "\n" else numresults := 0
-      end;
-  (* Update the cache *)
-  cache := string_of_tiny ~preamble:"    " tiny :: !cache;
-  clean_cache ();
+        (* Check if we are leaving the range. If so, set numresults = 0 to prevent
+        more printing, but allow computation to continue (unless -stop is set). If
+        'repeat' is set, we continue as normal, waiting for the next -after
+        condition. If repeat, we output an extra newline to demarcate the results. *)
+        if !inrange && matched_until then
+          begin
+            inrange := false;
+            if !repeat then print_string "\n" else numresults := 0
+          end;
+      (* Update the cache *)
+      cache := string_of_tiny ~preamble:"    " tiny :: !cache;
+      clean_cache ();
+    end
 
 external reraise : exn -> 'a = "%reraise"
 
