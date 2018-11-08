@@ -1,0 +1,3 @@
+ocamlfind ppx_tools/rewriter ../ppx_interpret b.ml > foo.ml
+ocamlfind ppx_tools/rewriter ../../ppx_auto/ppx_auto foo.ml > foo2.ml
+

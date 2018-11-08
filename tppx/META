@@ -1,0 +1,4 @@
+name="tppx_interpret"
+description="Debug with ocamli"
+version="0.1"
+ppx="./tppx_interpret"
