@@ -125,7 +125,7 @@ let otherlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
 
 let stdlib_modules () =
-  [("StdLabels",                stdlib_dir, "stdLabels.ml");
+  [(*("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
    ("StringLabels",             stdlib_dir, "stringLabels.ml");
    ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
@@ -171,10 +171,10 @@ let stdlib_modules () =
    ("Sys",                      stdlib_dir, "sys.ml");
    ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
-   ("Char",                     stdlib_dir, "char.ml");
+   ("Char",                     stdlib_dir, "char.ml");*)
    ("List",                     stdlib_dir, "list.ml");
-   ("",                         stdlib_dir, "pervasives.ml"); (* The special empty strng *)
-   ("Pervasives",               stdlib_dir, "pervasives.ml");
+   (*("",                         stdlib_dir, "stdlib.ml"); (* The special empty strng *)*)
+   ("Pervasives",               stdlib_dir, "stdlib.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 
 let loadlib () =
