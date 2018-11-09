@@ -124,8 +124,11 @@ let otherlib_modules () =
 (*let stdlib_modules () =
   [("Example", "./stdlib", "example.ml")]*)
 
+(* We use an old stdlib for now -- new stdlib/pervasives stuff to be dealt with *)
+let stdlib_dir = "/Users/john/repos/ocamli/stdlib"
+
 let stdlib_modules () =
-  [(*("StdLabels",                stdlib_dir, "stdLabels.ml");
+  [("StdLabels",                stdlib_dir, "stdLabels.ml");
    ("MoreLabels",               stdlib_dir, "moreLabels.ml");
    ("StringLabels",             stdlib_dir, "stringLabels.ml");
    ("BytesLabels",              stdlib_dir, "bytesLabels.ml");
@@ -168,13 +171,13 @@ let stdlib_modules () =
    ("Obj",                      stdlib_dir, "obj.ml");
    ("Marshal",                  stdlib_dir, "marshal.ml");
    ("Sort",                     stdlib_dir, "sort.ml");
-   ("Sys",                      stdlib_dir, "sys.ml");
    ("String",                   stdlib_dir, "string.ml");
    ("Bytes",                    stdlib_dir, "bytes.ml");
-   ("Char",                     stdlib_dir, "char.ml");*)
+   ("Char",                     stdlib_dir, "char.ml");
    ("List",                     stdlib_dir, "list.ml");
-   (*("",                         stdlib_dir, "stdlib.ml"); (* The special empty strng *)*)
-   ("Pervasives",               stdlib_dir, "stdlib.ml");
+   ("Sys",                      stdlib_dir, "sys.ml");
+   ("",                         "/Users/john/repos/ocamli/stdlib", "pervasives.ml"); (* The special empty strng *)
+   ("Pervasives",               "/Users/john/repos/ocamli/stdlib", "pervasives.ml");
    ("CamlinternalFormatBasics", stdlib_dir, "camlinternalFormatBasics.ml")]
 
 let loadlib () =
