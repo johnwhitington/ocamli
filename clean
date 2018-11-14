@@ -27,3 +27,7 @@ cd ../../ppx_interpret
 make clean
 cd example
 make clean
+cd ../../tppx
+make clean
+cd example
+make clean
