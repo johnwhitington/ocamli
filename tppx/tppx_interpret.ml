@@ -1,17 +1,30 @@
-(* For now, just copy input to output, byte by byte *)
-let copyfile infile outfile =
-  let fhi = open_in_bin infile in
-  let fho = open_out_bin outfile in
-    try
-      while true do output_char fho (input_char fhi) done
-    with
-      End_of_file ->
-        close_in fhi;
-        close_out fho
+let typedtree_of_file fn =
+  let ic = open_in_bin fn in
+  let tstr = (input_value ic : Typedtree.structure) in
+    close_in ic;
+    tstr
+
+let typedtree_to_file fn tstr =
+  let oc = open_out_bin fn in
+  output_value oc tstr;
+  close_out oc
+
+open Tast_mapper
+
+(* Example: replace any number 1 annotate with [@interpret] by the number 42, and remove the annotation *)
+let process tstr =
+  let newmapper =
+    {default with
+       expr = fun mapper expr ->
+         match expr with
+           other -> default.expr mapper other}
+  in
+    newmapper.structure newmapper tstr
 
 let _ =
   print_endline "Tppx running...";
   match Sys.argv with
-    [|_; infile; outfile|] -> copyfile infile outfile
-  | _ -> prerr_endline "Usage ppx_interpret <infile> <outfile>"
+    [|_; infile; outfile|] ->
+      typedtree_to_file outfile (process (typedtree_of_file infile))
+  | _ -> prerr_endline "Usage tppx_interpret <infile> <outfile>"
 

@@ -3,7 +3,7 @@ export OCAMLFIND_IGNORE_DUPS_IN
 
 SOURCES = tppx_interpret.ml
 
-PACKS = bigarray ppx_tools ocamli
+PACKS = bigarray ocamli compiler-libs.common
 
 RESULT = tppx_interpret
 
@@ -15,6 +15,9 @@ all : native-code
 
 install :
 	ocamlfind install tppx_interpret META tppx_interpret
+
+clean ::
+	rm -rf doc a.out *.o *.cmx *.cmi *.cmo
 
 -include OCamlMakefile
 
