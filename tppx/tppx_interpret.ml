@@ -10,6 +10,7 @@ let typedtree_to_file fn tstr =
   close_out oc
 
 open Tast_mapper
+open Asttypes
 
 (* Example: replace any number 1 annotate with [@interpret] by the number 42, and remove the annotation *)
 let process tstr =
@@ -17,7 +18,12 @@ let process tstr =
     {default with
        expr = fun mapper expr ->
          match expr with
-           other -> default.expr mapper other}
+         | {exp_attributes = [({txt = "print_type"}, _)];
+            exp_type} as other ->
+              Printtyp.type_expr Format.std_formatter exp_type;
+              Format.print_newline ();
+              default.expr mapper other
+         | other -> default.expr mapper other}
   in
     newmapper.structure newmapper tstr
 
