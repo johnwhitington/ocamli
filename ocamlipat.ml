@@ -28,7 +28,7 @@ let string_of_token = function
   | DO -> "do"
   | DONE -> "done"
   | DOT -> "."
-  (*| DOTOP _ -> "." (*FIXME*)*)
+  | DOTOP _ -> "."
   | DOTDOT -> ".."
   | DOWNTO -> "downto"
   | ELSE -> "else"

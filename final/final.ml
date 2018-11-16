@@ -33,7 +33,7 @@ let rec tinyocaml_of_ocaml_heap_value (typ : Types.type_desc) (value : Obj.t) =
   Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ); 
   match typ with
     Types.Tnil -> Tinyocaml.Int (Obj.magic value : int)
-  | Types.Tnil ->
+  | Types.Tvar (Some "array") ->
       Tinyocaml.Array
         (Array.init
           (Obj.size value)
@@ -205,8 +205,8 @@ let rec finaltype_of_expression_desc = function
     {e = Value (Obj.repr x); typ = Types.Tnil}
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident {Ident.name = "Pervasives"}, "+", _), _, _)},
-     [(_, Some arg1); (_, Some arg2)]) ->
+        Texp_ident (Path.Pdot (Path.Pident i, "+", _), _, _)},
+     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Pervasives"->
        {e = IntOp
               (Add,
                finaltype_of_expression_desc arg1.exp_desc,

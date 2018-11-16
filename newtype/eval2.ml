@@ -33,7 +33,7 @@ let rec eval (env : environment) e =
         eval env {e with t = Apply (eval env f, y)}
     | Struct es ->
         {e with t = Struct (eval_many env es)}
-
+    | _ -> failwith "unimplemented"
     (*| If ({t = Bool b}, x, y) -> eval env (if b then x else y)
     | If (c, x, y) -> eval env {e with t = If (eval env c, x, y)}*)
 
