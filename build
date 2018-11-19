@@ -17,4 +17,6 @@ echo "*****BUILDING FINAL"
 cd ../final && make
 echo "*****BUILDING SECD"
 cd ../secd && make
+echo "*****BUILDING TPPX"
+cd ../tppx && make
 

@@ -1,12 +1,18 @@
+let magic = Config.ast_impl_magic_number
+
 let typedtree_of_file fn =
   let ic = open_in_bin fn in
+  ignore (really_input_string ic (String.length magic));
+  ignore (input_value ic : string);
   let tstr = (input_value ic : Typedtree.structure) in
     close_in ic;
     tstr
 
 let typedtree_to_file fn tstr =
   let oc = open_out_bin fn in
-  output_value oc tstr;
+  output_string oc (magic : string);
+  output_value oc (!Location.input_name : string);
+  output_value oc (tstr : Typedtree.structure);
   close_out oc
 
 open Tast_mapper
