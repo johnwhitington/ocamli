@@ -5,7 +5,7 @@ let newmapper argv =
   {default with
      expr = (fun mapper expr ->
        match expr with
-       | {exp_attributes = [({txt = "showtype"}, payload)];
+       | {exp_attributes = [{attr_name = {txt = "showtype"}; attr_payload =  payload}];
           exp_type} as other ->
             begin
               match payload with
@@ -27,7 +27,7 @@ let newmapper argv =
       | other -> default.structure_item mapper other);
     pat = (fun mapper pat ->
       match pat with
-      | {pat_attributes = [({txt = "showtype"}, payload)];
+      | {pat_attributes = [{attr_name = {txt = "showtype"}; attr_payload = payload}];
           pat_type;
           pat_desc = Tpat_var (ident, _)} as other ->
             Format.print_string (Ident.name ident ^ " : ");
