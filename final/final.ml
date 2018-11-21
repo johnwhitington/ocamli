@@ -205,7 +205,7 @@ let rec finaltype_of_expression_desc = function
     {e = Value (Obj.repr x); typ = Types.Tnil}
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident i, "+", _), _, _)},
+        Texp_ident (Path.Pdot (Path.Pident i, "+"), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Pervasives"->
        {e = IntOp
               (Add,
