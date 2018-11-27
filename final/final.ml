@@ -13,6 +13,13 @@ let string_of_op = function
   | Mul -> "Mul"
   | Div -> "Div" 
 
+let op_of_text = function
+  "+" | "+." -> Add
+| "-" | "-." -> Sub
+| "*" | "*." -> Mul
+| "/" | "/." -> Div
+| _ -> failwith "op_of_text"
+
 let rec to_ocaml_heap_value = function
   Value x -> x
 | ArrayExpr arr ->
@@ -52,7 +59,8 @@ let rec tinyocaml_of_finaltype typ = function
 | ArrayExpr arr -> Tinyocaml.Array (Array.map (fun {typ; e} -> tinyocaml_of_finaltype typ e) arr)
 | IntOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
     Tinyocaml.Op (tinyocaml_op_of_finaltype_op op, tinyocaml_of_finaltype typx ex, tinyocaml_of_finaltype typy ey)
-| FOp (op, x, y) -> failwith "tinyocaml_op_of_finaltype: FOp"
+| FOp (op, x, y) ->
+    Tinyocaml.App (tinyocaml_of_finaltype typ x, tinyocaml_of_finaltype typ y) 
 | ArrayGet (arr, index) -> failwith "tinyocaml_op_of_finaltype: arrayget"
 | ArraySet (arr, index, newval) -> failwith "tinyocaml_op_of_finaltype: arrayset"
 
@@ -203,12 +211,23 @@ let load_file f =
 let rec finaltype_of_expression_desc = function
   Texp_constant (Const_int x) ->
     {e = Value (Obj.repr x); typ = Types.Tnil}
+| Texp_constant (Const_float x) ->
+    {e = Value (Obj.repr (float_of_string x)); typ = Types.Tnil}
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident i, "+"), _, _)},
-     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Pervasives"->
+        Texp_ident (Path.Pdot (Path.Pident i, (("+" | "-" | "*" | "/") as optext)), _, _)},
+     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        {e = IntOp
-              (Add,
+              (op_of_text optext,
+               finaltype_of_expression_desc arg1.exp_desc,
+               finaltype_of_expression_desc arg2.exp_desc);
+        typ = Types.Tnil}
+| Texp_apply
+    ({exp_desc =
+        Texp_ident (Path.Pdot (Path.Pident i, (("+." | "-." | "*." | "/.") as optext)), _, _)},
+     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
+       {e = FOp
+              (op_of_text optext,
                finaltype_of_expression_desc arg1.exp_desc,
                finaltype_of_expression_desc arg2.exp_desc);
         typ = Types.Tnil}
@@ -218,6 +237,8 @@ let finaltype_of_typedtree {str_items; str_type} =
   match (List.hd str_items).str_desc with
     Tstr_value (_, [vb]) ->
       finaltype_of_expression_desc vb.vb_expr.exp_desc
+  | Tstr_eval (e, _) ->
+      finaltype_of_expression_desc e.exp_desc
   | _ -> failwith "finaltype_of_typedtree"
 
 let env =
