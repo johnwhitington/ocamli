@@ -16,7 +16,7 @@ OCAMLLDFLAGS = -g
 all : native-code
 
 clean ::
-	rm -rf doc foo foo2 a.out
+	rm -rf doc foo foo2 a.out foo.cmi foo.cmo
 
 -include OCamlMakefile
 

@@ -1,6 +1,9 @@
 open Finaltype
 open Typedtree
 
+let showfinaltype = ref false
+let showsteps = ref false
+
 let is_value_t' = function
   Value _ -> true
 | ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ -> false
@@ -34,12 +37,15 @@ let rec to_ocaml_heap_value = function
 let string_of_ocaml_type = function
   Types.Tconstr (path, _, _) -> "Tconstr"
 | Types.Tnil -> "Tnil"
+| Types.Tvar (Some x) -> x
+| Types.Tvar None -> "_"
 | _ -> "FIXUP string_of_ocaml_type"
 
 let rec tinyocaml_of_ocaml_heap_value (typ : Types.type_desc) (value : Obj.t) =
-  Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ); 
+  (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
   match typ with
-    Types.Tnil -> Tinyocaml.Int (Obj.magic value : int)
+    Types.Tvar (Some "int") -> Tinyocaml.Int (Obj.magic value : int)
+  | Types.Tvar (Some "float") -> Tinyocaml.Float (Obj.magic value : float)
   | Types.Tvar (Some "array") ->
       Tinyocaml.Array
         (Array.init
@@ -60,7 +66,10 @@ let rec tinyocaml_of_finaltype typ = function
 | IntOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
     Tinyocaml.Op (tinyocaml_op_of_finaltype_op op, tinyocaml_of_finaltype typx ex, tinyocaml_of_finaltype typy ey)
 | FOp (op, x, y) ->
-    Tinyocaml.App (tinyocaml_of_finaltype typ x, tinyocaml_of_finaltype typ y) 
+    Tinyocaml.App
+      ((Tinyocaml.App
+        (Var "Stdlib.+.", tinyocaml_of_finaltype typ x.e)),
+      (tinyocaml_of_finaltype typ y.e))
 | ArrayGet (arr, index) -> failwith "tinyocaml_op_of_finaltype: arrayget"
 | ArraySet (arr, index, newval) -> failwith "tinyocaml_op_of_finaltype: arrayset"
 
@@ -173,32 +182,10 @@ and eval_first_non_value_element arr =
   with
     Exit -> true
 
-(* 1 + 2 *)
-let example =
-  {e =
-    IntOp (Add,
-         {e = Value (Obj.repr 1); typ = Types.Tnil},
-         {e = Value (Obj.repr 2); typ = Types.Tnil});
-   typ = Types.Tnil}
-
-(* [|1 + 2; 3|] *)
-
-let example2 =
-  {e =
-    ArrayExpr
-      [|{e = IntOp (Add, {e = Value (Obj.repr 1); typ = Types.Tnil}, {e = Value (Obj.repr 2); typ = Types.Tnil});
-         typ = Types.Tnil};
-        {e = Value (Obj.repr 1);
-         typ = Types.Tnil}
-      |];
-   typ = Types.Tnil
-  }
-
 let rec eval_full v =
+  if !showsteps then Printf.printf "%s\n" (string_of_finaltype v);
   Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v.typ v.e));
   if is_value v then v else eval_full (eval v)
-
-(*let _ = eval_full example2*)
 
 let load_file f =
   let ic = open_in f in
@@ -209,36 +196,29 @@ let load_file f =
   Bytes.to_string s
 
 let rec finaltype_of_expression_desc = function
-  Texp_constant (Const_int x) ->
-    {e = Value (Obj.repr x); typ = Types.Tnil}
-| Texp_constant (Const_float x) ->
-    {e = Value (Obj.repr (float_of_string x)); typ = Types.Tnil}
+  Texp_constant (Const_int x) -> Value (Obj.repr x)
+| Texp_constant (Const_float x) -> Value (Obj.repr (float_of_string x))
 | Texp_apply
     ({exp_desc =
         Texp_ident (Path.Pdot (Path.Pident i, (("+" | "-" | "*" | "/") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
-       {e = IntOp
-              (op_of_text optext,
-               finaltype_of_expression_desc arg1.exp_desc,
-               finaltype_of_expression_desc arg2.exp_desc);
-        typ = Types.Tnil}
+       IntOp (op_of_text optext, finaltype_of_expression arg1, finaltype_of_expression arg2)
 | Texp_apply
     ({exp_desc =
         Texp_ident (Path.Pdot (Path.Pident i, (("+." | "-." | "*." | "/.") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
-       {e = FOp
-              (op_of_text optext,
-               finaltype_of_expression_desc arg1.exp_desc,
-               finaltype_of_expression_desc arg2.exp_desc);
-        typ = Types.Tnil}
+       FOp (op_of_text optext, finaltype_of_expression arg1, finaltype_of_expression arg2)
 | _ -> failwith "finaltype_of_expression_desc: unknown"
 
-let finaltype_of_typedtree {str_items; str_type} =
+and finaltype_of_expression exp =
+  {e = finaltype_of_expression_desc exp.exp_desc;
+   typ = exp.exp_type.desc}
+
+(* For now just first structure item. To remove later when we have real structure item support. *)
+let finaltype_of_typedtree {str_items} =
   match (List.hd str_items).str_desc with
-    Tstr_value (_, [vb]) ->
-      finaltype_of_expression_desc vb.vb_expr.exp_desc
-  | Tstr_eval (e, _) ->
-      finaltype_of_expression_desc e.exp_desc
+    Tstr_value (_, [vb]) -> finaltype_of_expression vb.vb_expr
+  | Tstr_eval (e, _) -> finaltype_of_expression e
   | _ -> failwith "finaltype_of_typedtree"
 
 let env =
@@ -266,7 +246,9 @@ let setfile filename =
   programtext := load_file filename
 
 let argspec =
-  ["-e", Arg.Set_string programtext, " Set program text"]
+  ["-e", Arg.Set_string programtext, " Set program text";
+   "-dfinaltype", Arg.Set showfinaltype, " Show the finaltype representation of the input program";
+   "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation"]
 
 let _ =
   Arg.parse argspec setfile "Syntax: final <filename | -e program>\n";
