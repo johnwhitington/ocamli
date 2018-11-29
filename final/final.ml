@@ -1,5 +1,6 @@
 open Finaltype
 open Typedtree
+open Types
 
 let showfinaltype = ref false
 let showsteps = ref false
@@ -23,6 +24,11 @@ let op_of_text = function
 | "/" | "/." -> Div
 | _ -> failwith "op_of_text"
 
+let rec find_type_desc {desc} =
+  match desc with
+    Tlink x -> find_type_desc x
+  | typ -> typ
+
 let rec to_ocaml_heap_value = function
   Value x -> x
 | ArrayExpr arr ->
@@ -35,22 +41,31 @@ let rec to_ocaml_heap_value = function
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
 let string_of_ocaml_type = function
-  Types.Tconstr (path, _, _) -> "Tconstr"
-| Types.Tnil -> "Tnil"
-| Types.Tvar (Some x) -> x
+  Types.Tvar (Some x) -> x
 | Types.Tvar None -> "_"
-| _ -> "FIXUP string_of_ocaml_type"
+| Types.Tarrow (_, _, _, _) -> "Tarrow"
+| Types.Ttuple _ -> "Ttuple"
+| Types.Tconstr (path, _, _) -> "Tconstr " ^ Path.name path
+| Types.Tobject (_, _) -> "Tobject"
+| Types.Tfield (_, _, _, _) -> "Tfield"
+| Types.Tnil -> "Tnil"
+| Types.Tlink _ -> "Tlink"
+| Types.Tsubst _ -> "Tsubst"
+| Types.Tvariant _ -> "Tvariant"
+| Types.Tunivar _ -> "Tunivar"
+| Types.Tpoly (_, _) -> "Tpoly"
+| Types.Tpackage (_, _, _) -> "Tpackage"
 
 let rec tinyocaml_of_ocaml_heap_value (typ : Types.type_desc) (value : Obj.t) =
-  (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
+  Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);
   match typ with
-    Types.Tvar (Some "int") -> Tinyocaml.Int (Obj.magic value : int)
-  | Types.Tvar (Some "float") -> Tinyocaml.Float (Obj.magic value : float)
-  | Types.Tvar (Some "array") ->
+    Types.Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
+  | Types.Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
+  | Types.Tconstr (p, [elt_t], _) when Path.name p = "array" ->
       Tinyocaml.Array
         (Array.init
           (Obj.size value)
-          (fun i -> tinyocaml_of_ocaml_heap_value Types.Tnil (Obj.field value i)))
+          (fun i -> tinyocaml_of_ocaml_heap_value (find_type_desc elt_t) (Obj.field value i)))
   | _ -> failwith "tinyocaml_of_ocaml_heap_value: unknown type"
 
 (* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
@@ -65,12 +80,13 @@ let rec tinyocaml_of_finaltype typ = function
 | ArrayExpr arr -> Tinyocaml.Array (Array.map (fun {typ; e} -> tinyocaml_of_finaltype typ e) arr)
 | IntOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
     Tinyocaml.Op (tinyocaml_op_of_finaltype_op op, tinyocaml_of_finaltype typx ex, tinyocaml_of_finaltype typy ey)
-| FOp (op, x, y) ->
+| FOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
+    Tinyocaml.App ((Tinyocaml.App (Var "Stdlib.+.", tinyocaml_of_finaltype typx ex)), (tinyocaml_of_finaltype typy ey))
+| ArrayGet ({typ = typx; e = ex}, {typ = typy; e = ey}) ->
     Tinyocaml.App
       ((Tinyocaml.App
-        (Var "Stdlib.+.", tinyocaml_of_finaltype typ x.e)),
-      (tinyocaml_of_finaltype typ y.e))
-| ArrayGet (arr, index) -> failwith "tinyocaml_op_of_finaltype: arrayget"
+        (Var "Stdlib.Array.get", tinyocaml_of_finaltype typx ex)),
+      (tinyocaml_of_finaltype typy ey))
 | ArraySet (arr, index, newval) -> failwith "tinyocaml_op_of_finaltype: arrayset"
 
 let string_of_tinyocaml = Pptinyocaml.to_string
@@ -195,6 +211,7 @@ let load_file f =
   close_in ic;
   Bytes.to_string s
 
+
 let rec finaltype_of_expression_desc = function
   Texp_constant (Const_int x) -> Value (Obj.repr x)
 | Texp_constant (Const_float x) -> Value (Obj.repr (float_of_string x))
@@ -208,11 +225,23 @@ let rec finaltype_of_expression_desc = function
         Texp_ident (Path.Pdot (Path.Pident i, (("+." | "-." | "*." | "/.") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        FOp (op_of_text optext, finaltype_of_expression arg1, finaltype_of_expression arg2)
+| Texp_apply
+    ({exp_desc =
+      Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y), z), _, _)},
+        [(_, Some arr); (_, Some index)])
+      when Ident.name x = "Stdlib" && y = "Array" && z = "get" ->
+        ArrayGet (finaltype_of_expression arr, finaltype_of_expression index)
+| Texp_array es ->
+    let arr = Array.of_list (List.map finaltype_of_expression es) in
+      if array_expr_should_be_value arr then
+        Value (to_ocaml_heap_value (ArrayExpr arr))
+      else
+        ArrayExpr arr
 | _ -> failwith "finaltype_of_expression_desc: unknown"
 
 and finaltype_of_expression exp =
   {e = finaltype_of_expression_desc exp.exp_desc;
-   typ = exp.exp_type.desc}
+   typ = find_type_desc exp.exp_type}
 
 (* For now just first structure item. To remove later when we have real structure item support. *)
 let finaltype_of_typedtree {str_items} =
