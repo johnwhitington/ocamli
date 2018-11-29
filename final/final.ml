@@ -41,27 +41,28 @@ let rec to_ocaml_heap_value = function
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
 let string_of_ocaml_type = function
-  Types.Tvar (Some x) -> x
-| Types.Tvar None -> "_"
-| Types.Tarrow (_, _, _, _) -> "Tarrow"
-| Types.Ttuple _ -> "Ttuple"
-| Types.Tconstr (path, _, _) -> "Tconstr " ^ Path.name path
-| Types.Tobject (_, _) -> "Tobject"
-| Types.Tfield (_, _, _, _) -> "Tfield"
-| Types.Tnil -> "Tnil"
-| Types.Tlink _ -> "Tlink"
-| Types.Tsubst _ -> "Tsubst"
-| Types.Tvariant _ -> "Tvariant"
-| Types.Tunivar _ -> "Tunivar"
-| Types.Tpoly (_, _) -> "Tpoly"
-| Types.Tpackage (_, _, _) -> "Tpackage"
+  Tvar (Some x) -> x
+| Tvar None -> "_"
+| Tarrow (_, _, _, _) -> "Tarrow"
+| Ttuple _ -> "Ttuple"
+| Tconstr (path, _, _) -> "Tconstr " ^ Path.name path
+| Tobject (_, _) -> "Tobject"
+| Tfield (_, _, _, _) -> "Tfield"
+| Tnil -> "Tnil"
+| Tlink _ -> "Tlink"
+| Tsubst _ -> "Tsubst"
+| Tvariant _ -> "Tvariant"
+| Tunivar _ -> "Tunivar"
+| Tpoly (_, _) -> "Tpoly"
+| Tpackage (_, _, _) -> "Tpackage"
 
-let rec tinyocaml_of_ocaml_heap_value (typ : Types.type_desc) (value : Obj.t) =
+let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
   Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);
   match typ with
-    Types.Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
-  | Types.Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
-  | Types.Tconstr (p, [elt_t], _) when Path.name p = "array" ->
+    Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
+  | Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
+  | Tconstr (p, _, _) when Path.name p = "unit" -> Tinyocaml.Unit
+  | Tconstr (p, [elt_t], _) when Path.name p = "array" ->
       Tinyocaml.Array
         (Array.init
           (Obj.size value)
@@ -87,7 +88,15 @@ let rec tinyocaml_of_finaltype typ = function
       ((Tinyocaml.App
         (Var "Stdlib.Array.get", tinyocaml_of_finaltype typx ex)),
       (tinyocaml_of_finaltype typy ey))
-| ArraySet (arr, index, newval) -> failwith "tinyocaml_op_of_finaltype: arrayset"
+| ArraySet ({typ = typ_arr; e = e_arr},
+            {typ = typ_index; e = e_index},
+            {typ = typ_newval; e = e_newval}) ->
+    Tinyocaml.App
+      (Tinyocaml.App
+        ((Tinyocaml.App
+          (Var "Stdlib.Array.set", tinyocaml_of_finaltype typ_arr e_arr)),
+        (tinyocaml_of_finaltype typ_index e_index)),
+        (tinyocaml_of_finaltype typ_newval e_newval))
 
 let string_of_tinyocaml = Pptinyocaml.to_string
 
@@ -231,6 +240,15 @@ let rec finaltype_of_expression_desc = function
         [(_, Some arr); (_, Some index)])
       when Ident.name x = "Stdlib" && y = "Array" && z = "get" ->
         ArrayGet (finaltype_of_expression arr, finaltype_of_expression index)
+| Texp_apply
+    ({exp_desc =
+      Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y), z), _, _)},
+        [(_, Some arr); (_, Some index); (_, Some newval)])
+      when Ident.name x = "Stdlib" && y = "Array" && z = "set" ->
+        ArraySet
+          (finaltype_of_expression arr,
+           finaltype_of_expression index,
+           finaltype_of_expression newval)
 | Texp_array es ->
     let arr = Array.of_list (List.map finaltype_of_expression es) in
       if array_expr_should_be_value arr then
