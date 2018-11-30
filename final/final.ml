@@ -7,9 +7,24 @@ let showsteps = ref false
 
 let is_value_t' = function
   Value _ -> true
-| ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ -> false
+| ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
 
 let is_value {e} = is_value_t' e
+
+(* List the names in an expression, including any implicit let-bindings. *)
+let rec names_in_t' = function
+  Value _ -> []
+| Var x -> [x]
+| ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
+| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') -> names_in e @ names_in e'
+| Let (binding, e) -> names_in_binding binding @ names_in e
+| ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
+
+and names_in_binding (n, e) =
+  n :: names_in e 
+
+and names_in {lets; e} =
+  List.flatten (List.map names_in_binding lets) @ names_in_t' e
 
 let string_of_op = function
     Add -> "Add"
@@ -76,32 +91,66 @@ let tinyocaml_op_of_finaltype_op = function
 | Mul -> Tinyocaml.Mul
 | Div -> Tinyocaml.Div
 
-let rec tinyocaml_of_finaltype typ = function
+let rec tinyocaml_of_finaltype_t' typ = function
   Value x -> tinyocaml_of_ocaml_heap_value typ x
-| ArrayExpr arr -> Tinyocaml.Array (Array.map (fun {typ; e} -> tinyocaml_of_finaltype typ e) arr)
-| IntOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
-    Tinyocaml.Op (tinyocaml_op_of_finaltype_op op, tinyocaml_of_finaltype typx ex, tinyocaml_of_finaltype typy ey)
-| FOp (op, {typ = typx; e = ex}, {typ = typy; e = ey}) ->
-    Tinyocaml.App ((Tinyocaml.App (Var "Stdlib.+.", tinyocaml_of_finaltype typx ex)), (tinyocaml_of_finaltype typy ey))
-| ArrayGet ({typ = typx; e = ex}, {typ = typy; e = ey}) ->
+| Var x -> Tinyocaml.Var x
+| ArrayExpr arr -> Tinyocaml.Array (Array.map tinyocaml_of_finaltype arr)
+| IntOp (op, x, y) ->
+    Tinyocaml.Op
+      (tinyocaml_op_of_finaltype_op op,
+       tinyocaml_of_finaltype x,
+       tinyocaml_of_finaltype y)
+| FOp (op, x, y) ->
+    Tinyocaml.App
+      ((Tinyocaml.App (Var "Stdlib.+.", tinyocaml_of_finaltype x)), tinyocaml_of_finaltype y)
+| ArrayGet (x, y) ->
     Tinyocaml.App
       ((Tinyocaml.App
-        (Var "Stdlib.Array.get", tinyocaml_of_finaltype typx ex)),
-      (tinyocaml_of_finaltype typy ey))
-| ArraySet ({typ = typ_arr; e = e_arr},
-            {typ = typ_index; e = e_index},
-            {typ = typ_newval; e = e_newval}) ->
+        (Var "Stdlib.Array.get", tinyocaml_of_finaltype x)),
+      (tinyocaml_of_finaltype y))
+| ArraySet (arr, index, newval) ->
     Tinyocaml.App
       (Tinyocaml.App
         ((Tinyocaml.App
-          (Var "Stdlib.Array.set", tinyocaml_of_finaltype typ_arr e_arr)),
-        (tinyocaml_of_finaltype typ_index e_index)),
-        (tinyocaml_of_finaltype typ_newval e_newval))
+          (Var "Stdlib.Array.set", tinyocaml_of_finaltype arr)),
+        (tinyocaml_of_finaltype index)),
+        (tinyocaml_of_finaltype newval))
+| Let ((n, a), b) ->
+    Tinyocaml.Let
+      (false,
+       [(Tinyocaml.PatVar n, tinyocaml_of_finaltype a)],
+       tinyocaml_of_finaltype b)
+
+and tinyocaml_of_finaltype {e; typ; lets} =
+  (* If any implicit lets, fabricate them -- but only if they are used in the
+   * expression underneath, and not shadowed. *)
+  let remove_names_from_lets names =
+    List.filter (fun (v, _) -> not (List.mem v names)) in
+  let rec remove_shadowed_implicits = function
+    [] -> []
+  | (n, e)::r ->
+      if List.mem n (List.map fst r)
+        then remove_shadowed_implicits r
+        else (n, e)::remove_shadowed_implicits r
+  in
+  let rec fabricate_lets e = function
+    [] -> e
+  | (n, rhs)::r ->
+      fabricate_lets (Tinyocaml.Let (false, [(Tinyocaml.PatVar n, tinyocaml_of_finaltype rhs)], e)) r
+  in
+  let inner = tinyocaml_of_finaltype_t' typ e in
+    if lets = [] then inner else
+      let names = names_in_t' e in
+      let lets_to_print =
+        remove_names_from_lets names (remove_shadowed_implicits lets)
+      in
+        fabricate_lets inner (List.rev lets_to_print)
 
 let string_of_tinyocaml = Pptinyocaml.to_string
 
 let rec string_of_finaltype_t' typ = function
   Value x -> string_of_tinyocaml (tinyocaml_of_ocaml_heap_value typ x)
+| Var x -> Printf.sprintf "Var %s" x
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
 | FOp (op, a, b) ->
@@ -118,6 +167,10 @@ let rec string_of_finaltype_t' typ = function
     Printf.sprintf
       "ArraySet (%s, %s, %s)"
       (string_of_finaltype arr) (string_of_finaltype i) (string_of_finaltype newval)
+| Let ((n, e), e') ->
+    Printf.sprintf
+      "Let (%s, %s, %s)"
+      n (string_of_finaltype e) (string_of_finaltype e')
 
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_finaltype items)
@@ -209,7 +262,7 @@ and eval_first_non_value_element arr =
 
 let rec eval_full v =
   if !showsteps then Printf.printf "%s\n" (string_of_finaltype v);
-  Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v.typ v.e));
+  Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v));
   if is_value v then v else eval_full (eval v)
 
 let load_file f =
@@ -220,10 +273,19 @@ let load_file f =
   close_in ic;
   Bytes.to_string s
 
+exception IsImplicitLet of string * Finaltype.t * Finaltype.t 
 
 let rec finaltype_of_expression_desc = function
   Texp_constant (Const_int x) -> Value (Obj.repr x)
 | Texp_constant (Const_float x) -> Value (Obj.repr (float_of_string x))
+| Texp_ident (p, _, _) -> Var (Path.name p)
+| Texp_let (_, [binding], e) ->
+    let (var, expr) = finaltype_of_binding binding
+    and expr' = finaltype_of_expression e in
+      if is_value expr then
+        raise (IsImplicitLet (var, expr, expr'))
+      else
+        Let ((var, expr), expr')
 | Texp_apply
     ({exp_desc =
         Texp_ident (Path.Pdot (Path.Pident i, (("+" | "-" | "*" | "/") as optext)), _, _)},
@@ -257,9 +319,21 @@ let rec finaltype_of_expression_desc = function
         ArrayExpr arr
 | _ -> failwith "finaltype_of_expression_desc: unknown"
 
+and finaltype_of_binding {vb_pat; vb_expr} =
+  let var = match vb_pat with
+    {pat_desc = Tpat_var (i, _)} -> Ident.name i
+  | _ -> failwith "finaltype_of_binding: pattern not supported"
+  in
+    (var, finaltype_of_expression vb_expr)
+
 and finaltype_of_expression exp =
-  {e = finaltype_of_expression_desc exp.exp_desc;
-   typ = find_type_desc exp.exp_type}
+  try
+    {e = finaltype_of_expression_desc exp.exp_desc;
+     typ = find_type_desc exp.exp_type;
+     lets = []}
+  with
+    IsImplicitLet (var, expr, expr') ->
+      {expr' with lets = (var, expr) :: expr'.lets}
 
 (* For now just first structure item. To remove later when we have real structure item support. *)
 let finaltype_of_typedtree {str_items} =
