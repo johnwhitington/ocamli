@@ -72,7 +72,7 @@ let string_of_ocaml_type = function
 | Tpackage (_, _, _) -> "Tpackage"
 
 let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
-  Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);
+  (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
   match typ with
     Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
   | Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
@@ -352,7 +352,7 @@ and finaltype_of_expression exp =
      lets = []}
   with
     IsImplicitLet (var, expr, expr') ->
-      Printf.printf "Adding implicit let %s\n" var;
+      (*Printf.printf "Adding implicit let %s\n" var;*)
       {expr' with lets = (var, expr) :: expr'.lets}
 
 (* For now just first structure item. To remove later when we have real structure item support. *)
