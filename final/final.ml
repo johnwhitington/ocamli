@@ -124,8 +124,9 @@ let rec tinyocaml_of_finaltype_t' typ = function
 and tinyocaml_of_finaltype {e; typ; lets} =
   (* If any implicit lets, fabricate them -- but only if they are used in the
    * expression underneath, and not shadowed. *)
+  (*Printf.printf "We have %i lets\n" (List.length lets);*)
   let remove_names_from_lets names =
-    List.filter (fun (v, _) -> not (List.mem v names)) in
+    List.filter (fun (v, _) -> List.mem v names) in
   let rec remove_shadowed_implicits = function
     [] -> []
   | (n, e)::r ->
@@ -141,9 +142,11 @@ and tinyocaml_of_finaltype {e; typ; lets} =
   let inner = tinyocaml_of_finaltype_t' typ e in
     if lets = [] then inner else
       let names = names_in_t' e in
+      (*Printf.printf "%i names in t'\n" (List.length names);*)
       let lets_to_print =
         remove_names_from_lets names (remove_shadowed_implicits lets)
       in
+        (*Printf.printf "lets to print: %i\n" (List.length lets_to_print);*)
         fabricate_lets inner (List.rev lets_to_print)
 
 let string_of_tinyocaml = Pptinyocaml.to_string
@@ -175,7 +178,15 @@ let rec string_of_finaltype_t' typ = function
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_finaltype items)
 
-and string_of_finaltype {typ; e} =
+and string_of_finaltype {typ; e; lets} =
+  List.fold_left ( ^ ) ""
+    (List.map
+    (fun thelet ->
+       Printf.sprintf
+         "Implicit let: %s = %s\n"
+         (fst thelet) (string_of_finaltype (snd thelet)))
+    lets)
+  ^
   string_of_finaltype_t' typ e
 
 (* Now, the evaluator *)
@@ -203,26 +214,34 @@ let rec array_expr_should_be_value arr =
             | x -> is_value x)
     arr
 
-let rec eval expr =
+let rec eval env expr =
+  let env = List.rev expr.lets @ env in
   match expr.e with
   FOp (op, {e = Value x}, {e = Value y}) ->
     {expr with e = Value (Obj.repr (perform_float_op op (Obj.magic x : float) (Obj.magic y : float)))}
 | FOp (op, ({e = Value _} as x), y) ->
-    {expr with e = FOp (op, x, eval y)}
+    {expr with e = FOp (op, x, eval env y)}
 | FOp (op, x, y) ->
-    {expr with e = FOp (op, eval x, y)}
+    {expr with e = FOp (op, eval env x, y)}
 | IntOp (op, {e = Value x}, {e = Value y}) ->
     {expr with e = Value (Obj.repr (perform_int_op op (Obj.magic x : int) (Obj.magic y : int)))}
 | IntOp (op, ({e = Value _} as x), y) ->
-    {expr with e = IntOp (op, x, eval y)}
+    {expr with e = IntOp (op, x, eval env y)}
 | IntOp (op, x, y) ->
-    {expr with e = IntOp (op, eval x, y)}
+    {expr with e = IntOp (op, eval env x, y)}
+| Var x ->
+    List.assoc x env
+| Let ((n, e), e') ->
+    let evalled = eval env e in
+      if is_value evalled
+        then {e = e'.e; typ = e.typ; lets = expr.lets @ [(n, evalled)] @ e'.lets}
+        else {expr with e = Let ((n, evalled), e')}
 | ArrayExpr a ->
     if array_expr_should_be_value a then
       {expr with e = Value (to_ocaml_heap_value (ArrayExpr a))}
     else 
       begin
-        if eval_first_non_value_element a
+        if eval_first_non_value_element env a
           then {expr with e = ArrayExpr a}
           else assert false
       end
@@ -231,13 +250,13 @@ let rec eval expr =
       match arr, i with
         {e = Value array_val}, {e = Value index} ->
           {expr with e = Value ((Obj.magic array_val : 'a array).((Obj.magic index : int)))}
-      | _ -> {expr with e = ArrayGet (arr, eval i)}
+      | _ -> {expr with e = ArrayGet (arr, eval env i)}
     else
-      {expr with e = ArrayGet (eval arr, i)}
+      {expr with e = ArrayGet (eval env arr, i)}
 | ArraySet (arr, i, e) ->
-    if not (is_value arr) then {expr with e = ArraySet (eval arr, i, e)}
-    else if not (is_value i) then {expr with e = ArraySet (arr, eval i, e)}
-    else if not (is_value e) then {expr with e = ArraySet (arr, i, eval e)}
+    if not (is_value arr) then {expr with e = ArraySet (eval env arr, i, e)}
+    else if not (is_value i) then {expr with e = ArraySet (arr, eval env i, e)}
+    else if not (is_value e) then {expr with e = ArraySet (arr, i, eval env e)}
     else
       begin match arr, i, e with
       | {e = Value array_val}, {e = Value i}, {e = Value newval} ->
@@ -247,14 +266,14 @@ let rec eval expr =
       end
 | Value _ -> failwith "already a value"
 
-and eval_first_non_value_element arr =
+and eval_first_non_value_element env arr =
   try
     for x = 0 to Array.length arr - 1 do
       match arr.(x) with
         {e = ArrayExpr arr'} ->
-          if eval_first_non_value_element arr' then raise Exit
+          if eval_first_non_value_element env arr' then raise Exit
       | elt ->
-          if not (is_value elt) then (arr.(x) <- eval elt; raise Exit)
+          if not (is_value elt) then (arr.(x) <- eval env elt; raise Exit)
     done;
     false
   with
@@ -263,7 +282,7 @@ and eval_first_non_value_element arr =
 let rec eval_full v =
   if !showsteps then Printf.printf "%s\n" (string_of_finaltype v);
   Printf.printf "%s\n" (string_of_tinyocaml (tinyocaml_of_finaltype v));
-  if is_value v then v else eval_full (eval v)
+  if is_value v then v else eval_full (eval [] v)
 
 let load_file f =
   let ic = open_in f in
@@ -333,6 +352,7 @@ and finaltype_of_expression exp =
      lets = []}
   with
     IsImplicitLet (var, expr, expr') ->
+      Printf.printf "Adding implicit let %s\n" var;
       {expr' with lets = (var, expr) :: expr'.lets}
 
 (* For now just first structure item. To remove later when we have real structure item support. *)
