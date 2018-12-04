@@ -6,6 +6,7 @@ type t' =
   Value of Obj.t
 | Var of string
 | ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
+| Cons of t * t (* Cons part of list literal which is not yet a value e.g [1 + 2; 3] *)
 | IntOp of op * t * t
 | FOp of op * t * t
 | ArrayGet of t * t
@@ -21,16 +22,23 @@ and binding = string * t
 
 let is_value_t' = function
   Value _ -> true
-| ArrayExpr _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
+| ArrayExpr _ | Cons _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
 
 let is_value {e} = is_value_t' e
+
+let rec should_be_value_t' = function
+  x when is_value_t' x -> true
+| ArrayExpr arr -> Array.for_all should_be_value arr
+| Cons (h, t) -> should_be_value h && should_be_value t
+
+and should_be_value {e} = should_be_value_t' e
 
 (* List the names in an expression, including any implicit let-bindings. *)
 let rec names_in_t' = function
   Value _ -> []
 | Var x -> [x]
 | ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
-| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') -> names_in e @ names_in e'
+| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') -> names_in e @ names_in e'
 | Let (binding, e) -> names_in_binding binding @ names_in e
 | ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
 
@@ -69,6 +77,9 @@ let rec string_of_t' typ = function
 | Var x -> Printf.sprintf "Var %s" x
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
+| Cons (a, b) ->
+    Printf.sprintf
+      "Cons (%s, %s)" (string_of_t a) (string_of_t b)
 | FOp (op, a, b) ->
     Printf.sprintf
       "FOp (%s, %s, %s)"

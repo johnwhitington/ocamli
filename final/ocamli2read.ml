@@ -25,16 +25,6 @@ let op_of_text = function
 | "/" | "/." -> Div
 | _ -> failwith "op_of_text"
 
-(* If an ArrayExpr contains only things which are values, we need to identify
- * it and turn it into a heap object. However, it cannot be considered really a
- * "value", or it would never get evaluted. E.g [|1 + 2; 3|] is an ArrayExpr,
- * but not (yet) a value *)
-let rec array_expr_should_be_value arr =
-  Array.for_all
-    (function {e = ArrayExpr a} -> array_expr_should_be_value a
-            | x -> is_value x)
-    arr
-
 let rec to_ocaml_heap_value = function
   Value x -> x
 | ArrayExpr arr ->
@@ -44,6 +34,11 @@ let rec to_ocaml_heap_value = function
         Obj.set_field x i (to_ocaml_heap_value arr.(i).e)
       done;
       x
+| Cons ({e = Value h}, t) ->
+    (* This list now contains only values. Turn it into a value itself. *)
+    let cell = Obj.new_block 0 2 in
+      Obj.set_field cell 0 h;
+      to_ocaml_heap_value t.e
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
 exception IsImplicitLet of string * Ocamli2type.t * Ocamli2type.t 
@@ -52,6 +47,14 @@ let rec finaltype_of_expression_desc = function
   Texp_constant (Const_int x) -> Value (Obj.repr x)
 | Texp_constant (Const_float x) -> Value (Obj.repr (float_of_string x))
 | Texp_ident (p, _, _) -> Var (Path.name p)
+| Texp_construct (_, {cstr_name = "[]"}, []) -> Value (Obj.repr [])
+| Texp_construct (_, {cstr_name = "::"}, [h; t]) ->
+    let cons_chain =
+      Cons (finaltype_of_expression h, finaltype_of_expression t)
+    in
+      if should_be_value_t' cons_chain
+        then Value (to_ocaml_heap_value cons_chain)
+        else cons_chain
 | Texp_let (_, [binding], e) ->
     let (var, expr) = finaltype_of_binding binding
     and expr' = finaltype_of_expression e in
@@ -86,7 +89,7 @@ let rec finaltype_of_expression_desc = function
            finaltype_of_expression newval)
 | Texp_array es ->
     let arr = Array.of_list (List.map finaltype_of_expression es) in
-      if array_expr_should_be_value arr then
+      if should_be_value_t' (ArrayExpr arr) then
         Value (to_ocaml_heap_value (ArrayExpr arr))
       else
         ArrayExpr arr

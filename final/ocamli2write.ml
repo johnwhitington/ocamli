@@ -11,6 +11,7 @@ let rec tinyocaml_of_finaltype_t' typ = function
   Value x -> tinyocaml_of_ocaml_heap_value typ x
 | Var x -> Tinyocaml.Var x
 | ArrayExpr arr -> Tinyocaml.Array (Array.map tinyocaml_of_finaltype arr)
+| Cons (h, t) -> Tinyocaml.Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
 | IntOp (op, x, y) ->
     Tinyocaml.Op
       (tinyocaml_op_of_finaltype_op op,

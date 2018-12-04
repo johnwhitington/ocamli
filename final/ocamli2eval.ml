@@ -15,7 +15,6 @@ let perform_int_op op x y =
   | Mul -> x * y
   | Div -> x / y
 
-
 let rec eval env expr =
   let env = List.rev expr.lets @ env in
   match expr.e with
@@ -39,7 +38,9 @@ let rec eval env expr =
         then {e = e'.e; typ = e.typ; lets = expr.lets @ [(n, evalled)] @ e'.lets}
         else {expr with e = Let ((n, evalled), e')}
 | ArrayExpr a ->
-    if Ocamli2read.array_expr_should_be_value a then
+    (* FIXME: we should, instead, check if a value /after/ processing, thus the
+     * invariant in the type that all values are in Value is respected. *)
+    if should_be_value_t' (ArrayExpr a) then
       {expr with e = Value (Ocamli2read.to_ocaml_heap_value (ArrayExpr a))}
     else 
       begin
@@ -47,6 +48,15 @@ let rec eval env expr =
           then {expr with e = ArrayExpr a}
           else assert false
       end
+| Cons (h, t) ->
+    (* Either h is not a value, or something in t is not a value. Evaluate one
+     * step. If the resultant list is now a value, convert to a Value *)
+    let evalled =
+      if is_value h then Cons (h, eval env t) else Cons (eval env h, t)
+    in
+      if should_be_value_t' evalled
+        then {expr with e = Value (Ocamli2read.to_ocaml_heap_value evalled)}
+        else {expr with e = evalled}
 | ArrayGet (arr, i) ->
     if is_value arr then
       match arr, i with

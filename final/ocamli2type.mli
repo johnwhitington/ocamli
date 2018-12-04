@@ -4,6 +4,7 @@ type t' =
   Value of Obj.t
 | Var of string
 | ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
+| Cons of t * t (* Cons part of list literal which is not yet a value e.g [1 + 2; 3] *)
 | IntOp of op * t * t
 | FOp of op * t * t
 | ArrayGet of t * t
@@ -18,6 +19,10 @@ and t =
 and binding = string * t
 
 val is_value : t -> bool
+
+val should_be_value : t -> bool
+
+val should_be_value_t' : t' -> bool
 
 val names_in : t -> string list
 
