@@ -1,13 +1,13 @@
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 
-MODS = ocamliutil tinyocaml pptinyocaml finaltype
+MODS = ocamliutil tinyocaml pptinyocaml ocamli2type ocamli2read ocamli2write ocamli2eval
 
-SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli) final.ml
+SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli) ocamli2.ml
 
 PACKS = compiler-libs.common
 
-RESULT = final
+RESULT = ocamli2
 
 OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
 OCAMLBCFLAGS = -safe-string -g -w -3 -w -40

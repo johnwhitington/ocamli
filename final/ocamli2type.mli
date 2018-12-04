@@ -17,3 +17,14 @@ and t =
 
 and binding = string * t
 
+val is_value : t -> bool
+
+val names_in : t -> string list
+
+val names_in_t' : t' -> string list
+
+val string_of_t : t -> string
+
+val tinyocaml_of_ocaml_heap_value : Types.type_desc -> Obj.t -> Tinyocaml.t
+
+val find_type_desc : Types.type_expr -> Types.type_desc
