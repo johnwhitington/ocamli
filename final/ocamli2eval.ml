@@ -38,22 +38,20 @@ let rec eval env expr =
         then {e = e'.e; typ = e.typ; lets = expr.lets @ [(n, evalled)] @ e'.lets}
         else {expr with e = Let ((n, evalled), e')}
 | ArrayExpr a ->
-    (* FIXME: we should, instead, check if a value /after/ processing, thus the
-     * invariant in the type that all values are in Value is respected. *)
-    if should_be_value_t' (ArrayExpr a) then
-      {expr with e = Value (Ocamli2read.to_ocaml_heap_value (ArrayExpr a))}
-    else 
-      begin
-        if eval_first_non_value_element env a
-          then {expr with e = ArrayExpr a}
-          else assert false
-      end
+    let evalled =
+      if eval_first_non_value_element env a
+        then {expr with e = ArrayExpr a}
+        else assert false
+    in
+      if should_be_value evalled then
+        {expr with e = Value (Ocamli2read.to_ocaml_heap_value evalled.e)}
+      else
+        evalled
 | Cons (h, t) ->
-    (* Either h is not a value, or something in t is not a value. Evaluate one
-     * step. If the resultant list is now a value, convert to a Value *)
     let evalled =
       if is_value h then Cons (h, eval env t) else Cons (eval env h, t)
     in
+      (*Printf.printf "Evalled is %s\n" (string_of_t' expr.typ evalled);*)
       if should_be_value_t' evalled
         then {expr with e = Value (Ocamli2read.to_ocaml_heap_value evalled)}
         else {expr with e = evalled}

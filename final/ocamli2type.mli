@@ -30,6 +30,8 @@ val names_in_t' : t' -> string list
 
 val string_of_t : t -> string
 
+val string_of_t' : Types.type_desc -> t' -> string
+
 val tinyocaml_of_ocaml_heap_value : Types.type_desc -> Obj.t -> Tinyocaml.t
 
 val find_type_desc : Types.type_expr -> Types.type_desc

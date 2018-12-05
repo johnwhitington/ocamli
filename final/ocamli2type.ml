@@ -20,6 +20,22 @@ and t =
 
 and binding = string * t
 
+let string_of_ocaml_type = function
+  Tvar (Some x) -> x
+| Tvar None -> "_"
+| Tarrow (_, _, _, _) -> "Tarrow"
+| Ttuple _ -> "Ttuple"
+| Tconstr (path, _, _) -> "Tconstr " ^ Path.name path
+| Tobject (_, _) -> "Tobject"
+| Tfield (_, _, _, _) -> "Tfield"
+| Tnil -> "Tnil"
+| Tlink _ -> "Tlink"
+| Tsubst _ -> "Tsubst"
+| Tvariant _ -> "Tvariant"
+| Tunivar _ -> "Tunivar"
+| Tpoly (_, _) -> "Tpoly"
+| Tpackage (_, _, _) -> "Tpackage"
+
 let is_value_t' = function
   Value _ -> true
 | ArrayExpr _ | Cons _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
@@ -30,6 +46,7 @@ let rec should_be_value_t' = function
   x when is_value_t' x -> true
 | ArrayExpr arr -> Array.for_all should_be_value arr
 | Cons (h, t) -> should_be_value h && should_be_value t
+| _ -> false
 
 and should_be_value {e} = should_be_value_t' e
 
@@ -70,6 +87,11 @@ let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
         (Array.init
           (Obj.size value)
           (fun i -> tinyocaml_of_ocaml_heap_value (find_type_desc elt_t) (Obj.field value i)))
+  | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
+      if Obj.is_int value then Tinyocaml.Nil else
+        Tinyocaml.Cons
+          (tinyocaml_of_ocaml_heap_value (find_type_desc elt_t) (Obj.field value 0),
+           tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))
   | _ -> failwith "tinyocaml_of_ocaml_heap_value: unknown type"
 
 let rec string_of_t' typ = function

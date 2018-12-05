@@ -2,21 +2,6 @@ open Typedtree
 open Ocamli2type
 open Types
 
-let string_of_ocaml_type = function
-  Tvar (Some x) -> x
-| Tvar None -> "_"
-| Tarrow (_, _, _, _) -> "Tarrow"
-| Ttuple _ -> "Ttuple"
-| Tconstr (path, _, _) -> "Tconstr " ^ Path.name path
-| Tobject (_, _) -> "Tobject"
-| Tfield (_, _, _, _) -> "Tfield"
-| Tnil -> "Tnil"
-| Tlink _ -> "Tlink"
-| Tsubst _ -> "Tsubst"
-| Tvariant _ -> "Tvariant"
-| Tunivar _ -> "Tunivar"
-| Tpoly (_, _) -> "Tpoly"
-| Tpackage (_, _, _) -> "Tpackage"
 
 let op_of_text = function
   "+" | "+." -> Add
@@ -38,7 +23,8 @@ let rec to_ocaml_heap_value = function
     (* This list now contains only values. Turn it into a value itself. *)
     let cell = Obj.new_block 0 2 in
       Obj.set_field cell 0 h;
-      to_ocaml_heap_value t.e
+      Obj.set_field cell 1 (to_ocaml_heap_value t.e);
+      cell
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
 exception IsImplicitLet of string * Ocamli2type.t * Ocamli2type.t 
