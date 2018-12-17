@@ -38,7 +38,24 @@ let rec tinyocaml_of_finaltype_t' typ = function
       (false,
        [(Tinyocaml.PatVar n, tinyocaml_of_finaltype a)],
        tinyocaml_of_finaltype b)
+| Match (e, cases) ->
+    Tinyocaml.Match
+      (tinyocaml_of_finaltype e,
+       List.map tinyocaml_of_finaltype_case cases)
 
+and tinyocaml_of_finaltype_case (pat, guard, rhs) =
+  (tinyocaml_of_finaltype_pattern pat,
+   tinyocaml_of_finaltype_guard guard,
+   tinyocaml_of_finaltype rhs)
+
+and tinyocaml_of_finaltype_guard = function
+  None -> None
+| Some g -> Some (tinyocaml_of_finaltype g)
+
+and tinyocaml_of_finaltype_pattern = function
+  PatAny -> Tinyocaml.PatAny
+
+(* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
 and tinyocaml_of_finaltype {e; typ; lets} =
   (* If any implicit lets, fabricate them -- but only if they are used in the
    * expression underneath, and not shadowed. *)

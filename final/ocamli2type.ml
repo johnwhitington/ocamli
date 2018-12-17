@@ -2,6 +2,9 @@ open Types
 
 type op = Add | Sub | Mul | Div
 
+type pattern =
+  PatAny
+
 type t' =
   Value of Obj.t
 | Var of string
@@ -13,6 +16,7 @@ type t' =
 | ArrayGet of t * t
 | ArraySet of t * t * t
 | Let of binding * t
+| Match of t * case list
 
 and t =
   {typ : Types.type_desc;
@@ -20,6 +24,8 @@ and t =
    lets : binding list}
 
 and binding = string * t
+
+and case = pattern * t option * t
 
 let string_of_ocaml_type = function
   Tvar (Some x) -> x
@@ -39,7 +45,8 @@ let string_of_ocaml_type = function
 
 let is_value_t' = function
   Value _ -> true
-| ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
+| ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
+| ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ -> false
 
 let is_value {e} = is_value_t' e
 
@@ -59,6 +66,12 @@ let rec names_in_t' = function
 | IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') -> names_in e @ names_in e'
 | Let (binding, e) -> names_in_binding binding @ names_in e
 | ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
+| Match (e, cases) -> names_in e @ List.flatten (List.map names_in_case cases)
+
+(* FIXME What to do here? Are we supposed to count the pattern name and all uses and what about shadows? The only use of this function at the moment is in the writer for not showing occluded lets. So combine it with that or specify it properly... *)
+and names_in_case (pat, guard, e) =
+  names_in e @
+  begin match guard with None -> [] | Some e -> names_in e end
 
 and names_in_binding (n, e) =
   n :: names_in e 
@@ -124,6 +137,8 @@ let rec string_of_t' typ = function
     Printf.sprintf
       "Let (%s, %s, %s)"
       n (string_of_t e) (string_of_t e')
+| Match (e, cases) ->
+    Printf.sprintf "Match (%s, %s)" (string_of_t e) "<cases>"
 
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_t items)

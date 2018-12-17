@@ -84,7 +84,23 @@ let rec finaltype_of_expression_desc = function
         Value (to_ocaml_heap_value (ArrayExpr arr))
       else
         ArrayExpr arr
+| Texp_match (a, cases, _) ->
+    Match (finaltype_of_expression a, List.map finaltype_of_case cases) 
 | _ -> failwith "finaltype_of_expression_desc: unknown"
+
+and finaltype_of_case c =
+  (finaltype_of_pattern c.c_lhs,
+   finaltype_of_guard c.c_guard,
+   finaltype_of_expression c.c_rhs)
+
+and finaltype_of_pattern p =
+  match p.pat_desc with
+    Tpat_any -> PatAny
+  | _ -> failwith "finaltype_of_pattern"
+
+and finaltype_of_guard = function
+  None -> None
+| Some e -> Some (finaltype_of_expression e)
 
 and finaltype_of_binding {vb_pat; vb_expr} =
   let var = match vb_pat with

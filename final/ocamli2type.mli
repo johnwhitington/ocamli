@@ -1,5 +1,8 @@
 type op = Add | Sub | Mul | Div
 
+type pattern =
+  PatAny
+
 type t' =
   Value of Obj.t
 | Var of string
@@ -11,6 +14,7 @@ type t' =
 | ArrayGet of t * t
 | ArraySet of t * t * t
 | Let of binding * t
+| Match of t * case list
 
 and t =
   {typ : Types.type_desc;
@@ -18,6 +22,8 @@ and t =
    lets : binding list}
 
 and binding = string * t
+
+and case = pattern * t option * t
 
 val is_value : t -> bool
 
