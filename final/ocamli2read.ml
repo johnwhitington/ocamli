@@ -50,6 +50,11 @@ let rec finaltype_of_expression_desc = function
         Let ((var, expr), expr')
 | Texp_apply
     ({exp_desc =
+        Texp_ident (Path.Pdot (Path.Pident i, "@"), _, _)},
+     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
+       Append (finaltype_of_expression arg1, finaltype_of_expression arg2)
+| Texp_apply
+    ({exp_desc =
         Texp_ident (Path.Pdot (Path.Pident i, (("+" | "-" | "*" | "/") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        IntOp (op_of_text optext, finaltype_of_expression arg1, finaltype_of_expression arg2)

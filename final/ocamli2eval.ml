@@ -15,6 +15,13 @@ let perform_int_op op x y =
   | Mul -> x * y
   | Div -> x / y
 
+(* Append two lists which are 'a values *)
+let append_lists a b =
+  match a, b with
+    Value a, Value b ->
+      Value (Obj.magic ((Obj.magic a : 'a list) @ (Obj.magic b : 'a list)) : Obj.t)
+  | _ -> assert false
+
 let rec eval env expr =
   let env = List.rev expr.lets @ env in
   match expr.e with
@@ -55,6 +62,11 @@ let rec eval env expr =
       if should_be_value_t' evalled
         then {expr with e = Value (Ocamli2read.to_ocaml_heap_value evalled)}
         else {expr with e = evalled}
+| Append (a, b) when is_value a && is_value b ->
+    {expr with e = append_lists a.e b.e}
+| Append (a, b) ->
+    {expr with e =
+      if is_value a then Append (a, eval env b) else Append (eval env a, b)}
 | ArrayGet (arr, i) ->
     if is_value arr then
       match arr, i with

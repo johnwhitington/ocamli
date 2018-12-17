@@ -7,6 +7,7 @@ type t' =
 | Var of string
 | ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
 | Cons of t * t (* Cons part of list literal which is not yet a value e.g [1 + 2; 3] *)
+| Append of t * t
 | IntOp of op * t * t
 | FOp of op * t * t
 | ArrayGet of t * t
@@ -38,7 +39,7 @@ let string_of_ocaml_type = function
 
 let is_value_t' = function
   Value _ -> true
-| ArrayExpr _ | Cons _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
+| ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _ | ArrayGet _ | ArraySet _ | Let _ | Var _  -> false
 
 let is_value {e} = is_value_t' e
 
@@ -55,7 +56,7 @@ let rec names_in_t' = function
   Value _ -> []
 | Var x -> [x]
 | ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
-| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') -> names_in e @ names_in e'
+| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') -> names_in e @ names_in e'
 | Let (binding, e) -> names_in_binding binding @ names_in e
 | ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
 
@@ -102,6 +103,9 @@ let rec string_of_t' typ = function
 | Cons (a, b) ->
     Printf.sprintf
       "Cons (%s, %s)" (string_of_t a) (string_of_t b)
+| Append (a, b) ->
+    Printf.sprintf
+      "Append (%s, %s)" (string_of_t a) (string_of_t b)
 | FOp (op, a, b) ->
     Printf.sprintf
       "FOp (%s, %s, %s)"

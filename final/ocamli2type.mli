@@ -5,6 +5,7 @@ type t' =
 | Var of string
 | ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
 | Cons of t * t (* Cons part of list literal which is not yet a value e.g [1 + 2; 3] *)
+| Append of t * t
 | IntOp of op * t * t
 | FOp of op * t * t
 | ArrayGet of t * t
