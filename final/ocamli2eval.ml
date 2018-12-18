@@ -22,6 +22,18 @@ let append_lists a b =
       Value (Obj.magic ((Obj.magic a : 'a list) @ (Obj.magic b : 'a list)) : Obj.t)
   | _ -> assert false
 
+(* Pattern matching. FIXME guard etc. *)
+let patmatch expr (pat, guard, rhs) =
+  let yes = Some rhs and no = None in
+  match expr, pat with
+    _, PatAny -> yes
+  | {e = Value v}, PatConstr ("[]", _) ->
+      begin match tinyocaml_of_ocaml_heap_value expr.typ v with
+        Tinyocaml.Nil -> yes
+      | _ -> no
+      end
+  | _, _ -> no
+
 let rec eval env expr =
   let env = List.rev expr.lets @ env in
   match expr.e with
@@ -86,6 +98,16 @@ let rec eval env expr =
           {expr with e = Value (Obj.repr ())}
       | _ -> assert false
       end
+| Match (e, h::t) ->
+    if is_value e then
+      begin match patmatch e h with
+        Some rhs -> {expr with e = rhs.e}
+      | None -> {expr with e = Match (e, t)}
+      end
+    else
+      {expr with e = Match (eval env e, h::t)}
+| Match (_, []) ->
+    failwith "Matched no pattern"
 | Value _ -> failwith "already a value"
 
 and eval_first_non_value_element env arr =

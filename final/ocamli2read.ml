@@ -96,6 +96,7 @@ and finaltype_of_case c =
 and finaltype_of_pattern p =
   match p.pat_desc with
     Tpat_any -> PatAny
+  | Tpat_construct ({txt = Lident "[]"}, desc, pats) -> PatConstr ("[]", None)
   | _ -> failwith "finaltype_of_pattern"
 
 and finaltype_of_guard = function
