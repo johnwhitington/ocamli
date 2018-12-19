@@ -1,3 +1,3 @@
-match [] with [] -> 2
+match [1] with h::t -> 2
 
 

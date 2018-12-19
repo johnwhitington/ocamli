@@ -2,7 +2,8 @@ type op = Add | Sub | Mul | Div
 
 type pattern =
   PatAny
-| PatConstr of string * pattern option
+| PatVar of string
+| PatConstr of string * pattern list
 
 type t' =
   Value of Obj.t

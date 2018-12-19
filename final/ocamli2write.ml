@@ -54,8 +54,11 @@ and tinyocaml_of_finaltype_guard = function
 
 and tinyocaml_of_finaltype_pattern = function
   PatAny -> Tinyocaml.PatAny
-| PatConstr (name, None) -> Tinyocaml.PatConstr (name, None)
-| PatConstr (name, Some p) -> Tinyocaml.PatConstr (name, Some (tinyocaml_of_finaltype_pattern p))
+| PatConstr ("[]", []) -> Tinyocaml.PatNil
+| PatVar v -> Tinyocaml.PatVar v
+| PatConstr ("::", [h; t]) ->
+    Tinyocaml.PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
+| _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
 
 (* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
 and tinyocaml_of_finaltype {e; typ; lets} =

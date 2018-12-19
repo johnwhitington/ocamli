@@ -22,8 +22,8 @@ let append_lists a b =
       Value (Obj.magic ((Obj.magic a : 'a list) @ (Obj.magic b : 'a list)) : Obj.t)
   | _ -> assert false
 
-(* Pattern matching. FIXME guard etc. *)
-let patmatch expr (pat, guard, rhs) =
+(* Pattern matching. FIXME guard etc. Once we get rid of tinyocaml this gets simpler, of course. *)
+let rec patmatch expr (pat, guard, rhs) =
   let yes = Some rhs and no = None in
   match expr, pat with
     _, PatAny -> yes
@@ -32,6 +32,30 @@ let patmatch expr (pat, guard, rhs) =
         Tinyocaml.Nil -> yes
       | _ -> no
       end
+  | {e = Value v}, PatConstr ("::", [hpat; tpat]) ->
+      (* Make sure value is a cons cell, then try to pattern-match on its head and tail. *)
+      (* FIXME: Implicit lets added during hpat and tpat must be amalgamated here? Names cannot clash *)
+      (* Once we remove tinyocaml requirement, do we need the types at all? Surely we are in typeless territory here? *)
+      begin match tinyocaml_of_ocaml_heap_value expr.typ v with
+        Tinyocaml.Cons (a, b) ->
+          let htyp =
+            match expr.typ with
+              Tconstr (_, [elt_t], _) -> find_type_desc elt_t
+            | _ -> failwith "patmatch bad list"
+          in
+          let hval, tval =
+            {e = Value (Obj.field v 0); lets = []; typ = htyp},
+            {e = Value (Obj.field v 1); lets = []; typ = expr.typ} (* tail has same type *)
+          in
+            begin match patmatch hval (hpat, None, rhs), patmatch tval (tpat, None, rhs) with
+              Some _, Some _ -> yes
+            | _ -> no
+            end
+      | _ -> no
+      end
+  | {e = Value v}, PatVar varname ->
+      (* Introduce an implicit let into the rhs *)
+      Some {rhs with lets = (varname, expr) :: rhs.lets}
   | _, _ -> no
 
 let rec eval env expr =
