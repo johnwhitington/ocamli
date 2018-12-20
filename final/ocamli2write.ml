@@ -1,5 +1,7 @@
 open Ocamli2type
 
+let show_all_lets = ref false
+
 (* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
 let tinyocaml_op_of_finaltype_op = function
   Add -> Tinyocaml.Add
@@ -84,7 +86,8 @@ and tinyocaml_of_finaltype {e; typ; lets} =
       let names = names_in_t' e in
       (*Printf.printf "%i names in t'\n" (List.length names);*)
       let lets_to_print =
-        remove_names_from_lets names (remove_shadowed_implicits lets)
+        if !show_all_lets then lets else
+          remove_names_from_lets names (remove_shadowed_implicits lets)
       in
         (*Printf.printf "lets to print: %i\n" (List.length lets_to_print);*)
         fabricate_lets inner (List.rev lets_to_print)

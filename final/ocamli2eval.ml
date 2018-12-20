@@ -48,13 +48,15 @@ let rec patmatch expr (pat, guard, rhs) =
             {e = Value (Obj.field v 1); lets = []; typ = expr.typ} (* tail has same type *)
           in
             begin match patmatch hval (hpat, None, rhs), patmatch tval (tpat, None, rhs) with
-              Some _, Some _ -> yes
+              Some lunder, Some runder ->
+                Some {rhs with lets = lunder.lets @ runder.lets @ rhs.lets}
             | _ -> no
             end
       | _ -> no
       end
   | {e = Value v}, PatVar varname ->
       (* Introduce an implicit let into the rhs *)
+      Printf.printf "Adding %s to implicit lets of rhs\n" varname;
       Some {rhs with lets = (varname, expr) :: rhs.lets}
   | _, _ -> no
 
@@ -74,6 +76,7 @@ let rec eval env expr =
 | IntOp (op, x, y) ->
     {expr with e = IntOp (op, eval env x, y)}
 | Var x ->
+    Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);
     List.assoc x env
 | Let ((n, e), e') ->
     let evalled = eval env e in
@@ -125,7 +128,7 @@ let rec eval env expr =
 | Match (e, h::t) ->
     if is_value e then
       begin match patmatch e h with
-        Some rhs -> {expr with e = rhs.e}
+        Some rhs -> {expr with e = rhs.e; lets = rhs.lets @ expr.lets}
       | None -> {expr with e = Match (e, t)}
       end
     else

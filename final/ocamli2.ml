@@ -20,7 +20,8 @@ let setfile filename =
 
 let argspec =
   ["-e", Arg.Set_string programtext, " Set program text";
-   "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation"]
+   "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
+   "-dshow-all-lets", Arg.Set Ocamli2write.show_all_lets, " Show all lets, even shadowed or unused"]
 
 let _ =
   Arg.parse argspec setfile "Syntax: ocamli2 <filename | -e program>\n";
