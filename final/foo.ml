@@ -1,3 +1,5 @@
-match [1] with h::t -> 2
+let x = 1 + 2
+
+let y = x + 4
 
 

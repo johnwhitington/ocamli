@@ -17,6 +17,8 @@ type t' =
 | ArraySet of t * t * t
 | Let of binding * t
 | Match of t * case list
+| Struct of t list
+| LetDef of binding
 
 and t =
   {typ : Types.type_desc;

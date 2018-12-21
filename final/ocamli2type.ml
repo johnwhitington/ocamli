@@ -19,6 +19,8 @@ type t' =
 | ArraySet of t * t * t
 | Let of binding * t
 | Match of t * case list
+| Struct of t list
+| LetDef of binding
 
 and t =
   {typ : Types.type_desc;
@@ -45,12 +47,14 @@ let string_of_ocaml_type = function
 | Tpoly (_, _) -> "Tpoly"
 | Tpackage (_, _, _) -> "Tpackage"
 
-let is_value_t' = function
+let rec is_value_t' = function
   Value _ -> true
 | ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
 | ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ -> false
+| Struct l -> List.for_all is_value l
+| LetDef (_, e) -> is_value e
 
-let is_value {e} = is_value_t' e
+and is_value {e} = is_value_t' e
 
 let rec should_be_value_t' = function
   x when is_value_t' x -> true
@@ -65,12 +69,18 @@ let rec names_in_t' = function
   Value _ -> []
 | Var x -> [x]
 | ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
-| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') -> names_in e @ names_in e'
+| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') ->
+    names_in e @ names_in e'
 | Let (binding, e) -> names_in_binding binding @ names_in e
 | ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
 | Match (e, cases) -> names_in e @ List.flatten (List.map names_in_case cases)
+| Struct l -> List.flatten (List.map names_in l)
+| LetDef (n, e) -> n :: names_in e
 
-(* FIXME What to do here? Are we supposed to count the pattern name and all uses and what about shadows? The only use of this function at the moment is in the writer for not showing occluded lets. So combine it with that or specify it properly... *)
+(* FIXME What to do here? Are we supposed to count the pattern name and all
+ * uses and what about shadows? The only use of this function at the moment is
+ * in the writer for not showing occluded lets. So combine it with that or
+ * specify it properly... *)
 and names_in_case (pat, guard, e) =
   names_in e @
   begin match guard with None -> [] | Some e -> names_in e end
@@ -141,6 +151,12 @@ let rec string_of_t' typ = function
       n (string_of_t e) (string_of_t e')
 | Match (e, cases) ->
     Printf.sprintf "Match (%s, %s)" (string_of_t e) "<cases>"
+| Struct l ->
+    Printf.sprintf "Struct:\n%s\n"
+      (List.fold_left (fun x y -> x ^ "\n" ^ y) "" (List.map string_of_t l))
+| LetDef (n, e) ->
+    Printf.sprintf "LetDef (%s, %s)"
+      n (string_of_t e)
 
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_t items)

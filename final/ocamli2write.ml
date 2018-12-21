@@ -44,6 +44,10 @@ let rec tinyocaml_of_finaltype_t' typ = function
     Tinyocaml.Match
       (tinyocaml_of_finaltype e,
        List.map tinyocaml_of_finaltype_case cases)
+| Struct ls ->
+    Tinyocaml.Struct (false, List.map tinyocaml_of_finaltype ls)
+| LetDef (n, e) ->
+    Tinyocaml.LetDef (false, [(PatVar n, tinyocaml_of_finaltype e)]) 
 
 and tinyocaml_of_finaltype_case (pat, guard, rhs) =
   (tinyocaml_of_finaltype_pattern pat,

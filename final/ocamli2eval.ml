@@ -135,7 +135,25 @@ let rec eval env expr =
       {expr with e = Match (eval env e, h::t)}
 | Match (_, []) ->
     failwith "Matched no pattern"
+| LetDef (n, e) ->
+    {expr with e = LetDef (n, eval env e)}
+| Struct lst ->
+    {expr with e = Struct (eval_first_non_value_element_of_list env lst)}
 | Value _ -> failwith "already a value"
+
+and eval_first_non_value_element_of_list env = function
+    [] -> []
+  | h::t ->
+      if is_value h then
+        let env' =
+          (* Add any name defined by h, if h is a LetDef, to the environment *)
+          match h with
+            {e = LetDef (n, e)} -> (n, e)::env
+          | _ -> env
+        in
+          h::eval_first_non_value_element_of_list env' t
+      else
+        eval env h::t
 
 and eval_first_non_value_element env arr =
   try

@@ -122,12 +122,28 @@ and finaltype_of_expression exp =
       (*Printf.printf "Adding implicit let %s\n" var;*)
       {expr' with lets = (var, expr) :: expr'.lets}
 
-(* For now just first structure item. To remove later when we have real structure item support. *)
 let finaltype_of_typedtree {str_items} =
-  match (List.hd str_items).str_desc with
-    Tstr_value (_, [vb]) -> finaltype_of_expression vb.vb_expr
-  | Tstr_eval (e, _) -> finaltype_of_expression e
-  | _ -> failwith "finaltype_of_typedtree"
+  match str_items with
+    [{str_desc = Tstr_eval (e, _)}] ->
+      finaltype_of_expression e
+  | _ ->
+      {e =
+        Struct
+          (List.map
+            (fun x -> match x.str_desc with
+              Tstr_value (_, [vb]) ->
+                let name =
+                  match vb.vb_pat.pat_desc with
+                    Tpat_var (i, _) -> Ident.name i
+                  | _ -> failwith "finaltype_of_typedtree2"
+                in
+                  {e = LetDef (name, finaltype_of_expression vb.vb_expr);
+                   lets = [];
+                   typ = find_type_desc vb.vb_expr.exp_type}
+            | _ -> failwith "finaltype_of_typedtree")
+          str_items);
+       lets = [];
+       typ = Types.Tnil} (* FIXME: Proper support for signature types *)
 
 let env =
   Compmisc.init_path false;
