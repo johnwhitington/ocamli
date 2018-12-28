@@ -1,12 +1,18 @@
 type op = Add | Sub | Mul | Div
 
+type patconstant =
+  IntConstant of int
+
 type pattern =
   PatAny
 | PatVar of string
 | PatConstr of string * pattern list
+| PatConstant of patconstant
 
 type t' =
   Value of Obj.t
+| Function of case list * env
+| Apply of t * t list
 | Var of string
 | ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
 | Cons of t * t (* Cons part of list literal which is not yet a value e.g [1 + 2; 3] *)
@@ -24,6 +30,8 @@ and t =
   {typ : Types.type_desc;
    e : t';
    lets : binding list}
+
+and env = bool * binding list ref
 
 and binding = string * t
 

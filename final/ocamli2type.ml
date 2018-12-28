@@ -2,13 +2,19 @@ open Types
 
 type op = Add | Sub | Mul | Div
 
+type patconstant =
+  IntConstant of int
+
 type pattern =
   PatAny
 | PatVar of string
 | PatConstr of string * pattern list
+| PatConstant of patconstant
 
 type t' =
   Value of Obj.t
+| Function of case list * env
+| Apply of t * t list
 | Var of string
 | ArrayExpr of t array (* Array not yet a value e.g [|1 + 2; 3|] *)
 | Cons of t * t (* Cons part of list literal which is not yet a value e.g [1 + 2; 3] *)
@@ -26,6 +32,8 @@ and t =
   {typ : Types.type_desc;
    e : t';
    lets : binding list}
+
+and env = bool * binding list ref
 
 and binding = string * t
 
@@ -48,9 +56,9 @@ let string_of_ocaml_type = function
 | Tpackage (_, _, _) -> "Tpackage"
 
 let rec is_value_t' = function
-  Value _ -> true
+  Value _ | Function _ -> true
 | ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
-| ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ -> false
+| ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ | Apply _ -> false
 | Struct l -> List.for_all is_value l
 | LetDef (_, e) -> is_value e
 
@@ -67,6 +75,8 @@ and should_be_value {e} = should_be_value_t' e
 (* List the names in an expression, including any implicit let-bindings. *)
 let rec names_in_t' = function
   Value _ -> []
+| Function (cases, env) -> List.flatten (List.map names_in_case cases)
+| Apply (a, es) -> names_in a @ List.flatten (List.map names_in es)
 | Var x -> [x]
 | ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
 | IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') ->
@@ -122,6 +132,10 @@ let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
 
 let rec string_of_t' typ = function
   Value x -> Pptinyocaml.to_string (tinyocaml_of_ocaml_heap_value typ x)
+| Function (cases, env) ->
+    "Function FIXME"
+| Apply (e, cases) ->
+    "Apply FIXME"
 | Var x -> Printf.sprintf "Var %s" x
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 

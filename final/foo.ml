@@ -1,5 +1,5 @@
-let x = 1 + 2
+let f = function
+  | 0 -> 1
+  | _ -> 2
 
-let y = x + 4
-
-
+let r = f 4

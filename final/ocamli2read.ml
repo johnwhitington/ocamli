@@ -32,6 +32,10 @@ exception IsImplicitLet of string * Ocamli2type.t * Ocamli2type.t
 let rec finaltype_of_expression_desc = function
   Texp_constant (Const_int x) -> Value (Obj.repr x)
 | Texp_constant (Const_float x) -> Value (Obj.repr (float_of_string x))
+| Texp_function {cases} ->
+    let x = print_endline "starting the function"; Function (List.map finaltype_of_case cases, (false, ref [])) (* FIXME ENV *) in
+      print_endline "done the function\n";
+      x
 | Texp_ident (p, _, _) -> Var (Path.name p)
 | Texp_construct (_, {cstr_name = "[]"}, []) -> Value (Obj.repr [])
 | Texp_construct (_, {cstr_name = "::"}, [h; t]) ->
@@ -78,6 +82,12 @@ let rec finaltype_of_expression_desc = function
           (finaltype_of_expression arr,
            finaltype_of_expression index,
            finaltype_of_expression newval)
+| Texp_apply (e, args) ->
+    Apply (finaltype_of_expression e,
+           List.map
+             (function (_, Some e') -> finaltype_of_expression e'
+                     | _ -> failwith "unknown texp_apply")
+             args)
 | Texp_array es ->
     let arr = Array.of_list (List.map finaltype_of_expression es) in
       if should_be_value_t' (ArrayExpr arr) then
@@ -98,6 +108,7 @@ and finaltype_of_pattern p =
     Tpat_any -> PatAny
   | Tpat_construct ({txt = Lident ("[]" | "::" as cstr)}, desc, pats) ->
       PatConstr (cstr, List.map finaltype_of_pattern pats)
+  | Tpat_constant (Const_int i) -> PatConstant (IntConstant i)
   | Tpat_var (i, _) -> PatVar (Ident.name i)
   | _ -> failwith "finaltype_of_pattern"
 

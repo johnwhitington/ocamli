@@ -11,6 +11,11 @@ let tinyocaml_op_of_finaltype_op = function
 
 let rec tinyocaml_of_finaltype_t' typ = function
   Value x -> tinyocaml_of_ocaml_heap_value typ x
+| Function (cases, env) -> Tinyocaml.Function (List.map tinyocaml_of_finaltype_case cases, [])
+| Apply (e, [e']) -> Tinyocaml.App (tinyocaml_of_finaltype e, tinyocaml_of_finaltype e')
+| Apply (e, [e'; e'']) ->
+    Tinyocaml.App (Tinyocaml.App (tinyocaml_of_finaltype e, tinyocaml_of_finaltype e'), tinyocaml_of_finaltype e'')
+| Apply _ -> failwith "unknown Apply"
 | Var x -> Tinyocaml.Var x
 | ArrayExpr arr -> Tinyocaml.Array (Array.map tinyocaml_of_finaltype arr)
 | Cons (h, t) -> Tinyocaml.Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
