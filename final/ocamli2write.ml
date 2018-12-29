@@ -69,6 +69,8 @@ and tinyocaml_of_finaltype_pattern = function
 | PatVar v -> Tinyocaml.PatVar v
 | PatConstr ("::", [h; t]) ->
     Tinyocaml.PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
+| PatConstant (IntConstant i) ->
+    Tinyocaml.PatInt i
 | _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
 
 (* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
