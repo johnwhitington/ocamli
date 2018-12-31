@@ -40,9 +40,9 @@ let rec tinyocaml_of_finaltype_t' typ = function
           (Var "Stdlib.Array.set", tinyocaml_of_finaltype arr)),
         (tinyocaml_of_finaltype index)),
         (tinyocaml_of_finaltype newval))
-| Let ((n, a), b) ->
+| Let (recflag, (n, a), b) ->
     Tinyocaml.Let
-      (false,
+      (recflag,
        [(Tinyocaml.PatVar n, tinyocaml_of_finaltype a)],
        tinyocaml_of_finaltype b)
 | Match (e, cases) ->
@@ -51,8 +51,8 @@ let rec tinyocaml_of_finaltype_t' typ = function
        List.map tinyocaml_of_finaltype_case cases)
 | Struct ls ->
     Tinyocaml.Struct (false, List.map tinyocaml_of_finaltype ls)
-| LetDef (n, e) ->
-    Tinyocaml.LetDef (false, [(PatVar n, tinyocaml_of_finaltype e)]) 
+| LetDef (recflag, (n, e)) ->
+    Tinyocaml.LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
 
 and tinyocaml_of_finaltype_case (pat, guard, rhs) =
   (tinyocaml_of_finaltype_pattern pat,

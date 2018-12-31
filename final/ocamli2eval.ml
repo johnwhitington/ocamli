@@ -78,11 +78,11 @@ let rec eval env expr =
 | Var x ->
     Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);
     List.assoc x env
-| Let ((n, e), e') ->
+| Let (recflag, (n, e), e') ->
     let evalled = eval env e in
       if is_value evalled
         then {e = e'.e; typ = e.typ; lets = expr.lets @ [(n, evalled)] @ e'.lets}
-        else {expr with e = Let ((n, evalled), e')}
+        else {expr with e = Let (recflag, (n, evalled), e')}
 | ArrayExpr a ->
     let evalled =
       if eval_first_non_value_element env a
@@ -135,11 +135,11 @@ let rec eval env expr =
       {expr with e = Match (eval env e, h::t)}
 | Match (_, []) ->
     failwith "Matched no pattern"
-| LetDef (n, e) ->
-    {expr with e = LetDef (n, eval env e)}
+| LetDef (recflag, (n, e)) ->
+    {expr with e = LetDef (recflag, (n, eval env e))}
 | Struct lst ->
     {expr with e = Struct (eval_first_non_value_element_of_list env lst)}
-| Value _ -> failwith "already a value"
+| Value _ | Function _ -> failwith "already a value"
 
 and eval_first_non_value_element_of_list env = function
     [] -> []
@@ -148,7 +148,7 @@ and eval_first_non_value_element_of_list env = function
         let env' =
           (* Add any name defined by h, if h is a LetDef, to the environment *)
           match h with
-            {e = LetDef (n, e)} -> (n, e)::env
+            {e = LetDef (recflag, (n, e))} -> (n, e)::env
           | _ -> env
         in
           h::eval_first_non_value_element_of_list env' t

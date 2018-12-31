@@ -23,17 +23,19 @@ type t' =
 | FOp of op * t * t
 | ArrayGet of t * t
 | ArraySet of t * t * t
-| Let of binding * t
+| Let of bool * binding * t
 | Match of t * case list
 | Struct of t list
-| LetDef of binding
+| LetDef of bool * binding
 
 and t =
   {typ : Types.type_desc;
    e : t';
    lets : binding list}
 
-and env = bool * binding list ref
+and env = envitem list
+
+and envitem = bool * binding list ref
 
 and binding = string * t
 
@@ -60,7 +62,7 @@ let rec is_value_t' = function
 | ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
 | ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ | Apply _ -> false
 | Struct l -> List.for_all is_value l
-| LetDef (_, e) -> is_value e
+| LetDef (_, (_, e)) -> is_value e
 
 and is_value {e} = is_value_t' e
 
@@ -81,11 +83,11 @@ let rec names_in_t' = function
 | ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
 | IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') ->
     names_in e @ names_in e'
-| Let (binding, e) -> names_in_binding binding @ names_in e
+| Let (_, binding, e) -> names_in_binding binding @ names_in e
 | ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
 | Match (e, cases) -> names_in e @ List.flatten (List.map names_in_case cases)
 | Struct l -> List.flatten (List.map names_in l)
-| LetDef (n, e) -> n :: names_in e
+| LetDef (_, (n, e)) -> n :: names_in e
 
 (* FIXME What to do here? Are we supposed to count the pattern name and all
  * uses and what about shadows? The only use of this function at the moment is
@@ -159,18 +161,18 @@ let rec string_of_t' typ = function
     Printf.sprintf
       "ArraySet (%s, %s, %s)"
       (string_of_t arr) (string_of_t i) (string_of_t newval)
-| Let ((n, e), e') ->
+| Let (recflag, (n, e), e') ->
     Printf.sprintf
-      "Let (%s, %s, %s)"
-      n (string_of_t e) (string_of_t e')
+      "Let (%b, %s, %s, %s)"
+      recflag n (string_of_t e) (string_of_t e')
 | Match (e, cases) ->
     Printf.sprintf "Match (%s, %s)" (string_of_t e) "<cases>"
 | Struct l ->
     Printf.sprintf "Struct:\n%s\n"
       (List.fold_left (fun x y -> x ^ "\n" ^ y) "" (List.map string_of_t l))
-| LetDef (n, e) ->
-    Printf.sprintf "LetDef (%s, %s)"
-      n (string_of_t e)
+| LetDef (recflag, (n, e)) ->
+    Printf.sprintf "LetDef %b (%s, %s)"
+      recflag n (string_of_t e)
 
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map string_of_t items)

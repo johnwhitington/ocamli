@@ -21,17 +21,19 @@ type t' =
 | FOp of op * t * t
 | ArrayGet of t * t
 | ArraySet of t * t * t
-| Let of binding * t
+| Let of bool * binding * t (* recflag *)
 | Match of t * case list
 | Struct of t list
-| LetDef of binding
+| LetDef of bool * binding (* recflag *)
 
 and t =
   {typ : Types.type_desc;
    e : t';
    lets : binding list}
 
-and env = bool * binding list ref
+and env = envitem list
+
+and envitem = bool * binding list ref
 
 and binding = string * t
 
