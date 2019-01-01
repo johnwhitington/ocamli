@@ -29,7 +29,7 @@ type t' =
 and t =
   {typ : Types.type_desc;
    e : t';
-   lets : binding list}
+   lets : env}
 
 and env = envitem list
 

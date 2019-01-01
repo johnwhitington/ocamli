@@ -130,7 +130,7 @@ and finaltype_of_expression env exp =
   with
     IsImplicitLet (var, expr, expr') ->
       (*Printf.printf "Adding implicit let %s\n" var;*)
-      {expr' with lets = (var, expr) :: expr'.lets}
+      {expr' with lets = (false, ref [(var, expr)]) :: expr'.lets}
 
 let finaltype_of_typedtree {str_items} =
   match str_items with

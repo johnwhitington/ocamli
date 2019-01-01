@@ -31,7 +31,7 @@ type t' =
 and t =
   {typ : Types.type_desc;
    e : t';
-   lets : binding list}
+   lets : env}
 
 and env = envitem list
 
@@ -100,8 +100,11 @@ and names_in_case (pat, guard, e) =
 and names_in_binding (n, e) =
   n :: names_in e 
 
+and names_in_envitem (_, r) =
+  List.flatten (List.map names_in_binding !r)
+
 and names_in {lets; e} =
-  List.flatten (List.map names_in_binding lets) @ names_in_t' e
+  List.flatten (List.map names_in_envitem lets) @ names_in_t' e
 
 let string_of_op = function
     Add -> "Add"
@@ -180,10 +183,14 @@ and string_of_items items =
 and string_of_t {typ; e; lets} =
   List.fold_left ( ^ ) ""
     (List.map
-    (fun (n, e) ->
-       Printf.sprintf
-         "Implicit let: %s = %s\n" n (string_of_t e))
+    (fun (recflag, r) ->
+       Printf.sprintf "Implicit let: rec = %b, %s" recflag (string_of_bindings !r))
     lets)
   ^
   string_of_t' typ e
 
+and string_of_bindings bs =
+  List.fold_left ( ^ ) "" (List.map string_of_binding bs)
+
+and string_of_binding (n, e) =
+  Printf.sprintf "%s = %s\n" n (string_of_t e)

@@ -74,12 +74,15 @@ and tinyocaml_of_finaltype_pattern = function
 | _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
 
 (* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
-and tinyocaml_of_finaltype {e; typ; lets} =
   (* If any implicit lets, fabricate them -- but only if they are used in the
    * expression underneath, and not shadowed. *)
   (*Printf.printf "We have %i lets\n" (List.length lets);*)
+and tinyocaml_of_finaltype {e; typ; lets} =
   let remove_names_from_lets names =
-    List.filter (fun (v, _) -> List.mem v names) in
+    (* Remove any name in [names] from any let in the implicit lets, removing
+     * any let-binding which is now empty *)
+    List.filter (fun (v, _) -> List.mem v names)
+  in
   let rec remove_shadowed_implicits = function
     [] -> []
   | (n, e)::r ->
