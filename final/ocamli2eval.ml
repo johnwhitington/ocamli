@@ -135,6 +135,17 @@ let rec eval env expr =
       {expr with e = Match (eval env e, h::t)}
 | Match (_, []) ->
     failwith "Matched no pattern"
+| Apply (f, [x]) when not (is_value f) -> {expr with e = Apply (eval env f, [x])}
+| Apply ({e = Function ((pat, guard, rhs) as p::ps, fenv)} as f, [x]) ->
+    (* See if the case matches, if not move on *)
+    begin match patmatch x p with
+      None -> {expr with e = Apply ({f with e = Function (ps, fenv)}, [x])}
+    | Some rhs ->
+        (* When it does, add the bindings from the closure as implicit lets in the rhs *)
+        {rhs with lets = fenv @ rhs.lets}
+    end
+| Apply ({e = Function ([], _)}, _) -> failwith "no cases in function"
+| Apply (_, _) -> failwith (Printf.sprintf "Apply: malformed %s" (string_of_t expr))
 | LetDef (recflag, (n, e)) ->
     {expr with e = LetDef (recflag, (n, eval env e))}
 | Struct lst ->
