@@ -77,31 +77,40 @@ and tinyocaml_of_finaltype_pattern = function
   (* If any implicit lets, fabricate them -- but only if they are used in the
    * expression underneath, and not shadowed. *)
   (*Printf.printf "We have %i lets\n" (List.length lets);*)
+
+and basiclets_of_envitem (recflag, r) =
+  List.map
+    (fun (n, e) -> (recflag, n, e))
+    !r
+
+and basiclets_of_env env =
+  List.flatten (List.map basiclets_of_envitem env)
+
 and tinyocaml_of_finaltype {e; typ; lets} =
   let remove_names_from_lets names =
-    (* Remove any name in [names] from any let in the implicit lets, removing
-     * any let-binding which is now empty *)
-    List.filter (fun (v, _) -> List.mem v names)
+    List.filter (fun (_, v, _) -> List.mem v names)
   in
   let rec remove_shadowed_implicits = function
     [] -> []
-  | (n, e)::r ->
-      if List.mem n (List.map fst r)
+  | (recflag, n, e)::r ->
+      if List.mem n (List.map (fun (_, x, _) -> x) r)
         then remove_shadowed_implicits r
-        else (n, e)::remove_shadowed_implicits r
+        else (recflag, n, e)::remove_shadowed_implicits r
   in
   let rec fabricate_lets e = function
     [] -> e
-  | (n, rhs)::r ->
-      fabricate_lets (Tinyocaml.Let (false, [(Tinyocaml.PatVar n, tinyocaml_of_finaltype rhs)], e)) r
+  | (recflag, n, rhs)::r ->
+      fabricate_lets (Tinyocaml.Let (recflag, [(Tinyocaml.PatVar n, tinyocaml_of_finaltype rhs)], e)) r
   in
   let inner = tinyocaml_of_finaltype_t' typ e in
     if lets = [] then inner else
       let names = names_in_t' e in
       (*Printf.printf "%i names in t'\n" (List.length names);*)
+      (* FIXME. For now, we convert lets to just (recflag, n, e) "basiclets" to make it easier to deal with.
+      Eventually, once we have let...and and mutual recursion, we must do it properly. *)
       let lets_to_print =
-        if !show_all_lets then lets else
-          remove_names_from_lets names (remove_shadowed_implicits lets)
+        if !show_all_lets then basiclets_of_env lets else
+          remove_names_from_lets names (remove_shadowed_implicits (basiclets_of_env lets))
       in
         (*Printf.printf "lets to print: %i\n" (List.length lets_to_print);*)
         fabricate_lets inner (List.rev lets_to_print)

@@ -57,8 +57,15 @@ let rec patmatch expr (pat, guard, rhs) =
   | {e = Value v}, PatVar varname ->
       (* Introduce an implicit let into the rhs *)
       Printf.printf "Adding %s to implicit lets of rhs\n" varname;
-      Some {rhs with lets = (varname, expr) :: rhs.lets}
+      Some {rhs with lets = (false, ref [(varname, expr)]) :: rhs.lets}
   | _, _ -> no
+
+(* Look up something in the environment *)
+let rec lookup x = function
+  [] -> raise Not_found
+| (_, {contents = []})::r -> lookup x r
+| (recflag, {contents = (n, e)::t})::r ->
+    if x = n then e else lookup x ((recflag, {contents = t})::r)
 
 let rec eval env expr =
   let env = List.rev expr.lets @ env in
@@ -77,11 +84,11 @@ let rec eval env expr =
     {expr with e = IntOp (op, eval env x, y)}
 | Var x ->
     Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);
-    List.assoc x env
+    lookup x env
 | Let (recflag, (n, e), e') ->
     let evalled = eval env e in
       if is_value evalled
-        then {e = e'.e; typ = e.typ; lets = expr.lets @ [(n, evalled)] @ e'.lets}
+        then {e = e'.e; typ = e.typ; lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ e'.lets}
         else {expr with e = Let (recflag, (n, evalled), e')}
 | ArrayExpr a ->
     let evalled =
@@ -159,7 +166,7 @@ and eval_first_non_value_element_of_list env = function
         let env' =
           (* Add any name defined by h, if h is a LetDef, to the environment *)
           match h with
-            {e = LetDef (recflag, (n, e))} -> (n, e)::env
+            {e = LetDef (recflag, (n, e))} -> (recflag, ref [(n, e)])::env
           | _ -> env
         in
           h::eval_first_non_value_element_of_list env' t
