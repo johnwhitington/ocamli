@@ -1,5 +1,5 @@
 (* The buggy version, for demonstration purposes *)
-let rev = function
+let rec rev = function
   [] -> []
 | h::t -> rev t @ [h]
 

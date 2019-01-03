@@ -1,5 +1,6 @@
-let f = function
-  | 0 -> 1
-  | _ -> 2
+let rec f = function
+  0 -> 0
+| _ -> f 0
 
 let r = f 4
+

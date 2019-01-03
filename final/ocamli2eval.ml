@@ -27,6 +27,11 @@ let rec patmatch expr (pat, guard, rhs) =
   let yes = Some rhs and no = None in
   match expr, pat with
     _, PatAny -> yes
+  | {e = Value v}, PatConstant (IntConstant i) ->
+      begin match tinyocaml_of_ocaml_heap_value expr.typ v with
+        Tinyocaml.Int i' when i = i' -> yes
+      | _ -> no
+      end
   | {e = Value v}, PatConstr ("[]", _) ->
       begin match tinyocaml_of_ocaml_heap_value expr.typ v with
         Tinyocaml.Nil -> yes
@@ -85,11 +90,14 @@ let rec eval env expr =
 | Var x ->
     Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);
     lookup x env
-| Let (recflag, (n, e), e') ->
-    let evalled = eval env e in
+| Let (recflag, (n, exp), exp') ->
+    let evalled = eval env exp in
       if is_value evalled
-        then {e = e'.e; typ = e.typ; lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ e'.lets}
-        else {expr with e = Let (recflag, (n, evalled), e')}
+        then
+          {e = exp'.e;
+           typ = exp.typ;
+           lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ exp'.lets}
+        else {expr with e = Let (recflag, (n, evalled), exp')}
 | ArrayExpr a ->
     let evalled =
       if eval_first_non_value_element env a
@@ -142,17 +150,27 @@ let rec eval env expr =
       {expr with e = Match (eval env e, h::t)}
 | Match (_, []) ->
     failwith "Matched no pattern"
-| Apply (f, [x]) when not (is_value f) -> {expr with e = Apply (eval env f, [x])}
-| Apply ({e = Function ((pat, guard, rhs) as p::ps, fenv)} as f, [x]) ->
+(* 1. Function not a yet a value. Eval one step. *)
+| Apply (f, args) when not (is_value f) -> {expr with e = Apply (eval env f, args)}
+(* 2. Main case. We have a function and one or more arguments *)
+| Apply ({e = Function ((pat, guard, rhs) as p::ps, fenv)} as f, a::ags) ->
     (* See if the case matches, if not move on *)
-    begin match patmatch x p with
-      None -> {expr with e = Apply ({f with e = Function (ps, fenv)}, [x])}
+    begin match patmatch a p with
+      None -> {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
     | Some rhs ->
-        (* When it does, add the bindings from the closure as implicit lets in the rhs *)
-        {rhs with lets = fenv @ rhs.lets}
+        (* We have matched. And so, we see if ags is empty. If it is, we just
+         * return the right hand side. If not, we return Apply(rhs, ags) *)
+        let rhs' =
+          (* When it does, add the bindings from the closure as implicit lets in the rhs *)
+          {rhs with lets = fenv @ rhs.lets}
+        in
+        begin match ags with
+          [] -> rhs'
+        | ags -> {expr with e = Apply (rhs', ags)} 
+        end
     end
-| Apply ({e = Function ([], _)}, _) -> failwith "no cases in function"
-| Apply (_, _) -> failwith (Printf.sprintf "Apply: malformed %s" (string_of_t expr))
+| Apply (_, []) -> failwith "empty cases"
+| Apply (_, _) -> failwith "malformed Apply on evaluation"
 | LetDef (recflag, (n, e)) ->
     {expr with e = LetDef (recflag, (n, eval env e))}
 | Struct lst ->
