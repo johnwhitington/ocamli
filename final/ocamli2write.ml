@@ -12,10 +12,6 @@ let tinyocaml_op_of_finaltype_op = function
 let rec tinyocaml_of_finaltype_t' typ = function
   Value x -> tinyocaml_of_ocaml_heap_value typ x
 | Function (cases, env) -> Tinyocaml.Function (List.map tinyocaml_of_finaltype_case cases, [])
-(*| Apply (e, [e']) -> Tinyocaml.App (tinyocaml_of_finaltype e, tinyocaml_of_finaltype e')
-| Apply (e, [e'; e'']) ->
-    Tinyocaml.App (Tinyocaml.App (tinyocaml_of_finaltype e, tinyocaml_of_finaltype e'), tinyocaml_of_finaltype e'')
-| Apply _ -> failwith "unknown Apply"*)
 | Apply (e, args) -> tinyocaml_of_finaltype_apply e args
 | Var x -> Tinyocaml.Var x
 | ArrayExpr arr -> Tinyocaml.Array (Array.map tinyocaml_of_finaltype arr)
@@ -55,9 +51,17 @@ let rec tinyocaml_of_finaltype_t' typ = function
 | LetDef (recflag, (n, e)) ->
     Tinyocaml.LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
 
-and tinyocaml_of_finaltype_apply e = function
-  [] -> tinyocaml_of_finaltype e
-| h::t -> Tinyocaml.App (tinyocaml_of_finaltype h, tinyocaml_of_finaltype_apply e t)
+(* Here, e is the function, and the next argument is all the args in order. *)
+and tinyocaml_of_finaltype_apply_inner (e : Tinyocaml.t) (args : Tinyocaml.t list) =
+  match args with
+    h::t ->
+     tinyocaml_of_finaltype_apply_inner (Tinyocaml.App (e, h)) t
+  | [] -> e
+
+and tinyocaml_of_finaltype_apply e args =
+  tinyocaml_of_finaltype_apply_inner
+    (tinyocaml_of_finaltype e)
+    (List.map tinyocaml_of_finaltype args)
 
 and tinyocaml_of_finaltype_case (pat, guard, rhs) =
   (tinyocaml_of_finaltype_pattern pat,
