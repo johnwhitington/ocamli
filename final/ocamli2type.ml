@@ -137,10 +137,11 @@ let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
 
 let rec string_of_t' typ = function
   Value x -> Pptinyocaml.to_string (tinyocaml_of_ocaml_heap_value typ x)
-| Function (cases, env) ->
-    "Function FIXME"
-| Apply (e, cases) ->
-    "Apply FIXME"
+| Function ([(PatVar v, None, e)], env) ->
+    Printf.sprintf "Function ([%s -> %s], env = %s)" v (string_of_t e) (string_of_env env)
+| Function _ -> "Function FIXME"
+| Apply (e, args) ->
+    Printf.sprintf "Apply (%s, [%s])" (string_of_t e) (string_of_items args)
 | Var x -> Printf.sprintf "Var %s" x
 | ArrayExpr items ->
     Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
@@ -178,13 +179,13 @@ let rec string_of_t' typ = function
       recflag n (string_of_t e)
 
 and string_of_items items =
-  List.fold_left ( ^ ) "" (List.map string_of_t items)
+  List.fold_left ( ^ ) "" (List.map (fun x -> string_of_t x ^ ";") items)
 
 and string_of_t {typ; e; lets} =
   List.fold_left ( ^ ) ""
     (List.map
     (fun (recflag, r) ->
-       Printf.sprintf "Implicit let: rec = %b, %s" recflag (string_of_bindings !r))
+       Printf.sprintf "{%b, %s}" recflag (string_of_bindings !r))
     lets)
   ^
   string_of_t' typ e
@@ -193,4 +194,12 @@ and string_of_bindings bs =
   List.fold_left ( ^ ) "" (List.map string_of_binding bs)
 
 and string_of_binding (n, e) =
-  Printf.sprintf "%s = %s\n" n (string_of_t e)
+  Printf.sprintf "%s = %s; " n (string_of_t e)
+
+and string_of_envitem (recflag, {contents}) =
+  Printf.sprintf "(%b, %s)" recflag (string_of_bindings contents)
+
+and string_of_env es =
+  List.fold_left ( ^ ) "" (List.map (fun e -> string_of_envitem e ^ ";\n") es)
+
+
