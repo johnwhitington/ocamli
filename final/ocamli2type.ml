@@ -1,5 +1,8 @@
 open Types
 
+(* Set this to false to debug failures in tinyocaml_of_ocaml_heap_value *)
+let showvals = ref true
+
 type op = Add | Sub | Mul | Div
 
 type patconstant =
@@ -133,7 +136,9 @@ let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
         Tinyocaml.Cons
           (tinyocaml_of_ocaml_heap_value (find_type_desc elt_t) (Obj.field value 0),
            tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))
-  | _ -> failwith "tinyocaml_of_ocaml_heap_value: unknown type"
+  | _ -> if !showvals
+           then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
+           else Tinyocaml.String (Bytes.of_string "<unknown val>")
 
 let rec string_of_t' typ = function
   Value x -> Pptinyocaml.to_string (tinyocaml_of_ocaml_heap_value typ x)
@@ -172,7 +177,7 @@ let rec string_of_t' typ = function
 | Match (e, cases) ->
     Printf.sprintf "Match (%s, %s)" (string_of_t e) "<cases>"
 | Struct l ->
-    Printf.sprintf "Struct:\n%s\n"
+    Printf.sprintf "Struct:%s\n"
       (List.fold_left (fun x y -> x ^ "\n" ^ y) "" (List.map string_of_t l))
 | LetDef (recflag, (n, e)) ->
     Printf.sprintf "LetDef %b (%s, %s)"
@@ -187,6 +192,8 @@ and string_of_t {typ; e; lets} =
     (fun (recflag, r) ->
        Printf.sprintf "{%b, %s}" recflag (string_of_bindings !r))
     lets)
+  ^
+  "{typ = " ^ string_of_ocaml_type typ ^ "}" 
   ^
   string_of_t' typ e
 

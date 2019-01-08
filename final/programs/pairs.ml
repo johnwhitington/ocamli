@@ -3,7 +3,7 @@ let rec rev = function
   [] -> []
 | h::t -> rev t @ [h]
 
-let x = rev [1; 2; 3]
+let x = rev [1]
 
 (*let rec pairs f a l =
   match l with 

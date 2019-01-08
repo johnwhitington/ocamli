@@ -22,6 +22,7 @@ let argspec =
   ["-e", Arg.Set_string programtext, " Set program text";
    "-dno-syntax", Arg.Clear Pptinyocaml.syntax, " Do not use syntax highlighting";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
+   "-dnovals", Arg.Clear Ocamli2type.showvals, "Do not show values in steps";
    "-drules", Arg.Set Ocamli2eval.showrules, " Show reduction rule for each step of evaluation";
    "-dshow-all-lets", Arg.Set Ocamli2write.show_all_lets, " Show all lets, even shadowed or unused"]
 

@@ -1,3 +1,5 @@
+val showvals : bool ref
+
 type op = Add | Sub | Mul | Div
 
 type patconstant =
