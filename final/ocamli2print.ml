@@ -309,7 +309,7 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       print_tiny_inner f true (Some node) l;
       txt " ";
-      str (Tinyocaml.string_of_op op);
+      str (string_of_op op);
       txt " ";
       print_tiny_inner f false (Some node) r;
       str rp
@@ -317,7 +317,7 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       print_tiny_inner f true (Some node) l;
       txt " ";
-      str (Tinyocaml.string_of_cmp cmp);
+      str (string_of_cmp cmp);
       txt " ";
       print_tiny_inner f false (Some node) r;
       str rp
@@ -761,45 +761,6 @@ let output_tag f = function
       else Format.pp_print_string f bold
 | _ -> failwith "format: unknown tag"
 
-let output_tags f =
-  List.iter (output_tag f) !tags
-
-let print ?(preamble="") f t =
-  let tagfuns =
-    {Format.mark_open_tag = (fun _ -> "");
-     Format.mark_close_tag = (fun _ -> "");
-     Format.print_open_tag =
-       (if !syntax then
-         (fun tag -> tags := tag::!tags; output_tag f tag)
-       else
-         (fun _ -> ()));
-     Format.print_close_tag =
-       (if !syntax then
-         (fun _ ->
-            if !tags = [] then failwith "ill-matched tags: pop";
-            tags := List.tl !tags;
-            begin if !syntax_tex
-              then Format.pp_print_string f "}"
-              else Format.pp_print_string f code_end
-            end;
-            if !tags <> [] then output_tags f)
-       else
-         (fun _ -> ()))}
-  in
-    Format.pp_set_formatter_tag_functions f tagfuns;
-    Format.pp_set_tags f true;
-    Format.pp_set_print_tags f true;
-    Format.pp_set_margin f !width;
-    if !simple then Format.pp_set_margin f max_int;
-    Format.pp_open_box f 4;
-    Format.pp_print_string f preamble;
-    print_tiny_inner f true None t;
-    Format.pp_close_box f ();
-    Format.pp_print_flush f ()
-
-let to_string ?(preamble="") t =
-  print ~preamble Format.str_formatter t;
-  Format.flush_str_formatter ()
 
 
 (* FIXME: Need to update this to only run on stdout or something *)
@@ -835,22 +796,22 @@ let rec string_of_ocaml_type = function
 let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
   (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
   match typ with
-    Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
-  | Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
-  | Tconstr (p, _, _) when Path.name p = "unit" -> Tinyocaml.Unit
+    Tconstr (p, _, _) when Path.name p = "int" -> Int (Obj.magic value : int)
+  | Tconstr (p, _, _) when Path.name p = "float" -> Float (Obj.magic value : float)
+  | Tconstr (p, _, _) when Path.name p = "unit" -> Unit
   | Tconstr (p, [elt_t], _) when Path.name p = "array" ->
-      Tinyocaml.Array
+      Array
         (Array.init
           (Obj.size value)
           (fun i -> tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value i)))
   | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
-      if Obj.is_int value then Tinyocaml.Nil else
-        Tinyocaml.Cons
+      if Obj.is_int value then Nil else
+        Cons
           (tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value 0),
            tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))
   | _ -> if !showvals
            then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
-           else Tinyocaml.String (Bytes.of_string "<unknown val>")
+           else String (Bytes.of_string "<unknown val>")
 
 
 let string_of_op = function
@@ -951,58 +912,58 @@ let show_all_lets = ref false
 
 (* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
 let tinyocaml_op_of_finaltype_op = function
-  Ocamli2type.Add -> Tinyocaml.Add
-| Ocamli2type.Sub -> Tinyocaml.Sub
-| Ocamli2type.Mul -> Tinyocaml.Mul
-| Ocamli2type.Div -> Tinyocaml.Div
+  Ocamli2type.Add -> Add
+| Ocamli2type.Sub -> Sub
+| Ocamli2type.Mul -> Mul
+| Ocamli2type.Div -> Div
 
 let rec tinyocaml_of_finaltype_t' typ = function
   Ocamli2type.Value x -> tinyocaml_of_ocaml_heap_value typ x
-| Ocamli2type.Function (cases, env) -> Tinyocaml.Function (List.map tinyocaml_of_finaltype_case cases, [])
+| Ocamli2type.Function (cases, env) -> Function (List.map tinyocaml_of_finaltype_case cases, [])
 | Ocamli2type.Apply (e, args) -> tinyocaml_of_finaltype_apply e args
-| Ocamli2type.Var x -> Tinyocaml.Var x
-| Ocamli2type.ArrayExpr arr -> Tinyocaml.Array (Array.map tinyocaml_of_finaltype arr)
-| Ocamli2type.Cons (h, t) -> Tinyocaml.Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
-| Ocamli2type.Append (a, b) -> Tinyocaml.Append (tinyocaml_of_finaltype a, tinyocaml_of_finaltype b)
+| Ocamli2type.Var x -> Var x
+| Ocamli2type.ArrayExpr arr -> Array (Array.map tinyocaml_of_finaltype arr)
+| Ocamli2type.Cons (h, t) -> Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
+| Ocamli2type.Append (a, b) -> Append (tinyocaml_of_finaltype a, tinyocaml_of_finaltype b)
 | Ocamli2type.IntOp (op, x, y) ->
-    Tinyocaml.Op
+    Op
       (tinyocaml_op_of_finaltype_op op,
        tinyocaml_of_finaltype x,
        tinyocaml_of_finaltype y)
 | Ocamli2type.FOp (op, x, y) ->
-    Tinyocaml.App
-      ((Tinyocaml.App (Var "Stdlib.+.", tinyocaml_of_finaltype x)), tinyocaml_of_finaltype y)
+    App
+      ((App (Var "Stdlib.+.", tinyocaml_of_finaltype x)), tinyocaml_of_finaltype y)
 | Ocamli2type.ArrayGet (x, y) ->
-    Tinyocaml.App
-      ((Tinyocaml.App
+    App
+      ((App
         (Var "Stdlib.Array.get", tinyocaml_of_finaltype x)),
       (tinyocaml_of_finaltype y))
 | Ocamli2type.ArraySet (arr, index, newval) ->
-    Tinyocaml.App
-      (Tinyocaml.App
-        ((Tinyocaml.App
+    App
+      (App
+        ((App
           (Var "Stdlib.Array.set", tinyocaml_of_finaltype arr)),
         (tinyocaml_of_finaltype index)),
         (tinyocaml_of_finaltype newval))
 | Ocamli2type.Let (recflag, (n, a), b) ->
-    Tinyocaml.Let
+    Let
       (recflag,
-       [(Tinyocaml.PatVar n, tinyocaml_of_finaltype a)],
+       [(PatVar n, tinyocaml_of_finaltype a)],
        tinyocaml_of_finaltype b)
 | Ocamli2type.Match (e, cases) ->
-    Tinyocaml.Match
+    Match
       (tinyocaml_of_finaltype e,
        List.map tinyocaml_of_finaltype_case cases)
 | Ocamli2type.Struct ls ->
-    Tinyocaml.Struct (false, List.map tinyocaml_of_finaltype ls)
+    Struct (false, List.map tinyocaml_of_finaltype ls)
 | Ocamli2type.LetDef (recflag, (n, e)) ->
-    Tinyocaml.LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
+    LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
 
 (* Here, e is the function, and the next argument is all the args in order. *)
-and tinyocaml_of_finaltype_apply_inner (e : Tinyocaml.t) (args : Tinyocaml.t list) =
+and tinyocaml_of_finaltype_apply_inner (e : t) (args : t list) =
   match args with
     h::t ->
-     tinyocaml_of_finaltype_apply_inner (Tinyocaml.App (e, h)) t
+     tinyocaml_of_finaltype_apply_inner (App (e, h)) t
   | [] -> e
 
 and tinyocaml_of_finaltype_apply e args =
@@ -1020,13 +981,13 @@ and tinyocaml_of_finaltype_guard = function
 | Some g -> Some (tinyocaml_of_finaltype g)
 
 and tinyocaml_of_finaltype_pattern = function
-  Ocamli2type.PatAny -> Tinyocaml.PatAny
-| Ocamli2type.PatConstr ("[]", []) -> Tinyocaml.PatNil
-| Ocamli2type.PatVar v -> Tinyocaml.PatVar v
+  Ocamli2type.PatAny -> PatAny
+| Ocamli2type.PatConstr ("[]", []) -> PatNil
+| Ocamli2type.PatVar v -> PatVar v
 | Ocamli2type.PatConstr ("::", [h; t]) ->
-    Tinyocaml.PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
+    PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
 | Ocamli2type.PatConstant (IntConstant i) ->
-    Tinyocaml.PatInt i
+    PatInt i
 | _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
 
 (* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
@@ -1056,7 +1017,7 @@ and tinyocaml_of_finaltype {e; typ; lets} =
   let rec fabricate_lets e = function
     [] -> e
   | (recflag, n, rhs)::r ->
-      fabricate_lets (Tinyocaml.Let (recflag, [(Tinyocaml.PatVar n, tinyocaml_of_finaltype rhs)], e)) r
+      fabricate_lets (Let (recflag, [(PatVar n, tinyocaml_of_finaltype rhs)], e)) r
   in
   let inner = tinyocaml_of_finaltype_t' typ e in
     if lets = [] then inner else
@@ -1074,4 +1035,44 @@ and tinyocaml_of_finaltype {e; typ; lets} =
 
 let to_string_from_finaltype ?(preamble="") v =
   to_string (tinyocaml_of_finaltype v)
+
+let output_tags f =
+  List.iter (output_tag f) !tags
+
+let print ?(preamble="") f t =
+  let tagfuns =
+    {Format.mark_open_tag = (fun _ -> "");
+     Format.mark_close_tag = (fun _ -> "");
+     Format.print_open_tag =
+       (if !syntax then
+         (fun tag -> tags := tag::!tags; output_tag f tag)
+       else
+         (fun _ -> ()));
+     Format.print_close_tag =
+       (if !syntax then
+         (fun _ ->
+            if !tags = [] then failwith "ill-matched tags: pop";
+            tags := List.tl !tags;
+            begin if !syntax_tex
+              then Format.pp_print_string f "}"
+              else Format.pp_print_string f code_end
+            end;
+            if !tags <> [] then output_tags f)
+       else
+         (fun _ -> ()))}
+  in
+    Format.pp_set_formatter_tag_functions f tagfuns;
+    Format.pp_set_tags f true;
+    Format.pp_set_print_tags f true;
+    Format.pp_set_margin f !width;
+    if !simple then Format.pp_set_margin f max_int;
+    Format.pp_open_box f 4;
+    Format.pp_print_string f preamble;
+    print_tiny_inner f true None (tinyocaml_of_finaltype t);
+    Format.pp_close_box f ();
+    Format.pp_print_flush f ()
+
+let to_string ?(preamble="") t =
+  print ~preamble Format.str_formatter t;
+  Format.flush_str_formatter ()
 
