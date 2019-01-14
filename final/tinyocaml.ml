@@ -1,6 +1,6 @@
 open Parsetree
 open Asttypes
-open Ocamliutil
+open Ocamli2util
 
 type op = Add | Sub | Mul | Div
 

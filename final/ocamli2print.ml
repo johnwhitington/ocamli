@@ -1,8 +1,12 @@
 open Tinyocaml
 open Asttypes
 open Parsetree
+open Types
 
 let debug = ref false
+
+(* Set this to false to debug failures in tinyocaml_of_ocaml_heap_value *)
+let showvals = ref true
 
 (* Use bold and underlining *)
 let syntax = ref true
@@ -293,7 +297,7 @@ let rec print_tiny_inner f isleft parent node =
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
   | CallBuiltIn (typ, name, args, fn) -> str "<<"; str name; str ">>"
-  | Var v -> str (Ocamliutil.unstar v)
+  | Var v -> str (Ocamli2util.unstar v)
   | Constr (_, s, None) -> str s
   | Constr (_, s, Some x) ->
       str s;
@@ -652,7 +656,7 @@ and print_pattern f isleft parent pat label =
         str "()"
     | PatVar v ->
         (* Print 'v' or '~v' or '?v' or '?(v = 4)' *)
-        let pvar () = str (Ocamliutil.unstar v) in
+        let pvar () = str (Ocamli2util.unstar v) in
         begin match label with
           NoLabel -> pvar ();
         | Labelled s -> str "~"; pvar ()
@@ -797,7 +801,277 @@ let to_string ?(preamble="") t =
   print ~preamble Format.str_formatter t;
   Format.flush_str_formatter ()
 
+
 (* FIXME: Need to update this to only run on stdout or something *)
 let _ =
   ignore
     (Sys.signal Sys.sigint (Sys.Signal_handle (fun _ -> print_string code_end)))
+
+
+let rec string_of_ocaml_type = function
+  Tvar (Some x) -> x
+| Tvar None -> "Tvar None"
+| Tnil -> "Tnil"
+| Tarrow (arg_label, a, b, commutable) ->
+    Printf.sprintf
+      "Tarrow (%s, %s)"
+      (string_of_ocaml_type a.desc)
+      (string_of_ocaml_type b.desc)
+| Tconstr (path, types, abbrev_memo) ->
+    "Tconstr " ^ Path.name path
+  ^ "("
+  ^ List.fold_left ( ^ ) "" (List.map (fun x -> string_of_ocaml_type x.desc ^ " ") types)
+  ^ ")"
+| Ttuple _ -> "Ttuple"
+| Tobject (_, _) -> "Tobject"
+| Tfield (_, _, _, _) -> "Tfield"
+| Tlink x -> string_of_ocaml_type (Ocamli2type.find_type_desc x)
+| Tsubst _ -> "Tsubst"
+| Tvariant _ -> "Tvariant"
+| Tunivar _ -> "Tunivar"
+| Tpoly (_, _) -> "Tpoly"
+| Tpackage (_, _, _) -> "Tpackage"
+
+let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
+  (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
+  match typ with
+    Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
+  | Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
+  | Tconstr (p, _, _) when Path.name p = "unit" -> Tinyocaml.Unit
+  | Tconstr (p, [elt_t], _) when Path.name p = "array" ->
+      Tinyocaml.Array
+        (Array.init
+          (Obj.size value)
+          (fun i -> tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value i)))
+  | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
+      if Obj.is_int value then Tinyocaml.Nil else
+        Tinyocaml.Cons
+          (tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value 0),
+           tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))
+  | _ -> if !showvals
+           then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
+           else Tinyocaml.String (Bytes.of_string "<unknown val>")
+
+
+let string_of_op = function
+    Ocamli2type.Add -> "Add"
+  | Ocamli2type.Sub -> "Sub"
+  | Ocamli2type.Mul -> "Mul"
+  | Ocamli2type.Div -> "Div" 
+
+let to_string_from_heap ?(preamble="") typ v =
+  to_string (tinyocaml_of_ocaml_heap_value typ v)
+
+let rec string_of_t' typ = function
+  Ocamli2type.Value x -> to_string_from_heap typ x
+| Ocamli2type.Function (cases, env) ->
+    Printf.sprintf "Function (%s, env = %s)" (string_of_cases cases) (string_of_env env)
+| Ocamli2type.Apply (e, args) ->
+    Printf.sprintf "Apply (%s, [%s])" (string_of_t e) (string_of_items args)
+| Ocamli2type.Var x -> Printf.sprintf "Var %s" x
+| Ocamli2type.ArrayExpr items ->
+    Printf.sprintf "[|%s|]" (string_of_items (Array.to_list items)) 
+| Ocamli2type.Cons (a, b) ->
+    Printf.sprintf
+      "Cons (%s, %s)" (string_of_t a) (string_of_t b)
+| Ocamli2type.Append (a, b) ->
+    Printf.sprintf
+      "Append (%s, %s)" (string_of_t a) (string_of_t b)
+| Ocamli2type.FOp (op, a, b) ->
+    Printf.sprintf
+      "FOp (%s, %s, %s)"
+      (string_of_op op) (string_of_t a) (string_of_t b)
+| Ocamli2type.IntOp (op, a, b) ->
+    Printf.sprintf
+      "IntOp (%s, %s, %s)"
+      (string_of_op op) (string_of_t a) (string_of_t b)
+| Ocamli2type.ArrayGet (arr, i) ->
+    Printf.sprintf "ArrayGet (%s, %s)" (string_of_t arr) (string_of_t i)
+| Ocamli2type.ArraySet (arr, i, newval) ->
+    Printf.sprintf
+      "ArraySet (%s, %s, %s)"
+      (string_of_t arr) (string_of_t i) (string_of_t newval)
+| Ocamli2type.Let (recflag, (n, e), e') ->
+    Printf.sprintf
+      "Let (%b, %s, %s, %s)"
+      recflag n (string_of_t e) (string_of_t e')
+| Ocamli2type.Match (e, cases) ->
+    Printf.sprintf "Match (%s, %s)" (string_of_t e) "<cases>"
+| Ocamli2type.Struct l ->
+    Printf.sprintf "Struct:%s\n"
+      (List.fold_left (fun x y -> x ^ "\n" ^ y) "" (List.map string_of_t l))
+| Ocamli2type.LetDef (recflag, (n, e)) ->
+    Printf.sprintf "LetDef %b (%s, %s)"
+      recflag n (string_of_t e)
+
+and string_of_case (p, _, e) = (* FIXME guard *)
+  Printf.sprintf "[%s -> %s]" (string_of_pattern p) (string_of_t e)
+     
+and string_of_cases cases =
+  List.fold_left ( ^ ) "" (List.map (fun x -> string_of_case x ^ " ") cases)
+
+and string_of_pattern = function
+  Ocamli2type.PatAny -> "_"
+| Ocamli2type.PatVar v -> v
+| Ocamli2type.PatConstr (constr, pats) ->
+    "PatConstr " ^ constr ^ "("
+  ^ List.fold_left ( ^ ) "" (List.map (fun x -> string_of_pattern x ^ ", ") pats)
+  ^ ")"
+| Ocamli2type.PatConstant (Ocamli2type.IntConstant i) -> string_of_int i
+
+and string_of_items items =
+  List.fold_left ( ^ ) "" (List.map (fun x -> string_of_t x ^ ";") items)
+
+and string_of_t {typ; e; lets} =
+  List.fold_left ( ^ ) ""
+    (List.map
+    (fun (recflag, r) ->
+       Printf.sprintf "{%b, %s}" recflag (string_of_bindings !r))
+    lets)
+  ^
+  "{typ = " ^ string_of_ocaml_type typ ^ "}" 
+  ^
+  string_of_t' typ e
+
+and string_of_bindings bs =
+  List.fold_left ( ^ ) "" (List.map string_of_binding bs)
+
+and string_of_binding (n, e) =
+  Printf.sprintf "%s = %s; " n (string_of_t e)
+
+and string_of_envitem (recflag, {contents}) =
+  Printf.sprintf "(%b, %s)" recflag (string_of_bindings contents)
+
+and string_of_env es =
+  List.fold_left ( ^ ) "" (List.map (fun e -> string_of_envitem e ^ ";\n") es)
+
+
+(* From the former ocamli2write.ml *)
+let show_all_lets = ref false
+
+(* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
+let tinyocaml_op_of_finaltype_op = function
+  Ocamli2type.Add -> Tinyocaml.Add
+| Ocamli2type.Sub -> Tinyocaml.Sub
+| Ocamli2type.Mul -> Tinyocaml.Mul
+| Ocamli2type.Div -> Tinyocaml.Div
+
+let rec tinyocaml_of_finaltype_t' typ = function
+  Ocamli2type.Value x -> tinyocaml_of_ocaml_heap_value typ x
+| Ocamli2type.Function (cases, env) -> Tinyocaml.Function (List.map tinyocaml_of_finaltype_case cases, [])
+| Ocamli2type.Apply (e, args) -> tinyocaml_of_finaltype_apply e args
+| Ocamli2type.Var x -> Tinyocaml.Var x
+| Ocamli2type.ArrayExpr arr -> Tinyocaml.Array (Array.map tinyocaml_of_finaltype arr)
+| Ocamli2type.Cons (h, t) -> Tinyocaml.Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
+| Ocamli2type.Append (a, b) -> Tinyocaml.Append (tinyocaml_of_finaltype a, tinyocaml_of_finaltype b)
+| Ocamli2type.IntOp (op, x, y) ->
+    Tinyocaml.Op
+      (tinyocaml_op_of_finaltype_op op,
+       tinyocaml_of_finaltype x,
+       tinyocaml_of_finaltype y)
+| Ocamli2type.FOp (op, x, y) ->
+    Tinyocaml.App
+      ((Tinyocaml.App (Var "Stdlib.+.", tinyocaml_of_finaltype x)), tinyocaml_of_finaltype y)
+| Ocamli2type.ArrayGet (x, y) ->
+    Tinyocaml.App
+      ((Tinyocaml.App
+        (Var "Stdlib.Array.get", tinyocaml_of_finaltype x)),
+      (tinyocaml_of_finaltype y))
+| Ocamli2type.ArraySet (arr, index, newval) ->
+    Tinyocaml.App
+      (Tinyocaml.App
+        ((Tinyocaml.App
+          (Var "Stdlib.Array.set", tinyocaml_of_finaltype arr)),
+        (tinyocaml_of_finaltype index)),
+        (tinyocaml_of_finaltype newval))
+| Ocamli2type.Let (recflag, (n, a), b) ->
+    Tinyocaml.Let
+      (recflag,
+       [(Tinyocaml.PatVar n, tinyocaml_of_finaltype a)],
+       tinyocaml_of_finaltype b)
+| Ocamli2type.Match (e, cases) ->
+    Tinyocaml.Match
+      (tinyocaml_of_finaltype e,
+       List.map tinyocaml_of_finaltype_case cases)
+| Ocamli2type.Struct ls ->
+    Tinyocaml.Struct (false, List.map tinyocaml_of_finaltype ls)
+| Ocamli2type.LetDef (recflag, (n, e)) ->
+    Tinyocaml.LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
+
+(* Here, e is the function, and the next argument is all the args in order. *)
+and tinyocaml_of_finaltype_apply_inner (e : Tinyocaml.t) (args : Tinyocaml.t list) =
+  match args with
+    h::t ->
+     tinyocaml_of_finaltype_apply_inner (Tinyocaml.App (e, h)) t
+  | [] -> e
+
+and tinyocaml_of_finaltype_apply e args =
+  tinyocaml_of_finaltype_apply_inner
+    (tinyocaml_of_finaltype e)
+    (List.map tinyocaml_of_finaltype args)
+
+and tinyocaml_of_finaltype_case (pat, guard, rhs) =
+  (tinyocaml_of_finaltype_pattern pat,
+   tinyocaml_of_finaltype_guard guard,
+   tinyocaml_of_finaltype rhs)
+
+and tinyocaml_of_finaltype_guard = function
+  None -> None
+| Some g -> Some (tinyocaml_of_finaltype g)
+
+and tinyocaml_of_finaltype_pattern = function
+  Ocamli2type.PatAny -> Tinyocaml.PatAny
+| Ocamli2type.PatConstr ("[]", []) -> Tinyocaml.PatNil
+| Ocamli2type.PatVar v -> Tinyocaml.PatVar v
+| Ocamli2type.PatConstr ("::", [h; t]) ->
+    Tinyocaml.PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
+| Ocamli2type.PatConstant (IntConstant i) ->
+    Tinyocaml.PatInt i
+| _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
+
+(* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
+  (* If any implicit lets, fabricate them -- but only if they are used in the
+   * expression underneath, and not shadowed. *)
+  (*Printf.printf "We have %i lets\n" (List.length lets);*)
+
+and basiclets_of_envitem (recflag, r) =
+  List.map
+    (fun (n, e) -> (recflag, n, e))
+    !r
+
+and basiclets_of_env env =
+  List.flatten (List.map basiclets_of_envitem env)
+
+and tinyocaml_of_finaltype {e; typ; lets} =
+  let remove_names_from_lets names =
+    List.filter (fun (_, v, _) -> List.mem v names)
+  in
+  let rec remove_shadowed_implicits = function
+    [] -> []
+  | (recflag, n, e)::r ->
+      if List.mem n (List.map (fun (_, x, _) -> x) r)
+        then remove_shadowed_implicits r
+        else (recflag, n, e)::remove_shadowed_implicits r
+  in
+  let rec fabricate_lets e = function
+    [] -> e
+  | (recflag, n, rhs)::r ->
+      fabricate_lets (Tinyocaml.Let (recflag, [(Tinyocaml.PatVar n, tinyocaml_of_finaltype rhs)], e)) r
+  in
+  let inner = tinyocaml_of_finaltype_t' typ e in
+    if lets = [] then inner else
+      let names = Ocamli2type.names_in_t' e in
+      (*Printf.printf "%i names in t'\n" (List.length names);*)
+      (* FIXME. For now, we convert lets to just (recflag, n, e) "basiclets" to make it easier to deal with.
+      Eventually, once we have let...and and mutual recursion, we must do it properly. *)
+      let lets_to_print =
+        if !show_all_lets then basiclets_of_env lets else
+          remove_names_from_lets names (remove_shadowed_implicits (basiclets_of_env lets))
+      in
+        (*Printf.printf "lets to print: %i\n" (List.length lets_to_print);*)
+        fabricate_lets inner (List.rev lets_to_print)
+
+
+let to_string_from_finaltype ?(preamble="") v =
+  to_string (tinyocaml_of_finaltype v)
+

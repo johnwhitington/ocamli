@@ -1,8 +1,8 @@
 let showsteps = ref false
 
 let rec eval_full v =
-  if !showsteps then Printf.printf "%s\n" (Ocamli2type.string_of_t v);
-  Printf.printf "%s\n" (Ocamli2print.to_string (Ocamli2write.tinyocaml_of_finaltype v));
+  if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
+  Printf.printf "%s\n" (Ocamli2print.to_string_from_finaltype v);
   if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] v)
 
 let programtext = ref ""
@@ -22,9 +22,9 @@ let argspec =
   ["-e", Arg.Set_string programtext, " Set program text";
    "-dno-syntax", Arg.Clear Ocamli2print.syntax, " Do not use syntax highlighting";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
-   "-dnovals", Arg.Clear Ocamli2type.showvals, "Do not show values in steps";
+   "-dnovals", Arg.Clear Ocamli2print.showvals, "Do not show values in steps";
    "-drules", Arg.Set Ocamli2eval.showrules, " Show reduction rule for each step of evaluation";
-   "-dshow-all-lets", Arg.Set Ocamli2write.show_all_lets, " Show all lets, even shadowed or unused"]
+   "-dshow-all-lets", Arg.Set Ocamli2print.show_all_lets, " Show all lets, even shadowed or unused"]
 
 let _ =
   Arg.parse argspec setfile "Syntax: ocamli2 <filename | -e program>\n";
