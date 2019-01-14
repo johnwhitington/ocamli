@@ -24,43 +24,30 @@ let append_lists a b =
       Value (Obj.magic ((Obj.magic a : 'a list) @ (Obj.magic b : 'a list)) : Obj.t)
   | _ -> assert false
 
-(* Pattern matching. To get rid of tinyocaml here, must match it directly somehow. *)
+(* Pattern matching. *)
 let rec patmatch expr (pat, guard, rhs) =
   let yes = Some rhs and no = None in
   match expr, pat with
     _, PatAny -> yes
   | {e = Value v}, PatConstant (IntConstant i) ->
-      begin match Ocamli2print.tinyocaml_of_ocaml_heap_value expr.typ v with
-        Tinyocaml.Int i' when i = i' -> yes
-      | _ -> no
-      end
+      if v = Obj.repr i then yes else no
   | {e = Value v}, PatConstr ("[]", _) ->
-      begin match Ocamli2print.tinyocaml_of_ocaml_heap_value expr.typ v with
-        Tinyocaml.Nil -> yes
-      | _ -> no
-      end
+      if v = Obj.repr [] then yes else no
   | {e = Value v}, PatConstr ("::", [hpat; tpat]) ->
-      (* Make sure value is a cons cell, then try to pattern-match on its head and tail. *)
       (* FIXME: Implicit lets added during hpat and tpat must be amalgamated here? Names cannot clash *)
-      (* Once we remove tinyocaml requirement, do we need the types at all? Surely we are in typeless territory here? *)
-      begin match Ocamli2print.tinyocaml_of_ocaml_heap_value expr.typ v with
-        Tinyocaml.Cons (a, b) ->
-          let htyp =
-            match expr.typ with
-              Tconstr (_, [elt_t], _) -> find_type_desc elt_t
-            | _ -> failwith "patmatch bad list"
-          in
-          let hval, tval =
-            {e = Value (Obj.field v 0); lets = []; typ = htyp},
-            {e = Value (Obj.field v 1); lets = []; typ = expr.typ} (* tail has same type *)
-          in
-            begin match patmatch hval (hpat, None, rhs), patmatch tval (tpat, None, rhs) with
-              Some lunder, Some runder ->
-                Some {rhs with lets = lunder.lets @ runder.lets @ rhs.lets}
-            | _ -> no
-            end
-      | _ -> no
-      end
+      if v = Obj.repr [] then no else
+        let htyp =
+          match expr.typ with
+            Tconstr (_, [elt_t], _) -> find_type_desc elt_t
+          | _ -> failwith "patmatch bad list"
+        in
+        let h = {e = Value (Obj.field v 0); lets = expr.lets; typ = htyp}
+        and t = {e = Value (Obj.field v 1); lets = expr.lets; typ = expr.typ} in
+          begin match patmatch h (hpat, None, rhs), patmatch t (tpat, None, rhs) with
+            Some lunder, Some runder ->
+              Some {rhs with lets = lunder.lets @ runder.lets @ rhs.lets}
+          | _ -> no
+          end
   | {e = Value v}, PatVar varname ->
       (* Introduce an implicit let into the rhs *)
       if !showrules then Printf.printf "Adding %s to implicit lets of rhs\n" varname;
