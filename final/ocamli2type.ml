@@ -44,16 +44,29 @@ and binding = string * t
 
 and case = pattern * t option * t
 
-let string_of_ocaml_type = function
+let rec find_type_desc {desc} =
+  match desc with
+    Tlink x -> find_type_desc x
+  | typ -> typ
+
+let rec string_of_ocaml_type = function
   Tvar (Some x) -> x
-| Tvar None -> "_"
-| Tarrow (_, _, _, _) -> "Tarrow"
+| Tvar None -> "Tvar None"
+| Tnil -> "Tnil"
+| Tarrow (arg_label, a, b, commutable) ->
+    Printf.sprintf
+      "Tarrow (%s, %s)"
+      (string_of_ocaml_type a.desc)
+      (string_of_ocaml_type b.desc)
+| Tconstr (path, types, abbrev_memo) ->
+    "Tconstr " ^ Path.name path
+  ^ "("
+  ^ List.fold_left ( ^ ) "" (List.map (fun x -> string_of_ocaml_type x.desc ^ " ") types)
+  ^ ")"
 | Ttuple _ -> "Ttuple"
-| Tconstr (path, _, _) -> "Tconstr " ^ Path.name path
 | Tobject (_, _) -> "Tobject"
 | Tfield (_, _, _, _) -> "Tfield"
-| Tnil -> "Tnil"
-| Tlink _ -> "Tlink"
+| Tlink x -> string_of_ocaml_type (find_type_desc x)
 | Tsubst _ -> "Tsubst"
 | Tvariant _ -> "Tvariant"
 | Tunivar _ -> "Tunivar"
@@ -115,10 +128,6 @@ let string_of_op = function
   | Mul -> "Mul"
   | Div -> "Div" 
 
-let rec find_type_desc {desc} =
-  match desc with
-    Tlink x -> find_type_desc x
-  | typ -> typ
 
 let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
   (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
@@ -141,10 +150,9 @@ let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
            else Tinyocaml.String (Bytes.of_string "<unknown val>")
 
 let rec string_of_t' typ = function
-  Value x -> Pptinyocaml.to_string (tinyocaml_of_ocaml_heap_value typ x)
-| Function ([(PatVar v, None, e)], env) ->
-    Printf.sprintf "Function ([%s -> %s], env = %s)" v (string_of_t e) (string_of_env env)
-| Function _ -> "Function FIXME"
+  Value x -> Ocamli2print.to_string (tinyocaml_of_ocaml_heap_value typ x)
+| Function (cases, env) ->
+    Printf.sprintf "Function (%s, env = %s)" (string_of_cases cases) (string_of_env env)
 | Apply (e, args) ->
     Printf.sprintf "Apply (%s, [%s])" (string_of_t e) (string_of_items args)
 | Var x -> Printf.sprintf "Var %s" x
@@ -182,6 +190,21 @@ let rec string_of_t' typ = function
 | LetDef (recflag, (n, e)) ->
     Printf.sprintf "LetDef %b (%s, %s)"
       recflag n (string_of_t e)
+
+and string_of_case (p, _, e) = (* FIXME guard *)
+  Printf.sprintf "[%s -> %s]" (string_of_pattern p) (string_of_t e)
+     
+and string_of_cases cases =
+  List.fold_left ( ^ ) "" (List.map (fun x -> string_of_case x ^ " ") cases)
+
+and string_of_pattern = function
+  PatAny -> "_"
+| PatVar v -> v
+| PatConstr (constr, pats) ->
+    "PatConstr " ^ constr ^ "("
+  ^ List.fold_left ( ^ ) "" (List.map (fun x -> string_of_pattern x ^ ", ") pats)
+  ^ ")"
+| PatConstant (IntConstant i) -> string_of_int i
 
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map (fun x -> string_of_t x ^ ";") items)
