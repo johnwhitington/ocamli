@@ -1,4 +1,3 @@
-open Tinyocaml
 open Asttypes
 open Parsetree
 open Types
@@ -36,15 +35,15 @@ type assoc = L | R | N
 
 (* FIXME Add associativities for App (Var v, x) according to table *)
 let rec assoc = function
-  Control (_, x) -> assoc x
-| Op _ | Cmp _ | App _ -> L
-| And _ | Or _ | Seq _ | SetField _ -> R
+  Tinyocaml.Control (_, x) -> assoc x
+| Tinyocaml.Op _ | Tinyocaml.Cmp _ | Tinyocaml.App _ -> L
+| Tinyocaml.And _ | Tinyocaml.Or _ | Tinyocaml.Seq _ | Tinyocaml.SetField _ -> R
 | _ -> N
 
 (* FIXME Need to add Control possibilities to this, or strip controls? *)
 let prec = function
-  Field _ -> 110
-| App (Var v, App (_, _)) when is_operator v ->
+  Tinyocaml.Field _ -> 110
+| Tinyocaml.App (Tinyocaml.Var v, Tinyocaml.App (_, _)) when is_operator v ->
     (* Binary operator application *)
     begin match v with
       "**" | "**." | "lsr" | "lsl" | "asr" -> 98
@@ -55,30 +54,30 @@ let prec = function
     | "<-" | ":=" -> 93
     | _ -> 100 (*FIXME*)
     end
-| App (Var v, _) when is_operator v ->
+| Tinyocaml.App (Tinyocaml.Var v, _) when is_operator v ->
     99
-| Seq _ -> 91
-| App _ ->
+| Tinyocaml.Seq _ -> 91
+| Tinyocaml.App _ ->
     (* All other function applications *)
     100
-| Op ((Mul | Div), _, _) -> 90
-| Op (_, _, _) -> 80
-| Cmp _ -> 70
-| And _ -> 65
-| Or _ -> 60
-| SetField _ -> 55
-| If _ -> 50
-| Fun _ | Function _ | Let _ | LetDef _ -> 10
-| Struct _
-| Tuple _
-| Cons _ | Constr (_, _, _) | Var _ | TypeDef _ | While _ | For _ | Raise _
-| Match _ | TryWith _ | ExceptionDef _ | Control _ | CallBuiltIn _ |Sig _
-| ModuleBinding _ | ModuleConstraint _ | ModuleIdentifier _ | ModuleApply _
-| Functor (_, _, _) | Append _ | Assert _ | Open _ | LocalOpen _ | Include _
-| Lazy _ | Annot (_, _, _) -> 0
-| Unit | Nil | Int _ | Bool _ | Float _ | String _ | OutChannel _
-| InChannel _ | Record _ | Int32 _ | Int64 _ | NativeInt _ | Char _
-| Array _ -> max_int
+| Tinyocaml.Op ((Tinyocaml.Mul | Tinyocaml.Div), _, _) -> 90
+| Tinyocaml.Op (_, _, _) -> 80
+| Tinyocaml.Cmp _ -> 70
+| Tinyocaml.And _ -> 65
+| Tinyocaml.Or _ -> 60
+| Tinyocaml.SetField _ -> 55
+| Tinyocaml.If _ -> 50
+| Tinyocaml.Fun _ | Tinyocaml.Function _ | Tinyocaml.Let _ | Tinyocaml.LetDef _ -> 10
+| Tinyocaml.Struct _
+| Tinyocaml.Tuple _
+| Tinyocaml.Cons _ | Tinyocaml.Constr (_, _, _) | Tinyocaml.Var _ | Tinyocaml.TypeDef _ | Tinyocaml.While _ | Tinyocaml.For _ | Tinyocaml.Raise _
+| Tinyocaml.Match _ | Tinyocaml.TryWith _ | Tinyocaml.ExceptionDef _ | Tinyocaml.Control _ | Tinyocaml.CallBuiltIn _ | Tinyocaml.Sig _
+| Tinyocaml.ModuleBinding _ | Tinyocaml.ModuleConstraint _ | Tinyocaml.ModuleIdentifier _ | Tinyocaml.ModuleApply _
+| Tinyocaml.Functor (_, _, _) | Tinyocaml.Append _ | Tinyocaml.Assert _ | Tinyocaml.Open _ | Tinyocaml.LocalOpen _ | Tinyocaml.Include _
+| Tinyocaml.Lazy _ | Tinyocaml.Annot (_, _, _) -> 0
+| Tinyocaml.Unit | Tinyocaml.Nil | Tinyocaml.Int _ | Tinyocaml.Bool _ | Tinyocaml.Float _ | Tinyocaml.String _ | Tinyocaml.OutChannel _
+| Tinyocaml.InChannel _ | Tinyocaml.Record _ | Tinyocaml.Int32 _ | Tinyocaml.Int64 _ | Tinyocaml.NativeInt _ | Tinyocaml.Char _
+| Tinyocaml.Array _ -> max_int
 
 let parens node parent isleft =
   match parent with
@@ -94,12 +93,12 @@ let parens node parent isleft =
         ("(", ")")
 
 let string_of_tag = function
-  Underline -> "underline"
-| Bold -> "bold"
+  Tinyocaml.Underline -> "underline"
+| Tinyocaml.Bold -> "bold"
 
 let rec find_funs e =
   match e with
-    Fun (flabel, fname, fexp, _) ->
+    Tinyocaml.Fun (flabel, fname, fexp, _) ->
       let more, e' = find_funs fexp in
         ((fname, flabel)::more, e')
   | _ -> ([], e)
@@ -113,6 +112,11 @@ let pp_constructor_arg pp = function
        ptyp_loc_stack = []}
 | _ -> failwith "unimplemented record type"
 
+let string_of_op = function
+  Tinyocaml.Add -> "+" | Tinyocaml.Sub -> "-" | Tinyocaml.Mul -> "*" | Tinyocaml.Div -> "/"
+
+let string_of_cmp = function
+  Tinyocaml.LT -> "<" | Tinyocaml.EQ -> "=" | Tinyocaml.GT -> ">" | Tinyocaml.EQLT -> "<=" | Tinyocaml.EQGT -> ">=" | Tinyocaml.NEQ -> "<>"
 
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
@@ -122,19 +126,19 @@ let rec print_tiny_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
-  | Include e ->
+  | Tinyocaml.Include e ->
       str lp;
       boldtxt "include ";
       print_tiny_inner f isleft (Some node) e;
       str rp
-  | ModuleApply (m1, m2) ->
+  | Tinyocaml.ModuleApply (m1, m2) ->
       str lp;
       print_tiny_inner f isleft (Some node) m1;
       txt "(";
       print_tiny_inner f isleft (Some node) m2;
       txt ")";
       str rp
-  | Functor (n, mt, ModuleConstraint (mtc, me)) ->
+  | Tinyocaml.Functor (n, mt, Tinyocaml.ModuleConstraint (mtc, me)) ->
       str lp;
       boldtxt "functor (";
       str n;
@@ -150,7 +154,7 @@ let rec print_tiny_inner f isleft parent node =
       txt " -> ";
       print_tiny_inner f isleft (Some node) me;
       str rp
-  | Functor (n, mt, me) ->
+  | Tinyocaml.Functor (n, mt, me) ->
       str lp;
       boldtxt "functor (";
       str n;
@@ -164,18 +168,18 @@ let rec print_tiny_inner f isleft parent node =
       txt " -> ";
       print_tiny_inner f isleft (Some node) me;
       str rp
-  | Lazy e ->
+  | Tinyocaml.Lazy e ->
       str lp;
       boldtxt "lazy ";
       print_tiny_inner f isleft (Some node) e;
       str rp
-  | Open x ->
+  | Tinyocaml.Open x ->
       str lp;
       boldtxt "open ";
       txt x;
       str rp;
       txt "\n";
-  | LocalOpen (x, e) ->
+  | Tinyocaml.LocalOpen (x, e) ->
       str lp;
       txt x;
       txt ".";
@@ -183,24 +187,24 @@ let rec print_tiny_inner f isleft parent node =
       print_tiny_inner f isleft (Some node) e;
       str ")";
       str rp
-  | Assert e ->
+  | Tinyocaml.Assert e ->
       str lp;
       boldtxt "assert ";
       print_tiny_inner f false (Some node) e;
       str rp;
-  | Match (e, patmatch) ->
+  | Tinyocaml.Match (e, patmatch) ->
       str lp;
       boldtxt "match ";
       print_tiny_inner f false (Some node) e;
       boldtxt " with ";
       print_cases f false (Some node) patmatch;
       str rp
-  | Function (patmatch, _) ->
+  | Tinyocaml.Function (patmatch, _) ->
       str lp;
       boldtxt "function ";
       print_cases f false (Some node) patmatch;
       str rp
-  | Struct (b, structure_items) ->
+  | Tinyocaml.Struct (b, structure_items) ->
       if b then boldtxt "struct \n";
       let l = List.length structure_items in
         List.iteri
@@ -212,7 +216,7 @@ let rec print_tiny_inner f isleft parent node =
         txt "\n";
         boldtxt "end"
       end
-  | Sig (sig_items) ->
+  | Tinyocaml.Sig (sig_items) ->
       boldtxt "sig \n";
       let l = List.length sig_items in
         List.iteri
@@ -222,23 +226,23 @@ let rec print_tiny_inner f isleft parent node =
           sig_items;
       txt "\n";
       boldtxt "end"
-  | ModuleBinding (n, ModuleConstraint (t, e)) ->
+  | Tinyocaml.ModuleBinding (n, Tinyocaml.ModuleConstraint (t, e)) ->
       boldtxt "module ";
       txt n;
       txt " : ";
       print_modtype f false (Some node) t;
       txt " = \n";
       print_tiny_inner f false (Some node) e
-  | ModuleBinding (n, e) ->
+  | Tinyocaml.ModuleBinding (n, e) ->
       boldtxt "module ";
       txt n;
       txt " = \n";
       print_tiny_inner f false (Some node) e
-  | ModuleConstraint (t, e) ->
+  | Tinyocaml.ModuleConstraint (t, e) ->
       ()
-  | ModuleIdentifier x ->
+  | Tinyocaml.ModuleIdentifier x ->
       txt x
-  | Tuple xs ->
+  | Tinyocaml.Tuple xs ->
       let l = List.length xs in
       str "(";
       List.iteri
@@ -247,7 +251,7 @@ let rec print_tiny_inner f isleft parent node =
            if i < l - 1 then txt ", ")
         xs;
       str ")"
-  | Array xs -> 
+  | Tinyocaml.Array xs -> 
       let l = Array.length xs in
       str "[|";
       Array.iteri
@@ -256,23 +260,23 @@ let rec print_tiny_inner f isleft parent node =
            if i < l - 1 then txt "; ")
         xs;
       str "|]"
-  | Cons (x, y) ->
+  | Tinyocaml.Cons (x, y) ->
       if not (try_printing_literal_list f isleft parent node) then begin
         print_tiny_inner f isleft parent x;
         str "::";
         print_tiny_inner f isleft parent y
       end
-  | Append (x, y) ->
+  | Tinyocaml.Append (x, y) ->
       print_tiny_inner f isleft parent x;
       txt " @ ";
       print_tiny_inner f isleft parent y
-  | Nil ->
+  | Tinyocaml.Nil ->
       str "[]"
-  | Control (tag, x) ->
+  | Tinyocaml.Control (tag, x) ->
       Format.pp_open_tag f (string_of_tag tag);
       print_tiny_inner f isleft parent x;
       Format.pp_close_tag f ()
-  | Annot (n, p, x) ->
+  | Tinyocaml.Annot (n, p, x) ->
       if n = "show" then
         print_tiny_inner f false (Some node) x
       else
@@ -285,27 +289,27 @@ let rec print_tiny_inner f isleft parent node =
           txt " ";
           print_tiny_inner f false (Some node) x
         end
-  | Unit -> str "()"
-  | Int i -> str (string_of_int i)
-  | Int32 i -> str (Int32.to_string i ^ "l")
-  | Int64 i -> str (Int64.to_string i ^ "L")
-  | NativeInt i -> str (Nativeint.to_string i ^ "n")
-  | Bool b -> str (string_of_bool b)
-  | Float f -> str (string_of_float f)
-  | String s -> str ("\"" ^ String.escaped (Bytes.to_string s) ^ "\"")
-  | Char c -> str (Printf.sprintf "%C" c)
-  | OutChannel s -> str "<out_channel>"
-  | InChannel s -> str "<in_channel>"
-  | CallBuiltIn (typ, name, args, fn) -> str "<<"; str name; str ">>"
-  | Var v -> str (Ocamli2util.unstar v)
-  | Constr (_, s, None) -> str s
-  | Constr (_, s, Some x) ->
+  | Tinyocaml.Unit -> str "()"
+  | Tinyocaml.Int i -> str (string_of_int i)
+  | Tinyocaml.Int32 i -> str (Int32.to_string i ^ "l")
+  | Tinyocaml.Int64 i -> str (Int64.to_string i ^ "L")
+  | Tinyocaml.NativeInt i -> str (Nativeint.to_string i ^ "n")
+  | Tinyocaml.Bool b -> str (string_of_bool b)
+  | Tinyocaml.Float f -> str (string_of_float f)
+  | Tinyocaml.String s -> str ("\"" ^ String.escaped (Bytes.to_string s) ^ "\"")
+  | Tinyocaml.Char c -> str (Printf.sprintf "%C" c)
+  | Tinyocaml.OutChannel s -> str "<out_channel>"
+  | Tinyocaml.InChannel s -> str "<in_channel>"
+  | Tinyocaml.CallBuiltIn (typ, name, args, fn) -> str "<<"; str name; str ">>"
+  | Tinyocaml.Var v -> str (Ocamli2util.unstar v)
+  | Tinyocaml.Constr (_, s, None) -> str s
+  | Tinyocaml.Constr (_, s, Some x) ->
       str s;
       str " ";
       str lp;
       print_tiny_inner f false (Some node) x;
       str rp
-  | Op (op, l, r) ->
+  | Tinyocaml.Op (op, l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
       txt " ";
@@ -313,7 +317,7 @@ let rec print_tiny_inner f isleft parent node =
       txt " ";
       print_tiny_inner f false (Some node) r;
       str rp
-  | Cmp (cmp, l, r) ->
+  | Tinyocaml.Cmp (cmp, l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
       txt " ";
@@ -321,19 +325,19 @@ let rec print_tiny_inner f isleft parent node =
       txt " ";
       print_tiny_inner f false (Some node) r;
       str rp
-  | And (l, r) ->
+  | Tinyocaml.And (l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
       txt " && ";
       print_tiny_inner f false (Some node) r;
       str rp
-  | Or (l, r) ->
+  | Tinyocaml.Or (l, r) ->
       str lp;
       print_tiny_inner f true (Some node) l;
       txt " || ";
       print_tiny_inner f false (Some node) r;
       str rp
-  | If (e, e1, e2) ->
+  | Tinyocaml.If (e, e1, e2) ->
       str lp;
       boldtxt "if ";
       print_tiny_inner f false (Some node) e;
@@ -346,7 +350,7 @@ let rec print_tiny_inner f isleft parent node =
           print_tiny_inner f false (Some node) e2;
       end;
       str rp
-  | Let (recflag, bindings, e') ->
+  | Tinyocaml.Let (recflag, bindings, e') ->
       str lp;
       let first = ref true in
         List.iter
@@ -358,7 +362,7 @@ let rec print_tiny_inner f isleft parent node =
              else
                boldtxt " and ";
              first := false;
-             print_pattern f false (Some node) v NoLabel;
+             print_pattern f false (Some node) v Tinyocaml.NoLabel;
              txt " ";
              let morefuns, e = find_funs e in
              List.iter (fun (p, l) -> print_pattern f false (Some node) p l; txt " ") morefuns;
@@ -368,7 +372,7 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt " in ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | LetDef (recflag, bindings) ->
+  | Tinyocaml.LetDef (recflag, bindings) ->
       str lp;
       let first = ref true in
       List.iter
@@ -386,34 +390,34 @@ let rec print_tiny_inner f isleft parent node =
            print_tiny_inner f false (Some node) e)
         bindings;
       str rp
-  | Fun ((_, _, _, fenv) as fn) ->
+  | Tinyocaml.Fun ((_, _, _, fenv) as fn) ->
       (*if !debug then begin txt "|E|"; txt (to_string_env fenv); txt "|E|" end;*)
-      print_series_of_funs lp rp f true (Some node) (Fun fn)
-  | (App (App (Var v, a), b) | App (Control (_, App (Var v, a)), b)) when is_operator v ->
+      print_series_of_funs lp rp f true (Some node) (Tinyocaml.Fun fn)
+  | (Tinyocaml.App (Tinyocaml.App (Tinyocaml.Var v, a), b) | Tinyocaml.App (Tinyocaml.Control (_, Tinyocaml.App (Tinyocaml.Var v, a)), b)) when is_operator v ->
       let v = if String.length v > 0 && v.[0] = '[' then String.sub v 1 (String.length v - 1) else v in
       str lp;
       print_tiny_inner f true (Some node) a;
       txt (" " ^ v ^ " ");
       print_tiny_inner f false (Some node) b;
       str rp
-  | App (Var v, e') when is_operator v ->
+  | Tinyocaml.App (Tinyocaml.Var v, e') when is_operator v ->
       str lp;
       print_tiny_inner f true (Some node) (Var v);
       print_tiny_inner f false (Some node) e';
       str rp
-  | App (e, e') ->
+  | Tinyocaml.App (e, e') ->
       str lp;
       print_tiny_inner f true (Some node) e;
       txt " ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | Seq (e, e') ->
+  | Tinyocaml.Seq (e, e') ->
       str lp;
       print_tiny_inner f true (Some node) e;
       txt "; ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | While (e, e', _, _) ->
+  | Tinyocaml.While (e, e', _, _) ->
       str lp;
       boldtxt "while ";
       print_tiny_inner f false (Some node) e;
@@ -421,29 +425,29 @@ let rec print_tiny_inner f isleft parent node =
       print_tiny_inner f false (Some node) e';
       boldtxt " done";
       str rp
-  | For (var, e, flag, e', e'', _) ->
+  | Tinyocaml.For (var, e, flag, e', e'', _) ->
       str lp;
       boldtxt "for ";
       str var;
       txt " = ";
       print_tiny_inner f false (Some node) e;
-      txt ((function UpTo -> " to " | DownTo -> " down ") flag);
+      txt ((function Tinyocaml.UpTo -> " to " | Tinyocaml.DownTo -> " down ") flag);
       print_tiny_inner f false (Some node) e';
       boldtxt " do ";
       print_tiny_inner f false (Some node) e'';
       boldtxt " done"
-  | Record items ->
+  | Tinyocaml.Record items ->
       str "{";
       let first = ref true in
       List.iter (fun x -> if not !first then txt "; "; first := false; print_record_entry f x) items;
       str "}"
-  | Field (e, n) ->
+  | Tinyocaml.Field (e, n) ->
       str lp;
       print_tiny_inner f false (Some node) e;
       str ".";
       str n;
       str rp
-  | SetField (e, n, e') ->
+  | Tinyocaml.SetField (e, n, e') ->
       str lp;
       print_tiny_inner f false (Some node) e;
       str ".";
@@ -451,7 +455,7 @@ let rec print_tiny_inner f isleft parent node =
       txt " <- ";
       print_tiny_inner f false (Some node) e';
       str rp
-  | Raise (e, payload) ->
+  | Tinyocaml.Raise (e, payload) ->
       str lp;
       begin match payload with
       | None ->
@@ -466,14 +470,14 @@ let rec print_tiny_inner f isleft parent node =
           str ")"
       end;
       str rp
-  | TryWith (e, patmatch) ->
+  | Tinyocaml.TryWith (e, patmatch) ->
       str lp;
       boldtxt "try ";
       print_tiny_inner f false (Some node) e;
       boldtxt " with ";
       print_cases f false (Some node) patmatch;
       str rp
-  | ExceptionDef (e, t) ->
+  | Tinyocaml.ExceptionDef (e, t) ->
       str lp;
       boldtxt "exception ";
       str e;
@@ -484,7 +488,7 @@ let rec print_tiny_inner f isleft parent node =
       | _ -> ()
       end;
       str rp
-  | TypeDef (recflag, type_declaration) ->
+  | Tinyocaml.TypeDef (recflag, type_declaration) ->
       str lp;
       print_type_declaration f isleft parent type_declaration;
       str rp
@@ -492,9 +496,9 @@ let rec print_tiny_inner f isleft parent node =
 and print_modtype f isleft parent modtype =
   let str = Format.fprintf f "%s" in
   match modtype with
-    ModTypeSignature e -> str "ModTypeSignature"
-  | ModTypeIdent s -> str s
-  | ModTypeWith _ -> str "ModTypeWith"
+    Tinyocaml.ModTypeSignature e -> str "ModTypeSignature"
+  | Tinyocaml.ModTypeIdent s -> str s
+  | Tinyocaml.ModTypeWith _ -> str "ModTypeWith"
 
 (* Print the list of type declarations type t = ... [and t' = ...] *) 
 and print_type_declaration f isleft parent tds =
@@ -580,8 +584,8 @@ one or more conses. *)
 and try_printing_literal_list f isleft parent e =
   let str = Format.fprintf f "%s" in
   let rec get_list_elements = function
-    Cons (h, t) -> h::get_list_elements t
-  | Nil -> []
+    Tinyocaml.Cons (h, t) -> h::get_list_elements t
+  | Tinyocaml.Nil -> []
   | _ -> raise Exit
   in
     match get_list_elements e with
@@ -606,7 +610,7 @@ and print_series_of_funs lp rp f isleft parent e =
   let boldtxt t = bold (); txt t; unbold () in
   (* Return a list of fnames and an fexp. There will be at least one. *)
   let rec gather_funs fnames = function
-     Fun (flabel, fname, fexp, _) -> gather_funs ((flabel, fname)::fnames) fexp
+     Tinyocaml.Fun (flabel, fname, fexp, _) -> gather_funs ((flabel, fname)::fnames) fexp
   |  x -> (List.rev fnames, x)
   in
     str lp;
@@ -650,11 +654,11 @@ and print_pattern f isleft parent pat label =
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
     match pat with
-      PatAny ->
+      Tinyocaml.PatAny ->
         str "_"
-    | PatUnit ->
+    | Tinyocaml.PatUnit ->
         str "()"
-    | PatVar v ->
+    | Tinyocaml.PatVar v ->
         (* Print 'v' or '~v' or '?v' or '?(v = 4)' *)
         let pvar () = str (Ocamli2util.unstar v) in
         begin match label with
@@ -666,23 +670,23 @@ and print_pattern f isleft parent pat label =
             print_tiny_inner f false parent e;
             str ")"
         end
-    | PatBool b ->
+    | Tinyocaml.PatBool b ->
         str (string_of_bool b)
-    | PatInt i ->
+    | Tinyocaml.PatInt i ->
         str (string_of_int i)
-    | PatInt32 i ->
+    | Tinyocaml.PatInt32 i ->
         str (Int32.to_string i)
-    | PatInt64 i ->
+    | Tinyocaml.PatInt64 i ->
         str (Int64.to_string i)
-    | PatNativeInt i ->
+    | Tinyocaml.PatNativeInt i ->
         str (Nativeint.to_string i)
-    | PatChar c ->
+    | Tinyocaml.PatChar c ->
         str (Printf.sprintf "%C" c)
-    | PatCharRange (c, c') ->
+    | Tinyocaml.PatCharRange (c, c') ->
         str (Printf.sprintf "%C .. %C" c c')
-    | PatString s ->
+    | Tinyocaml.PatString s ->
         str (Printf.sprintf "\"%s\"" (String.escaped s))
-    | PatTuple items ->
+    | Tinyocaml.PatTuple items ->
         str "(";
         let l = List.length items in
           List.iteri
@@ -691,7 +695,7 @@ and print_pattern f isleft parent pat label =
                if i < l - 1 then txt ", ")
             items;
         str ")"
-    | PatArray items ->
+    | Tinyocaml.PatArray items ->
         str "[|";
         let l = Array.length items in
           Array.iteri
@@ -700,29 +704,29 @@ and print_pattern f isleft parent pat label =
                if i < l - 1 then txt "; ")
             items;
         str "|]"
-    | PatNil -> str "[]"
-    | PatCons (h, t) ->
+    | Tinyocaml.PatNil -> str "[]"
+    | Tinyocaml.PatCons (h, t) ->
         print_pattern f isleft parent h NoLabel;
         str "::";
         print_pattern f isleft parent t NoLabel
-    | PatAlias (a, p) ->
+    | Tinyocaml.PatAlias (a, p) ->
         print_pattern f isleft parent p NoLabel;
         boldtxt " as ";
         str a
-    | PatOr (a, b) ->
+    | Tinyocaml.PatOr (a, b) ->
         print_pattern f isleft parent a NoLabel;
         txt " | ";
         print_pattern f isleft parent b NoLabel
-    | PatConstr (name, None) ->
+    | Tinyocaml.PatConstr (name, None) ->
         txt name
-    | PatConstr (name, Some p) ->
+    | Tinyocaml.PatConstr (name, Some p) ->
         txt name;
         txt " ";
         print_pattern f isleft parent p NoLabel
-    | PatConstraint (p, typ) ->
+    | Tinyocaml.PatConstraint (p, typ) ->
         print_pattern f isleft parent p NoLabel;
         txt " : <<typ>>";
-    | PatRecord (openflag, items) ->
+    | Tinyocaml.PatRecord (openflag, items) ->
         txt "{";
         List.iter
           (fun (n, p) ->
@@ -733,7 +737,7 @@ and print_pattern f isleft parent pat label =
           items;
         if openflag then txt " _";
         txt "}"
-    | PatException p ->
+    | Tinyocaml.PatException p ->
         boldtxt "exception ";
         print_pattern f isleft parent p NoLabel
 
@@ -744,7 +748,8 @@ and print_record_entry f (n, {contents = e}) =
     txt " = ";
     print_tiny_inner f false None e
 
-let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
+
+  let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
 
 (* Current tags opened. Whenever a tag is added, we have to end the codes, and
 begin new ones *) 
@@ -796,17 +801,17 @@ let rec string_of_ocaml_type = function
 let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
   (*Printf.printf "tinyocaml_of_ocaml_heap_value: %s\n" (string_of_ocaml_type typ);*)
   match typ with
-    Tconstr (p, _, _) when Path.name p = "int" -> Int (Obj.magic value : int)
-  | Tconstr (p, _, _) when Path.name p = "float" -> Float (Obj.magic value : float)
-  | Tconstr (p, _, _) when Path.name p = "unit" -> Unit
+    Tconstr (p, _, _) when Path.name p = "int" -> Tinyocaml.Int (Obj.magic value : int)
+  | Tconstr (p, _, _) when Path.name p = "float" -> Tinyocaml.Float (Obj.magic value : float)
+  | Tconstr (p, _, _) when Path.name p = "unit" -> Tinyocaml.Unit
   | Tconstr (p, [elt_t], _) when Path.name p = "array" ->
-      Array
+     Tinyocaml.Array
         (Array.init
           (Obj.size value)
           (fun i -> tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value i)))
   | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
-      if Obj.is_int value then Nil else
-        Cons
+      if Obj.is_int value then Tinyocaml.Nil else
+        Tinyocaml.Cons
           (tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value 0),
            tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))
   | _ -> if !showvals
@@ -814,14 +819,199 @@ let rec tinyocaml_of_ocaml_heap_value (typ : type_desc) (value : Obj.t) =
            else String (Bytes.of_string "<unknown val>")
 
 
+(* From the former ocamli2write.ml *)
+let show_all_lets = ref false
+
+(* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
+let tinyocaml_op_of_finaltype_op = function
+  Ocamli2type.Add -> Tinyocaml.Add
+| Ocamli2type.Sub -> Tinyocaml.Sub
+| Ocamli2type.Mul -> Tinyocaml.Mul
+| Ocamli2type.Div -> Tinyocaml.Div
+
+let rec tinyocaml_of_finaltype_t' typ = function
+  Ocamli2type.Value x -> tinyocaml_of_ocaml_heap_value typ x
+| Ocamli2type.Function (cases, env) -> Function (List.map tinyocaml_of_finaltype_case cases, [])
+| Ocamli2type.Apply (e, args) -> tinyocaml_of_finaltype_apply e args
+| Ocamli2type.Var x -> Var x
+| Ocamli2type.ArrayExpr arr -> Array (Array.map tinyocaml_of_finaltype arr)
+| Ocamli2type.Cons (h, t) -> Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
+| Ocamli2type.Append (a, b) -> Append (tinyocaml_of_finaltype a, tinyocaml_of_finaltype b)
+| Ocamli2type.IntOp (op, x, y) ->
+    Op
+      (tinyocaml_op_of_finaltype_op op,
+       tinyocaml_of_finaltype x,
+       tinyocaml_of_finaltype y)
+| Ocamli2type.FOp (op, x, y) ->
+    App
+      ((App (Var "Stdlib.+.", tinyocaml_of_finaltype x)), tinyocaml_of_finaltype y)
+| Ocamli2type.ArrayGet (x, y) ->
+    App
+      ((App
+        (Var "Stdlib.Array.get", tinyocaml_of_finaltype x)),
+      (tinyocaml_of_finaltype y))
+| Ocamli2type.ArraySet (arr, index, newval) ->
+    App
+      (App
+        ((App
+          (Var "Stdlib.Array.set", tinyocaml_of_finaltype arr)),
+        (tinyocaml_of_finaltype index)),
+        (tinyocaml_of_finaltype newval))
+| Ocamli2type.Let (recflag, (n, a), b) ->
+    Let
+      (recflag,
+       [(PatVar n, tinyocaml_of_finaltype a)],
+       tinyocaml_of_finaltype b)
+| Ocamli2type.Match (e, cases) ->
+    Match
+      (tinyocaml_of_finaltype e,
+       List.map tinyocaml_of_finaltype_case cases)
+| Ocamli2type.Struct ls ->
+    Struct (false, List.map tinyocaml_of_finaltype ls)
+| Ocamli2type.LetDef (recflag, (n, e)) ->
+    LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
+
+(* Here, e is the function, and the next argument is all the args in order. *)
+and tinyocaml_of_finaltype_apply_inner (e : Tinyocaml.t) (args : Tinyocaml.t list) =
+  match args with
+    h::t ->
+     tinyocaml_of_finaltype_apply_inner (Tinyocaml.App (e, h)) t
+  | [] -> e
+
+and tinyocaml_of_finaltype_apply e args =
+  tinyocaml_of_finaltype_apply_inner
+    (tinyocaml_of_finaltype e)
+    (List.map tinyocaml_of_finaltype args)
+
+and tinyocaml_of_finaltype_case (pat, guard, rhs) =
+  (tinyocaml_of_finaltype_pattern pat,
+   tinyocaml_of_finaltype_guard guard,
+   tinyocaml_of_finaltype rhs)
+
+and tinyocaml_of_finaltype_guard = function
+  None -> None
+| Some g -> Some (tinyocaml_of_finaltype g)
+
+and tinyocaml_of_finaltype_pattern = function
+  Ocamli2type.PatAny -> PatAny
+| Ocamli2type.PatConstr ("[]", []) -> PatNil
+| Ocamli2type.PatVar v -> PatVar v
+| Ocamli2type.PatConstr ("::", [h; t]) ->
+    PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
+| Ocamli2type.PatConstant (IntConstant i) ->
+    PatInt i
+| _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
+
+(* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
+  (* If any implicit lets, fabricate them -- but only if they are used in the
+   * expression underneath, and not shadowed. *)
+  (*Printf.printf "We have %i lets\n" (List.length lets);*)
+
+and basiclets_of_envitem (recflag, r) =
+  List.map
+    (fun (n, e) -> (recflag, n, e))
+    !r
+
+and basiclets_of_env env =
+  List.flatten (List.map basiclets_of_envitem env)
+
+and tinyocaml_of_finaltype {e; typ; lets} =
+  let remove_names_from_lets names =
+    List.filter (fun (_, v, _) -> List.mem v names)
+  in
+  let rec remove_shadowed_implicits = function
+    [] -> []
+  | (recflag, n, e)::r ->
+      if List.mem n (List.map (fun (_, x, _) -> x) r)
+        then remove_shadowed_implicits r
+        else (recflag, n, e)::remove_shadowed_implicits r
+  in
+  let rec fabricate_lets e = function
+    [] -> e
+  | (recflag, n, rhs)::r ->
+      fabricate_lets (Tinyocaml.Let (recflag, [(Tinyocaml.PatVar n, tinyocaml_of_finaltype rhs)], e)) r
+  in
+  let inner = tinyocaml_of_finaltype_t' typ e in
+    if lets = [] then inner else
+      let names = Ocamli2type.names_in_t' e in
+      (*Printf.printf "%i names in t'\n" (List.length names);*)
+      (* FIXME. For now, we convert lets to just (recflag, n, e) "basiclets" to make it easier to deal with.
+      Eventually, once we have let...and and mutual recursion, we must do it properly. *)
+      let lets_to_print =
+        if !show_all_lets then basiclets_of_env lets else
+          remove_names_from_lets names (remove_shadowed_implicits (basiclets_of_env lets))
+      in
+        (*Printf.printf "lets to print: %i\n" (List.length lets_to_print);*)
+        fabricate_lets inner (List.rev lets_to_print)
+
+
+
+let print_finaltype_inner f isleft parent node =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  (*let lp, rp = parens node parent isleft in*)
+  boldtxt "\nNEW: "
+
+let output_tags f =
+  List.iter (output_tag f) !tags
+
+let print ?(preamble="") f (t : Tinyocaml.t) (v : Ocamli2type.t) =
+  let tagfuns =
+    {Format.mark_open_tag = (fun _ -> "");
+     Format.mark_close_tag = (fun _ -> "");
+     Format.print_open_tag =
+       (if !syntax then
+         (fun tag -> tags := tag::!tags; output_tag f tag)
+       else
+         (fun _ -> ()));
+     Format.print_close_tag =
+       (if !syntax then
+         (fun _ ->
+            if !tags = [] then failwith "ill-matched tags: pop";
+            tags := List.tl !tags;
+            begin if !syntax_tex
+              then Format.pp_print_string f "}"
+              else Format.pp_print_string f code_end
+            end;
+            if !tags <> [] then output_tags f)
+       else
+         (fun _ -> ()))}
+  in
+    Format.pp_set_formatter_tag_functions f tagfuns;
+    Format.pp_set_tags f true;
+    Format.pp_set_print_tags f true;
+    Format.pp_set_margin f !width;
+    if !simple then Format.pp_set_margin f max_int;
+    Format.pp_open_box f 4;
+    Format.pp_print_string f preamble;
+    print_tiny_inner f true None t;
+    print_finaltype_inner f true None v;
+    Format.pp_close_box f ();
+    Format.pp_print_flush f ()
+
+let to_string ?(preamble="") t v =
+  print ~preamble Format.str_formatter t v;
+  Format.flush_str_formatter ()
+
+let to_string_from_finaltype ?(preamble="") v =
+  to_string (tinyocaml_of_finaltype v) v
+
+let to_string_from_heap ?(preamble="") typ v =
+  to_string
+    (tinyocaml_of_ocaml_heap_value typ v)
+    {Ocamli2type.e = Ocamli2type.Value v;
+     Ocamli2type.lets = [];
+     Ocamli2type.typ = typ}
+
 let string_of_op = function
     Ocamli2type.Add -> "Add"
   | Ocamli2type.Sub -> "Sub"
   | Ocamli2type.Mul -> "Mul"
   | Ocamli2type.Div -> "Div" 
 
-let to_string_from_heap ?(preamble="") typ v =
-  to_string (tinyocaml_of_ocaml_heap_value typ v)
 
 let rec string_of_t' typ = function
   Ocamli2type.Value x -> to_string_from_heap typ x
@@ -907,172 +1097,4 @@ and string_of_env es =
   List.fold_left ( ^ ) "" (List.map (fun e -> string_of_envitem e ^ ";\n") es)
 
 
-(* From the former ocamli2write.ml *)
-let show_all_lets = ref false
-
-(* For now, convert to tinyocaml thence to pptinyocaml. Soon, we will need our own prettyprinter, of course *)
-let tinyocaml_op_of_finaltype_op = function
-  Ocamli2type.Add -> Add
-| Ocamli2type.Sub -> Sub
-| Ocamli2type.Mul -> Mul
-| Ocamli2type.Div -> Div
-
-let rec tinyocaml_of_finaltype_t' typ = function
-  Ocamli2type.Value x -> tinyocaml_of_ocaml_heap_value typ x
-| Ocamli2type.Function (cases, env) -> Function (List.map tinyocaml_of_finaltype_case cases, [])
-| Ocamli2type.Apply (e, args) -> tinyocaml_of_finaltype_apply e args
-| Ocamli2type.Var x -> Var x
-| Ocamli2type.ArrayExpr arr -> Array (Array.map tinyocaml_of_finaltype arr)
-| Ocamli2type.Cons (h, t) -> Cons (tinyocaml_of_finaltype h, tinyocaml_of_finaltype t)
-| Ocamli2type.Append (a, b) -> Append (tinyocaml_of_finaltype a, tinyocaml_of_finaltype b)
-| Ocamli2type.IntOp (op, x, y) ->
-    Op
-      (tinyocaml_op_of_finaltype_op op,
-       tinyocaml_of_finaltype x,
-       tinyocaml_of_finaltype y)
-| Ocamli2type.FOp (op, x, y) ->
-    App
-      ((App (Var "Stdlib.+.", tinyocaml_of_finaltype x)), tinyocaml_of_finaltype y)
-| Ocamli2type.ArrayGet (x, y) ->
-    App
-      ((App
-        (Var "Stdlib.Array.get", tinyocaml_of_finaltype x)),
-      (tinyocaml_of_finaltype y))
-| Ocamli2type.ArraySet (arr, index, newval) ->
-    App
-      (App
-        ((App
-          (Var "Stdlib.Array.set", tinyocaml_of_finaltype arr)),
-        (tinyocaml_of_finaltype index)),
-        (tinyocaml_of_finaltype newval))
-| Ocamli2type.Let (recflag, (n, a), b) ->
-    Let
-      (recflag,
-       [(PatVar n, tinyocaml_of_finaltype a)],
-       tinyocaml_of_finaltype b)
-| Ocamli2type.Match (e, cases) ->
-    Match
-      (tinyocaml_of_finaltype e,
-       List.map tinyocaml_of_finaltype_case cases)
-| Ocamli2type.Struct ls ->
-    Struct (false, List.map tinyocaml_of_finaltype ls)
-| Ocamli2type.LetDef (recflag, (n, e)) ->
-    LetDef (recflag, [(PatVar n, tinyocaml_of_finaltype e)]) 
-
-(* Here, e is the function, and the next argument is all the args in order. *)
-and tinyocaml_of_finaltype_apply_inner (e : t) (args : t list) =
-  match args with
-    h::t ->
-     tinyocaml_of_finaltype_apply_inner (App (e, h)) t
-  | [] -> e
-
-and tinyocaml_of_finaltype_apply e args =
-  tinyocaml_of_finaltype_apply_inner
-    (tinyocaml_of_finaltype e)
-    (List.map tinyocaml_of_finaltype args)
-
-and tinyocaml_of_finaltype_case (pat, guard, rhs) =
-  (tinyocaml_of_finaltype_pattern pat,
-   tinyocaml_of_finaltype_guard guard,
-   tinyocaml_of_finaltype rhs)
-
-and tinyocaml_of_finaltype_guard = function
-  None -> None
-| Some g -> Some (tinyocaml_of_finaltype g)
-
-and tinyocaml_of_finaltype_pattern = function
-  Ocamli2type.PatAny -> PatAny
-| Ocamli2type.PatConstr ("[]", []) -> PatNil
-| Ocamli2type.PatVar v -> PatVar v
-| Ocamli2type.PatConstr ("::", [h; t]) ->
-    PatCons (tinyocaml_of_finaltype_pattern h, tinyocaml_of_finaltype_pattern t)
-| Ocamli2type.PatConstant (IntConstant i) ->
-    PatInt i
-| _ -> failwith "tinyocaml_of_finaltype_pattern: unknown"
-
-(* FIXME Need to remove anything shadowed by a name binding because of a pattern in a pattern match too *)
-  (* If any implicit lets, fabricate them -- but only if they are used in the
-   * expression underneath, and not shadowed. *)
-  (*Printf.printf "We have %i lets\n" (List.length lets);*)
-
-and basiclets_of_envitem (recflag, r) =
-  List.map
-    (fun (n, e) -> (recflag, n, e))
-    !r
-
-and basiclets_of_env env =
-  List.flatten (List.map basiclets_of_envitem env)
-
-and tinyocaml_of_finaltype {e; typ; lets} =
-  let remove_names_from_lets names =
-    List.filter (fun (_, v, _) -> List.mem v names)
-  in
-  let rec remove_shadowed_implicits = function
-    [] -> []
-  | (recflag, n, e)::r ->
-      if List.mem n (List.map (fun (_, x, _) -> x) r)
-        then remove_shadowed_implicits r
-        else (recflag, n, e)::remove_shadowed_implicits r
-  in
-  let rec fabricate_lets e = function
-    [] -> e
-  | (recflag, n, rhs)::r ->
-      fabricate_lets (Let (recflag, [(PatVar n, tinyocaml_of_finaltype rhs)], e)) r
-  in
-  let inner = tinyocaml_of_finaltype_t' typ e in
-    if lets = [] then inner else
-      let names = Ocamli2type.names_in_t' e in
-      (*Printf.printf "%i names in t'\n" (List.length names);*)
-      (* FIXME. For now, we convert lets to just (recflag, n, e) "basiclets" to make it easier to deal with.
-      Eventually, once we have let...and and mutual recursion, we must do it properly. *)
-      let lets_to_print =
-        if !show_all_lets then basiclets_of_env lets else
-          remove_names_from_lets names (remove_shadowed_implicits (basiclets_of_env lets))
-      in
-        (*Printf.printf "lets to print: %i\n" (List.length lets_to_print);*)
-        fabricate_lets inner (List.rev lets_to_print)
-
-
-let to_string_from_finaltype ?(preamble="") v =
-  to_string (tinyocaml_of_finaltype v)
-
-let output_tags f =
-  List.iter (output_tag f) !tags
-
-let print ?(preamble="") f t =
-  let tagfuns =
-    {Format.mark_open_tag = (fun _ -> "");
-     Format.mark_close_tag = (fun _ -> "");
-     Format.print_open_tag =
-       (if !syntax then
-         (fun tag -> tags := tag::!tags; output_tag f tag)
-       else
-         (fun _ -> ()));
-     Format.print_close_tag =
-       (if !syntax then
-         (fun _ ->
-            if !tags = [] then failwith "ill-matched tags: pop";
-            tags := List.tl !tags;
-            begin if !syntax_tex
-              then Format.pp_print_string f "}"
-              else Format.pp_print_string f code_end
-            end;
-            if !tags <> [] then output_tags f)
-       else
-         (fun _ -> ()))}
-  in
-    Format.pp_set_formatter_tag_functions f tagfuns;
-    Format.pp_set_tags f true;
-    Format.pp_set_print_tags f true;
-    Format.pp_set_margin f !width;
-    if !simple then Format.pp_set_margin f max_int;
-    Format.pp_open_box f 4;
-    Format.pp_print_string f preamble;
-    print_tiny_inner f true None (tinyocaml_of_finaltype t);
-    Format.pp_close_box f ();
-    Format.pp_print_flush f ()
-
-let to_string ?(preamble="") t =
-  print ~preamble Format.str_formatter t;
-  Format.flush_str_formatter ()
 
