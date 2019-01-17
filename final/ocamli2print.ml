@@ -945,15 +945,93 @@ and tinyocaml_of_finaltype {e; typ; lets} =
         fabricate_lets inner (List.rev lets_to_print)
 
 
+(* The new printer *)
 
-let print_finaltype_inner f isleft parent node =
+let printstring_of_op = function
+    Ocamli2type.Add -> "+"
+  | Ocamli2type.Sub -> "-"
+  | Ocamli2type.Mul -> "*"
+  | Ocamli2type.Div -> "/" 
+
+let rec assoc = function
+| Ocamli2type.IntOp _ | Ocamli2type.Apply _ -> L
+| Ocamli2type.ArraySet _ -> R
+| _ -> N
+
+let prec = function
+  Ocamli2type.ArrayGet _ -> 110
+| Ocamli2type.Apply _ ->
+    (* All other function applications *)
+    100
+| Ocamli2type.IntOp ((Ocamli2type.Mul | Ocamli2type.Div), _, _) -> 90
+| Ocamli2type.IntOp (_, _, _) -> 80
+| Ocamli2type.ArraySet _ -> 55
+| Ocamli2type.Function _ | Ocamli2type.Let _ | Ocamli2type.LetDef _ -> 10
+| _ -> max_int
+
+let parens node parent isleft =
+  match parent with
+    None -> ("","")
+  | Some p ->
+      let p = p.Ocamli2type.e in 
+      if   prec node > prec p
+        || assoc node = N && prec node = prec p
+        || assoc node = L && isleft && assoc p = L && prec node = prec p
+        || assoc node = R && not isleft && assoc p = R && prec node = prec p
+      then
+        ("","")
+      else
+        ("(", ")")
+
+let string_of_value v = function
+    Tconstr (p, _, _) when Path.name p = "int" -> string_of_int (Obj.magic v : int)
+  | Tconstr (p, _, _) when Path.name p = "float" -> string_of_float (Obj.magic v : float)
+  | Tconstr (p, _, _) when Path.name p = "unit" -> "()"
+  (*| Tconstr (p, [elt_t], _) when Path.name p = "array" ->
+     Tinyocaml.Array
+        (Array.init
+          (Obj.size value)
+          (fun i -> tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value i)))
+  | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
+      if Obj.is_int value then Tinyocaml.Nil else
+        Tinyocaml.Cons
+          (tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value 0),
+           tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))*)
+  | _ -> if !showvals
+           then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
+           else "<unknown val>"
+
+let rec print_finaltype_inner f isleft parent node =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+  let lp, rp = parens node.Ocamli2type.e parent isleft in
+  (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
+  (* 2. Match on the expression itself, and print *)
+  match node.Ocamli2type.e with
+    Ocamli2type.Value v ->
+      str (string_of_value v node.typ)
+  | Ocamli2type.IntOp (op, l, r) ->
+      str lp;
+      print_finaltype_inner f true (Some node) l;
+      txt " ";
+      str (printstring_of_op op);
+      txt " ";
+      print_finaltype_inner f false (Some node) r;
+      str rp
+  | _ -> ()
+
+let print_finaltype f t =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
   (*let lp, rp = parens node parent isleft in*)
-  boldtxt "\nNEW: "
+  boldtxt "\nNEW: ";
+  print_finaltype_inner f true None t
 
 let output_tags f =
   List.iter (output_tag f) !tags
@@ -988,7 +1066,7 @@ let print ?(preamble="") f (t : Tinyocaml.t) (v : Ocamli2type.t) =
     Format.pp_open_box f 4;
     Format.pp_print_string f preamble;
     print_tiny_inner f true None t;
-    print_finaltype_inner f true None v;
+    print_finaltype f v;
     Format.pp_close_box f ();
     Format.pp_print_flush f ()
 
@@ -1005,6 +1083,7 @@ let to_string_from_heap ?(preamble="") typ v =
     {Ocamli2type.e = Ocamli2type.Value v;
      Ocamli2type.lets = [];
      Ocamli2type.typ = typ}
+
 
 let string_of_op = function
     Ocamli2type.Add -> "Add"
