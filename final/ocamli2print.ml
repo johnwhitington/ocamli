@@ -983,20 +983,28 @@ let parens node parent isleft =
       else
         ("(", ")")
 
-let string_of_value v = function
+let rec list_elements value =
+  if Obj.is_int value then [] else
+    Obj.field value 0 :: list_elements (Obj.field value 1)
+
+let rec string_of_value v = function
     Tconstr (p, _, _) when Path.name p = "int" -> string_of_int (Obj.magic v : int)
   | Tconstr (p, _, _) when Path.name p = "float" -> string_of_float (Obj.magic v : float)
   | Tconstr (p, _, _) when Path.name p = "unit" -> "()"
-  (*| Tconstr (p, [elt_t], _) when Path.name p = "array" ->
-     Tinyocaml.Array
-        (Array.init
-          (Obj.size value)
-          (fun i -> tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value i)))
+  | Tconstr (p, [elt_t], _) when Path.name p = "array" ->
+      let strings =
+        Array.init
+          (Obj.size v)
+          (fun i -> string_of_value (Obj.field v i) (Ocamli2type.find_type_desc elt_t))
+      in
+        "[|"
+      ^ Array.fold_left ( ^ ) "" (Array.map (fun x -> x ^ "; ") strings)
+      ^ "|]"
   | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
-      if Obj.is_int value then Tinyocaml.Nil else
-        Tinyocaml.Cons
-          (tinyocaml_of_ocaml_heap_value (Ocamli2type.find_type_desc elt_t) (Obj.field value 0),
-           tinyocaml_of_ocaml_heap_value typ (Obj.field value 1))*)
+        "["
+      ^ List.fold_left ( ^ ) "" (List.map (fun x -> x ^ "; ") 
+          (List.map (fun v -> string_of_value v (Ocamli2type.find_type_desc elt_t)) (list_elements v)))
+      ^ "]"
   | _ -> if !showvals
            then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
            else "<unknown val>"
@@ -1009,8 +1017,20 @@ let rec print_finaltype_inner f isleft parent node =
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node.Ocamli2type.e parent isleft in
   (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
+  str lp;
+  List.iter
+    (fun (recflag, {contents = bindings}) ->
+       List.iter
+         (fun (n, e) ->
+            if recflag then boldtxt "let rec " else boldtxt "let ";
+            txt n;
+            txt " = ";
+            print_finaltype_inner f true (Some node) e;
+            boldtxt " in ")
+         bindings)
+    node.lets;
   (* 2. Match on the expression itself, and print *)
-  match node.Ocamli2type.e with
+  begin match node.Ocamli2type.e with
     Ocamli2type.Value v ->
       str (string_of_value v node.typ)
   | Ocamli2type.IntOp (op, l, r) ->
@@ -1021,10 +1041,65 @@ let rec print_finaltype_inner f isleft parent node =
       txt " ";
       print_finaltype_inner f false (Some node) r;
       str rp
-  | _ -> ()
+  | Ocamli2type.Struct structure_items ->
+      let l = List.length structure_items in
+        List.iteri
+          (fun i x ->
+             print_finaltype_inner f false (Some node) x;
+             if i < l - 1 then txt "\n\n")
+          structure_items;
+  | Ocamli2type.LetDef (recflag, (n, e)) ->
+      str lp;
+      if recflag then boldtxt "let rec " else boldtxt "let ";
+      txt n;
+      txt " ";
+      txt "= ";
+      print_finaltype_inner f false (Some node) e;
+      str rp
+  | Ocamli2type.Let (recflag, (n, e), e') ->
+      str lp;
+      if recflag then boldtxt "let rec " else boldtxt "let ";
+      txt n;
+      txt " = ";
+      print_finaltype_inner f false (Some node) e;
+      boldtxt " in ";
+      print_finaltype_inner f false (Some node) e';
+      str rp
+  | Ocamli2type.Var x ->
+      str x
+  | Ocamli2type.Apply (fn, args) ->
+      str lp;
+      print_finaltype_inner f false (Some node) fn;
+      List.iter (fun arg -> txt " "; print_finaltype_inner f false (Some node) arg) args;
+      str rp
+  | Ocamli2type.Function (cases, _) ->
+      str lp;
+      boldtxt "function ";
+      List.iter
+       (fun (pat, _, rhs) ->
+         str "| ";
+         print_finaltype_pattern f false (Some node) pat;
+         str " -> ";
+         print_finaltype_inner f false (Some node) rhs)
+       cases;
+      str rp
+  end;
+  str rp
+
+and print_finaltype_pattern f isleft parent pat =
+  let str = Format.fprintf f "%s" in
+  let txt = Format.pp_print_text f in
+  let bold () = Format.pp_open_tag f (string_of_tag Bold) in
+  let unbold () = Format.pp_close_tag f () in
+  let boldtxt t = bold (); txt t; unbold () in
+    match pat with
+      Ocamli2type.PatAny -> str "_"
+    | Ocamli2type.PatVar v -> str v
+    | Ocamli2type.PatConstr (name, pats) ->
+        str name; str " "; List.iter (fun x -> print_finaltype_pattern f isleft parent x; txt " ") pats
+    | Ocamli2type.PatConstant (Ocamli2type.IntConstant i) -> str (string_of_int i)
 
 let print_finaltype f t =
-  let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
   let unbold () = Format.pp_close_tag f () in
