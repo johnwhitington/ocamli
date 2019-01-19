@@ -20,6 +20,9 @@ let simple = ref false
 (* Width to format to *)
 let width = ref 80
 
+(* Show all implicit lets, for debug *)
+let show_all_lets = ref false
+
 type assoc = L | R | N
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
@@ -305,7 +308,7 @@ let print ?(preamble="") f (v : t) =
     if !simple then Format.pp_set_margin f max_int;
     Format.pp_open_box f 4;
     Format.pp_print_string f preamble;
-    print_finaltype f v;
+    print_finaltype f (if !show_all_lets then v else Ocamli2type.remove_unused_lets v);
     Format.pp_close_box f ();
     Format.pp_print_flush f ()
 

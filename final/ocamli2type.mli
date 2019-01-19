@@ -1,5 +1,3 @@
-
-
 type op = Add | Sub | Mul | Div
 
 type patconstant =
@@ -47,9 +45,7 @@ val should_be_value : t -> bool
 
 val should_be_value_t' : t' -> bool
 
-val names_in : t -> string list
-
-val names_in_t' : t' -> string list
+val remove_unused_lets : t -> t
 
 val find_type_desc : Types.type_expr -> Types.type_desc
 

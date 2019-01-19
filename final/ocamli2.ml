@@ -23,6 +23,7 @@ let argspec =
    "-dno-syntax", Arg.Clear Ocamli2print.syntax, " Do not use syntax highlighting";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
    "-dnovals", Arg.Clear Ocamli2print.showvals, "Do not show values in steps";
+   "-dshowalllets", Arg.Set Ocamli2print.show_all_lets, "Show even unused lets";
    "-drules", Arg.Set Ocamli2eval.showrules, " Show reduction rule for each step of evaluation"]
 
 let _ =
