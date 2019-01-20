@@ -109,8 +109,41 @@ and names_in {lets; e} =
  * this for every t in the whole expression. This relies on implicit lets not
  * being reported as "used names" in names_in. They are consulted when
  * calculating whether they occlude names under them, though. *)
-let map_t t = t
+let rec map_t' f = function
+  Value v -> Value v
+| Function (cases, env) -> Function (List.map (map_case f) cases, map_env f env)
+| Apply (func, args) -> Apply (map_t f func, List.map (map_t f) args)
+| Var v -> Var v
+| ArrayExpr elts -> ArrayExpr (Array.map (map_t f) elts)
+| Cons (h, t) -> Cons (map_t f h, map_t f t)
+| Append (a, b) -> Append (map_t f a, map_t f b)
+| IntOp (op, x, y) -> IntOp (op, map_t f x, map_t f y)
+| FOp (op, x, y) -> FOp (op, map_t f x, map_t f y)
+| ArrayGet (a, b) -> ArrayGet (map_t f a, map_t f b)
+| ArraySet (a, b, c) -> ArraySet (map_t f a, map_t f b, map_t f c)
+| Let (recflag, binding, e) -> Let (recflag, map_binding f binding, map_t f e)
+| Match (e, cases) -> Match (map_t f e, List.map (map_case f) cases)
+| Struct items -> Struct (List.map (map_t f) items)
+| LetDef (recflag, binding) -> LetDef (recflag, map_binding f binding)
 
+and map_t f t = {t with e = map_t' f t.e; lets = map_env f t.lets}
+
+and map_env f env = List.map (map_envitem f) env
+
+and map_envitem f (recflag, {contents}) =
+  (recflag, {contents = List.map (map_binding f) contents})
+
+and map_binding f (n, e) = (n, map_t f e)
+
+and map_case f = function
+  (p, None, rhs) -> (p, None, map_t f rhs)
+| (p, Some guard, rhs) -> (p, Some (map_t f guard), map_t f rhs)
+
+(* Remove unused implicit lets from an expression so it may be printed better.
+ * This function works by using [map_t] to map over the expression, beginning
+ * at the leaves of the tree and working upward. Thus, at each node, implicit
+ * lets may be removed. Then, at the node above, they have already gone, so do
+ * not count as used from that node. *)
 let remove_unused_lets t =
   map_t (fun x -> x) t
 

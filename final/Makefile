@@ -9,8 +9,8 @@ PACKS = compiler-libs.common
 
 RESULT = ocamli2
 
-OCAMLNCFLAGS = -safe-string -g -w -3 -w -40
-OCAMLBCFLAGS = -safe-string -g -w -3 -w -40
+OCAMLNCFLAGS = -g
+OCAMLBCFLAGS = -g
 OCAMLLDFLAGS = -g
 
 all : native-code
