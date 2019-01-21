@@ -62,53 +62,7 @@ let rec should_be_value_t' = function
 
 and should_be_value {e} = should_be_value_t' e
 
-(* Set of the names which are free in an expression. *)
-let rec names_in_t' = function
-  Value _ -> []
-| Function (cases, env) ->
-    (* 1. Fix to exclude bound names *)
-    List.flatten (List.map names_in_case cases)
-| Apply (a, es) -> names_in a @ List.flatten (List.map names_in es)
-| Var x -> [x]
-| ArrayExpr elts -> List.flatten (Array.to_list (Array.map names_in elts))
-| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') ->
-    names_in e @ names_in e'
-| Let (_, binding, e) ->
-    (* 2. Fix to exclude bound names Also rec? *)
-    names_in_binding binding @ names_in e
-| ArraySet (e, e', e'') -> names_in e @ names_in e' @ names_in e''
-| Match (e, cases) ->
-    (* 3. Fix to exclude bound names *)
-    names_in e @ List.flatten (List.map names_in_case cases)
-| Struct l ->
-    (* 4. Fix to apply lets to what is below *)
-    List.flatten (List.map names_in l)
-| LetDef (_, (n, e)) ->
-    (* 5. Fix to exclude bound names in rec. *)
-    n :: names_in e
-
-(* Fix because of (1, 3) *)
-and names_in_case (pat, guard, e) =
-  names_in e @
-  begin match guard with None -> [] | Some e -> names_in e end
-
-(* Fix because of (2) *)
-and names_in_binding (n, e) =
-  n :: names_in e 
-
-(* Fix because of (7) *)
-and names_in_envitem (_, r) =
-  List.flatten (List.map names_in_binding !r)
-
-and names_in {lets; e} =
-  (* 6. Fix to make it a set *)
-  (* 7. Fix to deal with implcit lets properly *)
-  List.flatten (List.map names_in_envitem lets) @ names_in_t' e
-
-(* Main procedure. Find names used in any t' and remove them from the t. Do
- * this for every t in the whole expression. This relies on implicit lets not
- * being reported as "used names" in names_in. They are consulted when
- * calculating whether they occlude names under them, though. *)
+(* Map over the data structure, given a function from t -> t *)
 let rec map_t' f = function
   Value v -> Value v
 | Function (cases, env) -> Function (List.map (map_case f) cases, map_env f env)
@@ -126,7 +80,7 @@ let rec map_t' f = function
 | Struct items -> Struct (List.map (map_t f) items)
 | LetDef (recflag, binding) -> LetDef (recflag, map_binding f binding)
 
-and map_t f t = {t with e = map_t' f t.e; lets = map_env f t.lets}
+and map_t f t = f t
 
 and map_env f env = List.map (map_envitem f) env
 
@@ -139,13 +93,78 @@ and map_case f = function
   (p, None, rhs) -> (p, None, map_t f rhs)
 | (p, Some guard, rhs) -> (p, Some (map_t f guard), map_t f rhs)
 
+(* List of the names which are free in an expression (may contain duplicates). *)
+let remove_name n = List.filter (fun x -> x <> n)
+
+let rec free_in_t' = function
+  Value _ -> []
+| Function (cases, _) -> free_in_cases cases
+| Apply (a, es) -> free_in a @ List.flatten (List.map free_in es)
+| Var x -> [x]
+| ArrayExpr elts -> List.flatten (Array.to_list (Array.map free_in elts))
+| IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e') | Append (e, e') ->
+    free_in e @ free_in e'
+| Let (recflag, (n, e), e') ->
+    let in_e = free_in e in
+    let in_e' = free_in e' in
+      remove_name n in_e' @ if recflag then remove_name n in_e else in_e
+| ArraySet (e, e', e'') -> free_in e @ free_in e' @ free_in e''
+| Match (e, cases) -> free_in e @ free_in_cases cases
+| Struct l -> free_in_multiple_items l
+| LetDef (_, (n, e)) -> failwith "free_in_multiple_items: LetDef"
+
+and free_in_multiple_items = function
+  [] -> []
+| {e = LetDef (recflag, (n, e))}::t ->
+    let below = free_in_multiple_items t in
+    let from_e = free_in e in
+      remove_name n below @ if recflag then remove_name n from_e else from_e
+| _ -> failwith "free_in_multiple_items: unexpected structure item"
+
+and free_in_case (pat, guard, e) =
+  let name_of_pattern = function
+    | PatVar v -> Some v
+    | _ -> None
+  in
+    let names = 
+      free_in e @ (match guard with None -> [] | Some e -> free_in e)
+    in
+      match name_of_pattern pat with
+      | Some name -> remove_name name names
+      | None -> names
+
+and free_in_cases cases =
+  List.flatten (List.map free_in_case cases)
+
+(* B. What do we do with implicit lets when doing free? Same as explicit lets. FIX. *)
+and free_in {e} =
+  free_in_t' e
+
 (* Remove unused implicit lets from an expression so it may be printed better.
  * This function works by using [map_t] to map over the expression, beginning
  * at the leaves of the tree and working upward. Thus, at each node, implicit
  * lets may be removed. Then, at the node above, they have already gone, so do
  * not count as used from that node. *)
-let remove_unused_lets t =
-  map_t (fun x -> x) t
+let remove_lets tokeep lets =
+  Ocamli2util.option_map
+    (fun x ->
+       if List.for_all (fun (n, e) -> not (List.mem n tokeep)) !(snd x)
+         then None
+         else Some x)
+    lets
+
+(* Remove duplicate implicit lets. For example let x = 1 in let x = 2 in ...
+ * --> let x = 2 in. Only bothers with single bindings for now. *)
+let trim_lets lets = lets
+
+let rec remove_unused_lets t =
+  map_t
+    (fun t ->
+      let t2 =
+        {t with e = map_t' remove_unused_lets t.e}
+      in
+        {t2 with lets = trim_lets (remove_lets (free_in_t' t2.e) t2.lets)})
+    t
 
 (* Follow any Tlinks left from typechecking, to make pattern matching on types easier. *)
 let rec find_type_desc {desc} =
