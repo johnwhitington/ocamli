@@ -1,0 +1,2 @@
+val double : int -> int
+
