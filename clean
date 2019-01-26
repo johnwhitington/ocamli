@@ -31,3 +31,6 @@ cd ../../tppx
 make clean
 cd example
 make clean
+cd ../../ocamli2
+./clean
+

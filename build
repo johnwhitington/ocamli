@@ -13,10 +13,9 @@ echo "*****BUILDING PPX_INTERPRET example"
 cd example && make
 echo "*****BUILDING NEWTYPE"
 cd ../../newtype && make
-echo "*****BUILDING FINAL"
-cd ../final && make
 echo "*****BUILDING SECD"
 cd ../secd && make
 echo "*****BUILDING TPPX"
 cd ../tppx && make
-
+echo "*****BUILDING ocamli2"
+cd ../ocamli2 && ./build
