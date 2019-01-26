@@ -1,0 +1,6 @@
+name="ocamli2"
+description="Evaluate OCaml expressions efficiently"
+version="0.1"
+requires="unix compiler-libs.common"
+archive(byte)="ocamli2.cma"
+archive(native)="ocamli2.cmxa"

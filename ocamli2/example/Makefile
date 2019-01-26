@@ -6,13 +6,13 @@ export OCAMLFIND_IGNORE_DUPS_IN
 #These two changes are all that is required to debug a module
 SOURCES = ccode.c a.mli a.ml b.mli b.ml c.ml
 
-#This will include the interpreter and C support code for it.
-PACKS = bigarray str ocamli
+#This will include the interpreter.
+PACKS = ocamli2
 
 RESULT = example
 
-OCAMLNCFLAGS = -ppx ../tppx_interpret -ppx ../../ppx_auto/ppx_auto
-OCAMLBCFLAGS = -ppx ../tppx_interpret -ppx ../../ppx_auto/ppx_auto
+OCAMLNCFLAGS = -tppx ../tppx_interpret/tppx_interpret
+OCAMLBCFLAGS = -tppx ../tppx_interpret/tppx_interpret
 
 CFLAGS = -fPIC
 

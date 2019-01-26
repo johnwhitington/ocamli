@@ -1,0 +1,7 @@
+set -e
+echo "*****BUILDING OCAMLI2"
+make install
+echo "*****BUILDING TPPX_INTERPRET"
+cd tppx_interpret && make
+echo "*****BUILDING EXAMPLE"
+cd ../example && make 

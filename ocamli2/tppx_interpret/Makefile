@@ -3,7 +3,7 @@ export OCAMLFIND_IGNORE_DUPS_IN
 
 SOURCES = tppx_interpret.ml
 
-PACKS = compiler-libs.common
+PACKS = ocamli2 compiler-libs.common
 
 RESULT = tppx_interpret
 
