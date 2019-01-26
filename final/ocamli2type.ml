@@ -94,7 +94,7 @@ and map_case f = function
 | (p, Some guard, rhs) -> (p, Some (map_t f guard), map_t f rhs)
 
 (* List of the names which are free in an expression (may contain duplicates). *)
-let remove_name n = List.filter (fun x -> x <> n)
+let remove_name l n = List.filter (fun x -> x <> n) l
 
 let rec free_in_t' = function
   Value _ -> []
@@ -107,7 +107,7 @@ let rec free_in_t' = function
 | Let (recflag, (n, e), e') ->
     let in_e = free_in e in
     let in_e' = free_in e' in
-      remove_name n in_e' @ if recflag then remove_name n in_e else in_e
+      remove_name in_e' n @ if recflag then remove_name in_e n else in_e
 | ArraySet (e, e', e'') -> free_in e @ free_in e' @ free_in e''
 | Match (e, cases) -> free_in e @ free_in_cases cases
 | Struct l -> free_in_multiple_items l
@@ -118,7 +118,7 @@ and free_in_multiple_items = function
 | {e = LetDef (recflag, (n, e))}::t ->
     let below = free_in_multiple_items t in
     let from_e = free_in e in
-      remove_name n below @ if recflag then remove_name n from_e else from_e
+      remove_name below n @ if recflag then remove_name from_e n else from_e
 | _ -> failwith "free_in_multiple_items: unexpected structure item"
 
 and free_in_case (pat, guard, e) =
@@ -130,15 +130,18 @@ and free_in_case (pat, guard, e) =
       free_in e @ (match guard with None -> [] | Some e -> free_in e)
     in
       match name_of_pattern pat with
-      | Some name -> remove_name name names
+      | Some name -> remove_name names name
       | None -> names
 
 and free_in_cases cases =
   List.flatten (List.map free_in_case cases)
 
-(* B. What do we do with implicit lets when doing free? Same as explicit lets. FIX. *)
-and free_in {e} =
-  free_in_t' e
+and free_in {e; lets} =
+  let let_names =
+    List.flatten
+      (List.map (function (_, bs) -> List.map fst !bs) lets)
+  in
+    List.fold_left remove_name (free_in_t' e) let_names
 
 (* Remove unused implicit lets from an expression so it may be printed better.
  * This function works by using [map_t] to map over the expression, beginning
@@ -155,7 +158,19 @@ let remove_lets tokeep lets =
 
 (* Remove duplicate implicit lets. For example let x = 1 in let x = 2 in ...
  * --> let x = 2 in. Only bothers with single bindings for now. *)
-let trim_lets lets = lets
+let appears_in h t =
+  match h with
+    (false, {contents = [(n, _)]}) ->
+      List.mem
+        n
+        (Ocamli2util.option_map
+          (function (false, {contents = [(x, _)]}) -> Some x | _ -> None)
+          t)
+  | _ -> false
+
+let rec trim_lets = function
+  [] -> []
+| h::t -> if appears_in h t then trim_lets t else h::trim_lets t 
 
 let rec remove_unused_lets t =
   map_t
