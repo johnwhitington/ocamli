@@ -1,8 +1,8 @@
 open Tast_mapper
 open Asttypes
 
-let newmapper argv =
-  {default with
+let newmapper argv = default
+  (*{default with
      expr = (fun mapper expr ->
        match expr with
        | {exp_attributes = [{attr_name = {txt = "showtype"}; attr_payload =  payload}];
@@ -35,7 +35,7 @@ let newmapper argv =
             Format.print_newline ();
             default.pat mapper other
        | other -> default.pat mapper other)
-  }
+  }*)
 
 let () =
   Tast_mapper.register "tppx_interpret" newmapper

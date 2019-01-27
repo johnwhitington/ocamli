@@ -1,0 +1,6 @@
+ocamlc -c a.mli
+ocamlopt /usr/local/lib/ocaml/site-lib/ocamli2.cmxa -c -tppx ../tppx_interpret/tppx_interpret a.ml
+ocamlc -c b.mli
+ocamlopt /usr/local/lib/ocaml/site-lib/ocamli2.cmxa -c -tppx ../tppx_interpret/tppx_interpret b.ml
+ocamlopt /usr/local/lib/ocaml/site-lib/ocamli2.cmxa -c -tppx ../tppx_interpret/tppx_interpret c.ml
+

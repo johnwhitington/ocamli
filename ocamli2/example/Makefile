@@ -1,3 +1,5 @@
+#This makefile not in use. We need to call ocaml directly to get tppx to work since ocamlfind doesn't know about it.
+#BUT THIS MAKEFILE CAN BE USED FOR CLEANING WITH "make clean"
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 

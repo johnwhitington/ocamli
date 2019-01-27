@@ -4,4 +4,5 @@ make install
 echo "*****BUILDING TPPX_INTERPRET"
 cd tppx_interpret && make
 echo "*****BUILDING EXAMPLE"
-cd ../example && make 
+cd ../example && ./build
+
