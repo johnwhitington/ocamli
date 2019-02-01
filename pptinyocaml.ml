@@ -105,8 +105,7 @@ let pp_constructor_arg pp = function
     Pprintast.core_type pp
       {ptyp_desc = Ptyp_tuple coretypes;
        ptyp_loc = Location.none; 
-       ptyp_attributes = [];
-       ptyp_loc_stack = []}
+       ptyp_attributes = []}
 | _ -> failwith "unimplemented record type"
 
 

@@ -247,8 +247,7 @@ let string_of_constructor_arg = function
     string_of_coretype
       {ptyp_desc = Ptyp_tuple coretypes;
        ptyp_loc = Location.none; 
-       ptyp_attributes = [];
-       ptyp_loc_stack = []}
+       ptyp_attributes = []}
 | Pcstr_record _ -> "record"
 
 let rec dots_between = function

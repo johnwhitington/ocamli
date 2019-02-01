@@ -17,5 +17,3 @@ echo "*****BUILDING SECD"
 cd ../secd && make
 echo "*****BUILDING TPPX"
 cd ../tppx && make
-echo "*****BUILDING ocamli2"
-cd ../ocamli2 && ./build

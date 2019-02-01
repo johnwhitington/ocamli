@@ -108,8 +108,7 @@ let ast_to_string ast =
 let with_desc x =
   {pexp_desc = x;
    pexp_loc = Location.none;
-   pexp_attributes = [];
-   pexp_loc_stack = []}
+   pexp_attributes = []}
 
 let getexpr = function
   [{pstr_desc = Pstr_eval (e, _)}]

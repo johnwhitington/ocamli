@@ -232,7 +232,7 @@ and of_real_ocaml_pattern env = function
 and of_real_ocaml env x =
   match x.pexp_attributes with
     [] -> of_real_ocaml_expression_desc env x.pexp_desc
-  | {attr_name = {txt = n}; attr_payload = PStr _}::_ ->
+  | ({txt = n}, PStr _)::_ ->
       (* Just the annotation name for now, with dummy payload. *)
       Annot (n, Struct (false, []), of_real_ocaml_expression_desc env x.pexp_desc)
   | _ -> failwith "unknown annotation"
@@ -305,7 +305,7 @@ and of_real_ocaml_structure_item env = function
          let evalled = (LetDef (recflag', bindings')) in 
            (Some evalled, env')
   (* exception E of ... *)
-| {pstr_desc = Pstr_exception {ptyexn_constructor = {pext_name = {txt}; pext_kind = Pext_decl (t, _)}}} ->
+| {pstr_desc = Pstr_exception {pext_name = {txt}; pext_kind = Pext_decl (t, _)}} ->
      (Some (ExceptionDef (txt, t)), env)
   (* exception E = E' *)
 | {pstr_desc = Pstr_exception _} ->
@@ -390,18 +390,15 @@ and to_real_ocaml_pattern = function
   PatInt i ->
     {ppat_desc = Ppat_constant (Pconst_integer (string_of_int i, None));
      ppat_loc = Location.none;
-     ppat_attributes = [];
-     ppat_loc_stack = []}
+     ppat_attributes = []}
 | PatAny ->
     {ppat_desc = Ppat_any;
      ppat_loc = Location.none;
-     ppat_attributes = [];
-     ppat_loc_stack = []}
+     ppat_attributes = []}
 | PatVar v ->
     {ppat_desc = Ppat_var {txt = v; loc = Location.none};
      ppat_loc = Location.none;
-     ppat_attributes = [];
-     ppat_loc_stack = []}
+     ppat_attributes = []}
 | x -> failwith (Printf.sprintf "to_real_ocaml_pattern %s" (Tinyocaml.to_string_pat x))
 
 and to_real_ocaml_binding (pat, t) =
