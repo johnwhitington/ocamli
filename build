@@ -15,5 +15,3 @@ echo "*****BUILDING NEWTYPE"
 cd ../../newtype && make
 echo "*****BUILDING SECD"
 cd ../secd && make
-echo "*****BUILDING TPPX"
-cd ../tppx && make
