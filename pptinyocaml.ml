@@ -108,6 +108,7 @@ let pp_constructor_arg pp = function
        ptyp_attributes = []}
 | _ -> failwith "unimplemented record type"
 
+let str_of_builtin_args n = " x"
 
 let rec print_tiny_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
@@ -291,7 +292,7 @@ let rec print_tiny_inner f isleft parent node =
   | Char c -> str (Printf.sprintf "%C" c)
   | OutChannel s -> str "<out_channel>"
   | InChannel s -> str "<in_channel>"
-  | CallBuiltIn (typ, name, args, fn) -> str "<<"; str name; str ">>"
+  | CallBuiltIn (typ, name, args, fn) -> str "<<"; str name; str (str_of_builtin_args (List.length args)); str ">>"
   | Var v -> str (Ocamliutil.unstar v)
   | Constr (_, s, None) -> str s
   | Constr (_, s, Some x) ->
