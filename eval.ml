@@ -432,12 +432,12 @@ let rec eval peek (env : Tinyocaml.env) expr =
         raise (RuntimeTypeError "Comparison between values of differing types")
     else
       Bool (comp op a b)
-| Cmp (op, a, b) when is_value a ->
+| Cmp (op, a, b) when is_value b ->
     if !debugrules then print_endline "Cmp-Val-Expr";
-    Cmp (op, a, eval peek env b)
+    Cmp (op, eval peek env a, b)
 | Cmp (op, a, b) ->
     if !debugrules then print_endline "Cmp-Expr-Expr";
-    Cmp (op, eval peek env a, b)
+    Cmp (op, a, eval peek env b)
 | If (Bool true, a, _) ->
     if !debugrules then print_endline "If-True";
     last := IfBool::!last; a

@@ -67,8 +67,8 @@ let rec underline_redex e =
     | Or (Bool false, Bool b) -> underline e
     | Or (Bool false, b) -> Or (Bool false, underline_redex b)
     | Cmp (_, (Int _ | Var _), (Int _ | Var _)) -> underline e
-    | Cmp (op, ((Int _ | Var _) as a), b) -> Cmp (op, a, underline_redex b)
-    | Cmp (op, a, b) -> Cmp (op, underline_redex a, b)
+    | Cmp (op, a, ((Int _ | Var _) as b)) -> Cmp (op, underline_redex a, b)
+    | Cmp (op, a, b) -> Cmp (op, a, underline_redex b)
     | If (Bool _, _, _) -> underline e
     | If (cond, a, b) -> If (underline_redex cond, a, b)
     | Let (recflag, bindings, e') ->

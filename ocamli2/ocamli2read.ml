@@ -53,28 +53,28 @@ let rec finaltype_of_expression_desc env = function
         Let (recflag = Recursive, (var, expr), expr')
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident i, "@", _), _, _)},
+        Texp_ident (Path.Pdot (Path.Pident i, "@"), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        Append (finaltype_of_expression env arg1, finaltype_of_expression env arg2)
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident i, (("+" | "-" | "*" | "/") as optext), _), _, _)},
+        Texp_ident (Path.Pdot (Path.Pident i, (("+" | "-" | "*" | "/") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        IntOp (op_of_text optext, finaltype_of_expression env arg1, finaltype_of_expression env arg2)
 | Texp_apply
     ({exp_desc =
-        Texp_ident (Path.Pdot (Path.Pident i, (("+." | "-." | "*." | "/.") as optext), _), _, _)},
+        Texp_ident (Path.Pdot (Path.Pident i, (("+." | "-." | "*." | "/.") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        FOp (op_of_text optext, finaltype_of_expression env arg1, finaltype_of_expression env arg2)
 | Texp_apply
     ({exp_desc =
-      Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y, _), z, _), _, _)},
+      Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y), z), _, _)},
         [(_, Some arr); (_, Some index)])
       when Ident.name x = "Stdlib" && y = "Array" && z = "get" ->
         ArrayGet (finaltype_of_expression env arr, finaltype_of_expression env index)
 | Texp_apply
     ({exp_desc =
-      Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y, _), z, _), _, _)},
+      Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y), z), _, _)},
         [(_, Some arr); (_, Some index); (_, Some newval)])
       when Ident.name x = "Stdlib" && y = "Array" && z = "set" ->
         ArraySet
@@ -93,7 +93,7 @@ let rec finaltype_of_expression_desc env = function
         Value (to_ocaml_heap_value (ArrayExpr arr))
       else
         ArrayExpr arr
-| Texp_match (a, cases, _, _) ->
+| Texp_match (a, cases, _) ->
     Match (finaltype_of_expression env a, List.map (finaltype_of_case env) cases) 
 | _ -> failwith "finaltype_of_expression_desc: unknown"
 
