@@ -139,6 +139,7 @@ let rec print_finaltype_inner f isleft parent node =
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
   let lp, rp = parens node.e parent isleft in
+  if node.peek = Some {underline = true} then Format.pp_open_tag f "underline";
   (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
   str lp;
   List.iter
@@ -261,7 +262,8 @@ let rec print_finaltype_inner f isleft parent node =
       print_finaltype_inner f false (Some node) t;
       str rp
   end;
-  str rp
+  str rp;
+  if node.peek = Some {underline = true} then Format.pp_close_tag f ()
 
 and print_finaltype_pattern f isleft parent pat =
   let str = Format.fprintf f "%s" in
@@ -389,7 +391,7 @@ and string_of_pattern = function
 and string_of_items items =
   List.fold_left ( ^ ) "" (List.map (fun x -> string_of_t x ^ ";") items)
 
-and string_of_t {typ; e; lets} =
+and string_of_t {typ; e; lets; peek} =
   List.fold_left ( ^ ) ""
     (List.map
     (fun (recflag, r) ->
