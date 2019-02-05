@@ -11,6 +11,9 @@ type pattern =
 | PatConstr of string * pattern list
 | PatConstant of patconstant
 
+type peekinfo =
+  {underline : bool}
+
 type t' =
   Value of Obj.t
 | Function of case list * env
@@ -31,7 +34,8 @@ type t' =
 and t =
   {typ : Types.type_desc;
    e : t';
-   lets : env}
+   lets : env;
+   peek : peekinfo option}
 
 and env = envitem list
 

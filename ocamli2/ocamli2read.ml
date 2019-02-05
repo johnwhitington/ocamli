@@ -126,7 +126,8 @@ and finaltype_of_expression env exp =
   try
     {e = finaltype_of_expression_desc env exp.exp_desc;
      typ = find_type_desc exp.exp_type;
-     lets = []}
+     lets = [];
+     peek = None}
   with
     IsImplicitLet (var, expr, expr') ->
       (*Printf.printf "Adding implicit let %s\n" var;*)
@@ -149,11 +150,13 @@ let finaltype_of_typedtree {str_items} =
                 in
                   {e = LetDef (recflag = Recursive, (name, finaltype_of_expression [] vb.vb_expr));
                    lets = [];
-                   typ = find_type_desc vb.vb_expr.exp_type}
+                   typ = find_type_desc vb.vb_expr.exp_type;
+                   peek = None}
             | _ -> failwith "finaltype_of_typedtree")
           str_items);
        lets = [];
-       typ = Types.Tnil} (* FIXME: Proper support for signature types *)
+       typ = Types.Tnil;
+       peek = None} (* FIXME: Proper support for signature types *)
 
 let env =
   Compmisc.init_path false;

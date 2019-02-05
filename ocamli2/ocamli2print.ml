@@ -320,7 +320,8 @@ let to_string_from_heap ?(preamble="") typ v =
   to_string
     {e = Value v;
      lets = [];
-     typ = typ}
+     typ = typ;
+     peek = None}
 
 let string_of_op = function
     Add -> "Add"

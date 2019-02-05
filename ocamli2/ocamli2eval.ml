@@ -41,8 +41,8 @@ let rec patmatch expr (pat, guard, rhs) =
             Tconstr (_, [elt_t], _) -> find_type_desc elt_t
           | _ -> failwith "patmatch bad list"
         in
-        let h = {e = Value (Obj.field v 0); lets = expr.lets; typ = htyp}
-        and t = {e = Value (Obj.field v 1); lets = expr.lets; typ = expr.typ} in
+        let h = {expr with e = Value (Obj.field v 0); typ = htyp}
+        and t = {expr with e = Value (Obj.field v 1); typ = expr.typ} in
           begin match patmatch h (hpat, None, rhs), patmatch t (tpat, None, rhs) with
             Some lunder, Some runder ->
               Some {rhs with lets = lunder.lets @ runder.lets @ rhs.lets}
@@ -94,7 +94,8 @@ let rec eval env expr =
         then
           {e = exp'.e;
            typ = exp.typ;
-           lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ exp'.lets}
+           lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ exp'.lets;
+           peek = expr.peek}
         else {expr with e = Let (recflag, (n, evalled), exp')}
 | ArrayExpr a ->
     if !showrules then print_endline "ArrayExpr";
