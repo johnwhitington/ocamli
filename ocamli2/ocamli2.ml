@@ -2,7 +2,7 @@ let showsteps = ref false
 
 let rec eval_full v =
   if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
-  Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" v);
+  Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" (Ocamli2eval.eval [] true v));
   if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
 
 let programtext = ref ""
