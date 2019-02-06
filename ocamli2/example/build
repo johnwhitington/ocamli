@@ -1,7 +1,8 @@
-ocamlfind ocamlc -package ocamli2 -c a.mli
-ocamlfind ocamlopt -package ocamli2 -c a.ml
-ocamlfind ocamlc -package ocamli2 -c b.mli
-ocamlfind ocamlopt -package ocamli2 -c b.ml
-ocamlfind ocamlopt -package ocamli2 -c c.ml
+set -e -x
+ocamlc -I /usr/local/lib/ocaml/site-lib/ocamli2 -c a.mli
+ocamlopt -I /usr/local/lib/ocaml/site-lib/ocamli2 -c a.ml
+ocamlc -I /usr/local/lib/ocaml/site-lib/ocamli2  -c b.mli
+ocamlopt -I /usr/local/lib/ocaml/site-lib/ocamli2  -c b.ml
+ocamlopt -I /usr/local/lib/ocaml/site-lib/ocamli2  -c c.ml
 ocamlc -c -cc "cc" -ccopt "-fPIC -DNATIVE_CODE -o ccode.o " ccode.c
-ocamlfind ocamlopt -package ocamli2 -linkpkg ccode.o -o example a.cmx b.cmx c.cmx
+ocamlopt -I /usr/local/lib/ocaml/site-lib/ocamli2 ocamli2.cmxa ccode.o -o example a.cmx b.cmx c.cmx
