@@ -9,8 +9,8 @@ PACKS = compiler-libs.common
 
 RESULT = ocamli2
 
-OCAMLNCFLAGS = -g
-OCAMLBCFLAGS = -g
+OCAMLNCFLAGS = -g -w -3
+OCAMLBCFLAGS = -g -w -3
 OCAMLLDFLAGS = -g
 
 all : native-code native-code-library byte-code-library
