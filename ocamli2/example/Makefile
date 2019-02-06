@@ -13,8 +13,8 @@ PACKS = ocamli2
 
 RESULT = example
 
-OCAMLNCFLAGS = -tppx ../tppx_interpret/tppx_interpret
-OCAMLBCFLAGS = -tppx ../tppx_interpret/tppx_interpret
+#OCAMLNCFLAGS = -tppx ../tppx_interpret/tppx_interpret
+#OCAMLBCFLAGS = -tppx ../tppx_interpret/tppx_interpret
 
 CFLAGS = -fPIC
 

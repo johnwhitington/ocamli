@@ -1,6 +1,7 @@
-ocamlc -c a.mli
-ocamlopt /usr/local/lib/ocaml/site-lib/ocamli2.cmxa -c -tppx ../tppx_interpret/tppx_interpret a.ml
-ocamlc -c b.mli
-ocamlopt /usr/local/lib/ocaml/site-lib/ocamli2.cmxa -c -tppx ../tppx_interpret/tppx_interpret b.ml
-ocamlopt /usr/local/lib/ocaml/site-lib/ocamli2.cmxa -c -tppx ../tppx_interpret/tppx_interpret c.ml
-
+ocamlfind ocamlc -package ocamli2 -c a.mli
+ocamlfind ocamlopt -package ocamli2 -c a.ml
+ocamlfind ocamlc -package ocamli2 -c b.mli
+ocamlfind ocamlopt -package ocamli2 -c b.ml
+ocamlfind ocamlopt -package ocamli2 -c c.ml
+ocamlc -c -cc "cc" -ccopt "-fPIC -DNATIVE_CODE -o ccode.o " ccode.c
+ocamlfind ocamlopt -package ocamli2 -linkpkg ccode.o -o example a.cmx b.cmx c.cmx
