@@ -14,6 +14,8 @@ type peekinfo =
 
 type cmpop = LT | LTE | GT | GTE | EQ | NEQ
 
+type boolop = AND | OR
+
 type t' =
   Value of Obj.t
 | Function of case list * env
@@ -25,6 +27,7 @@ type t' =
 | IntOp of op * t * t
 | FOp of op * t * t
 | Compare of cmpop * t * t (* Polymorphic comparison *)
+| BoolOp of boolop * t * t
 | ArrayGet of t * t
 | ArraySet of t * t * t
 | Let of bool * binding * t (* recflag *)

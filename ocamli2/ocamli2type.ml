@@ -16,6 +16,8 @@ type peekinfo =
 
 type cmpop = LT | LTE | GT | GTE | EQ | NEQ
 
+type boolop = AND | OR
+
 type t' =
   Value of Obj.t
 | Function of case list * env
@@ -27,6 +29,7 @@ type t' =
 | IntOp of op * t * t
 | FOp of op * t * t
 | Compare of cmpop * t * t (* Polymorphic comparison *)
+| BoolOp of boolop * t * t
 | ArrayGet of t * t
 | ArraySet of t * t * t
 | Let of bool * binding * t
@@ -53,7 +56,7 @@ let rec is_value_t' = function
   Value _ | Function _ -> true
 | ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
 | ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ | Apply _ 
-| Compare (_, _, _) -> false
+| Compare _ | BoolOp _ -> false
 | Struct l -> List.for_all is_value l
 | LetDef (_, (_, e)) -> is_value e
 
@@ -82,6 +85,7 @@ let rec map_t' f = function
 | IntOp (op, x, y) -> IntOp (op, map_t f x, map_t f y)
 | FOp (op, x, y) -> FOp (op, map_t f x, map_t f y)
 | Compare (op, x, y) -> Compare (op, map_t f x, map_t f y)
+| BoolOp (op, x, y) -> BoolOp (op, map_t f x, map_t f y)
 | ArrayGet (a, b) -> ArrayGet (map_t f a, map_t f b)
 | ArraySet (a, b, c) -> ArraySet (map_t f a, map_t f b, map_t f c)
 | Let (recflag, binding, e) -> Let (recflag, map_binding f binding, map_t f e)
@@ -112,7 +116,7 @@ let rec free_in_t' = function
 | Var x -> [x]
 | ArrayExpr elts -> List.flatten (Array.to_list (Array.map free_in elts))
 | IntOp (_, e, e') | FOp (_, e, e') | ArrayGet (e, e') | Cons (e, e')
-| Append (e, e') | Compare (_, e, e') ->
+| Append (e, e') | Compare (_, e, e') | BoolOp (_, e, e') ->
     free_in e @ free_in e'
 | Let (recflag, (n, e), e') ->
     let in_e = free_in e in

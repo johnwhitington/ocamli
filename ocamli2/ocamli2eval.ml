@@ -97,7 +97,7 @@ let rec eval env peek expr =
     if !showrules then print_endline "Int-value-left";
     {expr with e = IntOp (op, eval env peek x, y)}
 | Compare (op, {e = Value x}, {e = Value y}) ->
-    if !showrules then print_endline "Compare-value-right";
+    if !showrules then print_endline "Compare-value-both";
     if peek then underline expr else
     {expr with e = Value (Obj.magic ((compare_func_of_op op) x y) : Obj.t)}
 | Compare (op, x, ({e = Value _} as y)) ->
@@ -106,6 +106,14 @@ let rec eval env peek expr =
 | Compare (op, x, y) ->
     if !showrules then print_endline "Compare";
     {expr with e = Compare (op, x, eval env peek y)}
+| BoolOp (op, ({e = Value _} as x), y) ->
+    if !showrules then print_endline "Boolop-value-check";
+    if op = AND && not (Obj.magic x : bool) then {expr with e = Value (Obj.repr false)} else
+    if op = OR && (Obj.magic x : bool) then {expr with e = Value (Obj.repr true)} else
+    y
+| BoolOp (op, x, y) ->
+    if !showrules then print_endline "Boolop-left-non-value";
+    {expr with e = BoolOp (op, eval env peek x, y)}
 | Var x ->
     if !showrules then print_endline "Var";
     if !showrules then Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);

@@ -18,6 +18,11 @@ let compop_of_text = function
 | "=" -> EQ
 | _ -> failwith "compop_of_text"
 
+let boolop_of_text = function
+  "&&" -> AND
+| "||" -> OR
+| _ -> failwith "boolop_of_text"
+
 let rec to_ocaml_heap_value = function
   Value x -> x
 | ArrayExpr arr ->
@@ -45,6 +50,8 @@ let rec finaltype_of_expression_desc env = function
       Function (cases', env)
 | Texp_ident (p, _, _) -> Var (Path.name p)
 | Texp_construct (_, {cstr_name = "[]"}, []) -> Value (Obj.repr [])
+| Texp_construct (_, {cstr_name = "true"}, []) -> Value (Obj.repr true)
+| Texp_construct (_, {cstr_name = "false"}, []) -> Value (Obj.repr false)
 | Texp_construct (_, {cstr_name = "::"}, [h; t]) ->
     let cons_chain =
       Cons (finaltype_of_expression env h, finaltype_of_expression env t)
@@ -79,6 +86,11 @@ let rec finaltype_of_expression_desc env = function
         Texp_ident (Path.Pdot (Path.Pident i, (("<" | ">" | "=" | "<>" | "<=" | ">=") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        Compare (compop_of_text optext, finaltype_of_expression env arg1, finaltype_of_expression env arg2)
+| Texp_apply
+    ({exp_desc =
+        Texp_ident (Path.Pdot (Path.Pident i, (("&&" | "||") as optext)), _, _)},
+     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
+       BoolOp (boolop_of_text optext, finaltype_of_expression env arg1, finaltype_of_expression env arg2)
 | Texp_apply
     ({exp_desc =
       Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y), z), _, _)},

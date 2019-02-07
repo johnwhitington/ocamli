@@ -84,9 +84,13 @@ let printstring_of_compop = function
   | GTE -> ">="
   | LTE -> "<="
 
+let printstring_of_boolop = function
+   AND -> "&&"
+ | OR -> "||"
+
 let rec assoc = function
 | IntOp _ | Apply _ | Compare _ -> L
-| ArraySet _ -> R
+| ArraySet _ | BoolOp _ -> R
 | _ -> N
 
 let prec = function
@@ -95,6 +99,8 @@ let prec = function
     (* All other function applications *)
     100
 | Compare _ -> 94
+| BoolOp (AND, _, _) -> 65
+| BoolOp (OR, _, _) -> 60
 | IntOp ((Mul | Div), _, _) -> 90
 | IntOp (_, _, _) -> 80
 | ArraySet _ -> 55
@@ -180,6 +186,14 @@ let rec print_finaltype_inner f isleft parent node =
       print_finaltype_inner f true (Some node) l;
       txt " ";
       str (printstring_of_compop op);
+      txt " ";
+      print_finaltype_inner f false (Some node) r;
+      str rp
+  | BoolOp (op, l, r) ->
+      str lp;
+      print_finaltype_inner f true (Some node) l;
+      txt " ";
+      str (printstring_of_boolop op);
       txt " ";
       print_finaltype_inner f false (Some node) r;
       str rp
@@ -361,6 +375,10 @@ let string_of_compop = function
   | EQ -> "EQ"
   | NEQ -> "NEQ"
 
+let string_of_boolop = function
+  | AND -> "AND"
+  | OR -> "OR"
+
 let rec string_of_t' typ = function
   Value x -> to_string_from_heap typ x
 | Function (cases, env) ->
@@ -384,6 +402,10 @@ let rec string_of_t' typ = function
     Printf.sprintf 
       "Compare (%s, %s, %s)"
       (string_of_compop op) (string_of_t a) (string_of_t b)
+| BoolOp (op, a, b) ->
+    Printf.sprintf 
+      "BoolOp (%s, %s, %s)"
+      (string_of_boolop op) (string_of_t a) (string_of_t b)
 | IntOp (op, a, b) ->
     Printf.sprintf
       "IntOp (%s, %s, %s)"
