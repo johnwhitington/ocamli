@@ -1,11 +1,13 @@
 let showsteps = ref false
 
-let rec eval_full v =
-  if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
-  Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" (Ocamli2eval.eval [] true v));
-  if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
+let peek = ref true
 
 let programtext = ref ""
+
+let rec eval_full v =
+  if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
+  Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" (if !peek then Ocamli2eval.eval [] true v else v));
+  if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
 
 let load_file f =
   let ic = open_in f in
@@ -24,6 +26,7 @@ let argspec =
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
    "-dnovals", Arg.Clear Ocamli2print.showvals, "Do not show values in steps";
    "-dshowalllets", Arg.Set Ocamli2print.show_all_lets, "Show even unused lets";
+   "-dnopeek", Arg.Clear peek, "Do not peek";
    "-drules", Arg.Set Ocamli2eval.showrules, " Show reduction rule for each step of evaluation"]
 
 let _ =

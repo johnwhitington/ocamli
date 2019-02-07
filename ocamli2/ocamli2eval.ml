@@ -64,6 +64,14 @@ let rec lookup x = function
 let underline expr =
   {expr with peek = Some {underline = true}}
 
+let compare_func_of_op = function
+  LT -> ( < )
+| GT -> ( > )
+| EQ -> ( = )
+| GTE -> ( >= )
+| LTE -> ( <= )
+| NEQ -> ( <> )
+
 let rec eval env peek expr =
   if !showrules then print_string "RULE: ";
   let env = List.rev expr.lets @ env in
@@ -88,6 +96,16 @@ let rec eval env peek expr =
 | IntOp (op, x, y) ->
     if !showrules then print_endline "Int-value-left";
     {expr with e = IntOp (op, eval env peek x, y)}
+| Compare (op, {e = Value x}, {e = Value y}) ->
+    if !showrules then print_endline "Compare-value-right";
+    if peek then underline expr else
+    {expr with e = Value (Obj.magic ((compare_func_of_op op) x y) : Obj.t)}
+| Compare (op, x, ({e = Value _} as y)) ->
+    if !showrules then print_endline "Compare-value-right";
+    {expr with e = Compare (op, eval env peek x, y)}
+| Compare (op, x, y) ->
+    if !showrules then print_endline "Compare";
+    {expr with e = Compare (op, x, eval env peek y)}
 | Var x ->
     if !showrules then print_endline "Var";
     if !showrules then Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);

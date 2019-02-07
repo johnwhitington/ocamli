@@ -2,13 +2,21 @@ open Typedtree
 open Ocamli2type
 open Types
 
-
 let op_of_text = function
   "+" | "+." -> Add
 | "-" | "-." -> Sub
 | "*" | "*." -> Mul
 | "/" | "/." -> Div
 | _ -> failwith "op_of_text"
+
+let compop_of_text = function
+  "<" -> LT
+| ">" -> GT
+| "<=" -> LTE
+| ">=" -> GTE
+| "<>" -> NEQ
+| "=" -> EQ
+| _ -> failwith "compop_of_text"
 
 let rec to_ocaml_heap_value = function
   Value x -> x
@@ -66,6 +74,11 @@ let rec finaltype_of_expression_desc env = function
         Texp_ident (Path.Pdot (Path.Pident i, (("+." | "-." | "*." | "/.") as optext)), _, _)},
      [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
        FOp (op_of_text optext, finaltype_of_expression env arg1, finaltype_of_expression env arg2)
+| Texp_apply
+    ({exp_desc =
+        Texp_ident (Path.Pdot (Path.Pident i, (("<" | ">" | "=" | "<>" | "<=" | ">=") as optext)), _, _)},
+     [(_, Some arg1); (_, Some arg2)]) when Ident.name i = "Stdlib" ->
+       Compare (compop_of_text optext, finaltype_of_expression env arg1, finaltype_of_expression env arg2)
 | Texp_apply
     ({exp_desc =
       Texp_ident (Path.Pdot (Path.Pdot (Path.Pident x, y), z), _, _)},

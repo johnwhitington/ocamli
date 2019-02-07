@@ -12,6 +12,8 @@ type pattern =
 type peekinfo =
   {underline : bool}
 
+type cmpop = LT | LTE | GT | GTE | EQ | NEQ
+
 type t' =
   Value of Obj.t
 | Function of case list * env
@@ -22,6 +24,7 @@ type t' =
 | Append of t * t
 | IntOp of op * t * t
 | FOp of op * t * t
+| Compare of cmpop * t * t (* Polymorphic comparison *)
 | ArrayGet of t * t
 | ArraySet of t * t * t
 | Let of bool * binding * t (* recflag *)

@@ -18,7 +18,7 @@ let syntax_tex = ref false
 let simple = ref false
 
 (* Width to format to *)
-let width = ref 80
+let width = ref 800
 
 (* Show all implicit lets, for debug *)
 let show_all_lets = ref false
@@ -76,8 +76,16 @@ let printstring_of_op = function
   | Mul -> "*"
   | Div -> "/" 
 
+let printstring_of_compop = function
+    LT -> "<"
+  | GT -> ">"
+  | EQ -> "="
+  | NEQ -> "<>"
+  | GTE -> ">="
+  | LTE -> "<="
+
 let rec assoc = function
-| IntOp _ | Apply _ -> L
+| IntOp _ | Apply _ | Compare _ -> L
 | ArraySet _ -> R
 | _ -> N
 
@@ -86,6 +94,7 @@ let prec = function
 | Apply _ ->
     (* All other function applications *)
     100
+| Compare _ -> 94
 | IntOp ((Mul | Div), _, _) -> 90
 | IntOp (_, _, _) -> 80
 | ArraySet _ -> 55
@@ -114,6 +123,7 @@ let rec string_of_value v = function
     Tconstr (p, _, _) when Path.name p = "int" -> string_of_int (Obj.magic v : int)
   | Tconstr (p, _, _) when Path.name p = "float" -> string_of_float (Obj.magic v : float)
   | Tconstr (p, _, _) when Path.name p = "unit" -> "()"
+  | Tconstr (p, _, _) when Path.name p = "bool" -> string_of_bool (Obj.magic v : bool)
   | Tconstr (p, [elt_t], _) when Path.name p = "array" ->
       let strings =
         Array.init
@@ -141,7 +151,7 @@ let rec print_finaltype_inner f isleft parent node =
   let lp, rp = parens node.e parent isleft in
   if node.peek = Some {underline = true} then Format.pp_open_tag f "underline";
   (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
-  str lp;
+  if List.length node.lets > 0 then str lp;
   List.iter
     (fun (recflag, {contents = bindings}) ->
        List.iter
@@ -162,6 +172,14 @@ let rec print_finaltype_inner f isleft parent node =
       print_finaltype_inner f true (Some node) l;
       txt " ";
       str (printstring_of_op op);
+      txt " ";
+      print_finaltype_inner f false (Some node) r;
+      str rp
+  | Compare (op, l, r) ->
+      str lp;
+      print_finaltype_inner f true (Some node) l;
+      txt " ";
+      str (printstring_of_compop op);
       txt " ";
       print_finaltype_inner f false (Some node) r;
       str rp
@@ -206,10 +224,12 @@ let rec print_finaltype_inner f isleft parent node =
       str rp
   | Function (cases, _) ->
       str lp;
-      boldtxt "function ";
+      boldtxt "function";
       List.iter
        (fun (pat, _, rhs) ->
-         str "| ";
+         let first = ref true in
+         if !first then str " " else str " | ";
+         first := false;
          print_finaltype_pattern f false (Some node) pat;
          str " -> ";
          print_finaltype_inner f false (Some node) rhs)
@@ -219,10 +239,12 @@ let rec print_finaltype_inner f isleft parent node =
       str lp;
       boldtxt "match ";
       print_finaltype_inner f false (Some node) e;
-      boldtxt "with ";
+      boldtxt " with";
+      let first = ref true in
       List.iter
        (fun (pat, _, rhs) ->
-         str "| ";
+         if !first then str " " else str " | ";
+         first := false;
          print_finaltype_pattern f false (Some node) pat;
          str " -> ";
          print_finaltype_inner f false (Some node) rhs)
@@ -262,7 +284,7 @@ let rec print_finaltype_inner f isleft parent node =
       print_finaltype_inner f false (Some node) t;
       str rp
   end;
-  str rp;
+  if List.length node.lets > 0 then str rp;
   if node.peek = Some {underline = true} then Format.pp_close_tag f ()
 
 and print_finaltype_pattern f isleft parent pat =
@@ -331,6 +353,14 @@ let string_of_op = function
   | Mul -> "Mul"
   | Div -> "Div" 
 
+let string_of_compop = function
+  | LT -> "LT"
+  | GT -> "GT"
+  | GTE -> "GTE"
+  | LTE -> "LTE"
+  | EQ -> "EQ"
+  | NEQ -> "NEQ"
+
 let rec string_of_t' typ = function
   Value x -> to_string_from_heap typ x
 | Function (cases, env) ->
@@ -350,6 +380,10 @@ let rec string_of_t' typ = function
     Printf.sprintf
       "FOp (%s, %s, %s)"
       (string_of_op op) (string_of_t a) (string_of_t b)
+| Compare (op, a, b) ->
+    Printf.sprintf 
+      "Compare (%s, %s, %s)"
+      (string_of_compop op) (string_of_t a) (string_of_t b)
 | IntOp (op, a, b) ->
     Printf.sprintf
       "IntOp (%s, %s, %s)"
