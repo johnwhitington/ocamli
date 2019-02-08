@@ -125,7 +125,7 @@ let rec free_in_t' = function
 | ArraySet (e, e', e'') -> free_in e @ free_in e' @ free_in e''
 | Match (e, cases) -> free_in e @ free_in_cases cases
 | Struct l -> free_in_multiple_items l
-| LetDef (_, (n, e)) -> failwith "free_in_multiple_items: LetDef"
+| LetDef (_, (n, e)) -> [] (* These are dealt with by free_in_multiple_items, but we might end up here inside a map_t *)
 
 and free_in_multiple_items = function
   [] -> []
