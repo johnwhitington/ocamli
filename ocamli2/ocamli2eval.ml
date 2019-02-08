@@ -108,6 +108,7 @@ let rec eval env peek expr =
     {expr with e = Compare (op, x, eval env peek y)}
 | BoolOp (op, ({e = Value _} as x), y) ->
     if !showrules then print_endline "Boolop-value-check";
+    if peek then underline expr else
     if op = AND && not (Obj.magic x : bool) then {expr with e = Value (Obj.repr false)} else
     if op = OR && (Obj.magic x : bool) then {expr with e = Value (Obj.repr true)} else
     y
