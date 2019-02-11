@@ -95,9 +95,7 @@ let rec assoc = function
 
 let prec = function
   ArrayGet _ -> 110
-| Apply _ ->
-    (* All other function applications *)
-    100
+| Apply _ -> 100
 | Compare _ -> 94
 | BoolOp (AND, _, _) -> 65
 | BoolOp (OR, _, _) -> 60
@@ -140,8 +138,9 @@ let rec string_of_value v = function
       ^ Array.fold_left ( ^ ) "" (Array.map (fun x -> x ^ "; ") strings)
       ^ "|]"
   | Tconstr (p, [elt_t], _) when Path.name p = "list" ->
+      let first = ref true in
         "["
-      ^ List.fold_left ( ^ ) "" (List.map (fun x -> x ^ "; ") 
+      ^ List.fold_left ( ^ ) "" (List.map (fun x -> let r = (if !first then "" else "; ") ^ x in first := false; r) 
           (List.map (fun v -> string_of_value v (find_type_desc elt_t)) (list_elements v)))
       ^ "]"
   | _ -> if !showvals
@@ -239,9 +238,9 @@ let rec print_finaltype_inner f isleft parent node =
   | Function (cases, _) ->
       str lp;
       boldtxt "function";
+      let first = ref true in
       List.iter
        (fun (pat, _, rhs) ->
-         let first = ref true in
          if !first then str " " else str " | ";
          first := false;
          print_finaltype_pattern f false (Some node) pat;
@@ -264,11 +263,15 @@ let rec print_finaltype_inner f isleft parent node =
          print_finaltype_inner f false (Some node) rhs)
        cases;
       str rp;
+  | Cons (h, ({e = Value v; typ})) when string_of_value v typ = "[]" ->
+      str lp;
+      str "[";
+      print_finaltype_inner f false (Some node) h;
+      str "]";
+      str rp
   | Cons (h, t) ->
       str lp;
-      print_finaltype_inner f false (Some node) h;
-      txt "::";
-      print_finaltype_inner f false (Some node) t;
+      print_finaltype_list f false (Some node) h t;
       str rp
   | ArrayExpr elts ->
       str lp;
@@ -301,14 +304,46 @@ let rec print_finaltype_inner f isleft parent node =
   if List.length node.lets > 0 then str rp;
   if node.peek = Some {underline = true} then Format.pp_close_tag f ()
 
+and print_finaltype_list f isleft parent h t =
+  let txt = Format.pp_print_text f in
+  print_finaltype_inner f false parent h;
+  txt "::";
+  print_finaltype_inner f false parent t
+
+and print_finaltype_pattern_list_inner f isleft parent pat =
+  let str = Format.fprintf f "%s" in
+  match pat with
+  | PatConstr ("::", h::t) ->
+      print_finaltype_pattern f isleft parent h;
+      if t <> [] then str "::";
+      print_finaltype_pattern f isleft parent (PatConstr ("::", t));
+  | PatConstr ("::", []) -> ()
+  | _ -> failwith "print_finaltype_pattern_list_inner"
+
+and print_finaltype_pattern_list f isleft parent pat =
+  let txt = Format.pp_print_text f in
+  match pat with
+  | PatConstr ("::", [h; PatConstr ("[]", _)]) ->
+      txt "[";
+      print_finaltype_pattern f isleft parent h;
+      txt "]"
+  | pat -> print_finaltype_pattern_list_inner f isleft parent pat
+
 and print_finaltype_pattern f isleft parent pat =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
     match pat with
       PatAny -> str "_"
     | PatVar v -> str v
+    | PatConstr ("::", _) -> print_finaltype_pattern_list f isleft parent pat
     | PatConstr (name, pats) ->
-        str name; str " "; List.iter (fun x -> print_finaltype_pattern f isleft parent x; txt " ") pats
+        str name;
+        if pats <> [] then begin
+          str " ";
+          List.iter
+            (fun x -> txt " "; print_finaltype_pattern f isleft parent x)
+            pats
+        end
     | PatConstant (IntConstant i) -> str (string_of_int i)
 
 let print_finaltype f t =
