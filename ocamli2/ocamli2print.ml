@@ -107,6 +107,15 @@ let prec = function
 | Struct _  -> 3
 | Value _ | Var _ | ArrayExpr _ | Cons _ | FOp _ | Match _ -> max_int
 
+
+let is_op_char = function
+  '!' | '$' | '%' | '*' | '+' | '-' | '.' | '/' | ':'
+| '<' | '=' | '>' | '?' | '@' | '^' | '|' | '~' -> true
+| _ -> false
+
+let is_op s =
+  String.length s > 0 && is_op_char s.[0]
+
 let parens node parent isleft =
   match parent with
     None -> ("","")
@@ -231,7 +240,14 @@ let rec print_finaltype_inner f isleft parent node =
       print_finaltype_inner f false (Some node) e';
       str rp
   | Var x ->
-      str x
+      let s =
+        if String.length x > 7 && String.sub x 0 7 = "Stdlib."
+          then String.sub x 7 (String.length x - 7)
+          else x
+      in
+        if is_op s then txt "( ";
+        str s;
+        if is_op s then txt " )"
   | Apply (fn, args) ->
       str lp;
       print_finaltype_inner f false (Some node) fn;
@@ -309,7 +325,7 @@ let rec print_finaltype_inner f isleft parent node =
 and print_finaltype_list f isleft parent h t =
   let txt = Format.pp_print_text f in
   print_finaltype_inner f false parent h;
-  txt "::";
+  txt " :: ";
   print_finaltype_inner f false parent t
 
 and print_finaltype_pattern_list_inner f isleft parent pat =

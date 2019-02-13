@@ -2,12 +2,21 @@ let showsteps = ref false
 
 let peek = ref true
 
+let print = ref false
+
 let programtext = ref ""
 
 let rec eval_full v =
   if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
-  Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" (if !peek then Ocamli2eval.eval [] true v else v));
-  if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
+  if !print then
+    begin
+      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" v); exit 0
+    end
+  else
+    begin
+      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" (if !peek then Ocamli2eval.eval [] true v else v));
+      if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
+    end
 
 let load_file f =
   let ic = open_in f in
@@ -23,6 +32,7 @@ let setfile filename =
 let argspec =
   ["-e", Arg.Set_string programtext, " Set program text";
    "-dno-syntax", Arg.Clear Ocamli2print.syntax, " Do not use syntax highlighting";
+   "-dprint", Arg.Set print, " Just show the program, do not evaluate it";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
    "-dnovals", Arg.Clear Ocamli2print.showvals, "Do not show values in steps";
    "-dshowalllets", Arg.Set Ocamli2print.show_all_lets, "Show even unused lets";
