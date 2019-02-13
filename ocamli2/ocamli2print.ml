@@ -96,6 +96,7 @@ let rec assoc = function
 let prec = function
   ArrayGet _ -> 110
 | Apply _ -> 100
+| Append _ -> 95
 | Compare _ -> 94
 | BoolOp (AND, _, _) -> 65
 | BoolOp (OR, _, _) -> 60
@@ -103,7 +104,8 @@ let prec = function
 | IntOp (_, _, _) -> 80
 | ArraySet _ -> 55
 | Function _ | Let _ | LetDef _ -> 10
-| _ -> max_int
+| Struct _  -> 3
+| Value _ | Var _ | ArrayExpr _ | Cons _ | FOp _ | Match _ -> max_int
 
 let parens node parent isleft =
   match parent with
