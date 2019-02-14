@@ -158,6 +158,14 @@ let rec string_of_value v = function
            then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
            else "<unknown val>"
 
+(* Find the names of functions which are candidates for abbreviation, and return the expression below *)
+let rec find_funs x =
+  match x.e with
+  | Function ([(PatVar v, _, e)], _) ->
+      let more, e' = find_funs e in
+        (v::more, e')
+  | e -> ([], x)
+
 let rec print_finaltype_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
@@ -226,14 +234,18 @@ let rec print_finaltype_inner f isleft parent node =
       str lp;
       if recflag then boldtxt "let rec " else boldtxt "let ";
       txt n;
+      let names, e' = find_funs e in
+      List.iter (fun x -> txt " "; str x) names;
       txt " ";
       txt "= ";
-      print_finaltype_inner f false (Some node) e;
+      print_finaltype_inner f false (Some node) e';
       str rp
   | Let (recflag, (n, e), e') ->
       str lp;
       if recflag then boldtxt "let rec " else boldtxt "let ";
       txt n;
+      let names, e' = find_funs e in
+      List.iter (fun x -> txt " "; str x) names;
       txt " = ";
       print_finaltype_inner f false (Some node) e;
       boldtxt " in ";
