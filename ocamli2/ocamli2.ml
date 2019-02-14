@@ -6,15 +6,18 @@ let print = ref false
 
 let programtext = ref ""
 
+let first = ref true
+
 let rec eval_full v =
+  let pre () = let r = if !first then "   " else "=> " in first := false; r in
   if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
   if !print then
     begin
-      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" v); exit 0
+      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:(pre ()) v); exit 0
     end
   else
     begin
-      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:"" (if !peek then Ocamli2eval.eval [] true v else v));
+      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:(pre ()) (if !peek then Ocamli2eval.eval [] true v else v));
       if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
     end
 
