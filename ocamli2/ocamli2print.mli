@@ -1,9 +1,6 @@
 (* Flags *)
 val syntax : bool ref
 val syntax_tex : bool ref
-val simple : bool ref
-val width : int ref
-val debug : bool ref
 val showvals : bool ref
 val show_all_lets : bool ref
 

@@ -3,8 +3,6 @@ open Parsetree
 open Types
 open Ocamli2type
 
-let debug = ref false
-
 (* Set this to false to debug failures in tinyocaml_of_ocaml_heap_value *)
 let showvals = ref true
 
@@ -13,12 +11,6 @@ let syntax = ref true
 
 (* To output \textbf{} and \underline{} for thesis writing. *)
 let syntax_tex = ref false
-
-(* If true, whole program printed on one line *)
-let simple = ref false
-
-(* Width to format to *)
-let width = ref 800
 
 (* Show all implicit lets, for debug *)
 let show_all_lets = ref false
@@ -228,7 +220,7 @@ let rec print_finaltype_inner f isleft parent node =
         List.iteri
           (fun i x ->
              print_finaltype_inner f false (Some node) x;
-             if i < l - 1 then newline (); newline ())
+             if i < l - 1 then (newline (); newline ()))
           structure_items;
   | LetDef (recflag, (n, e)) ->
       str lp;
@@ -270,14 +262,15 @@ let rec print_finaltype_inner f isleft parent node =
       boldstr "function";
       newline ();
       let first = ref true in
-      List.iter
-       (fun (pat, _, rhs) ->
+      let l = List.length cases in
+      List.iteri
+       (fun i (pat, _, rhs) ->
          if !first then str "   " else str " | ";
          first := false;
          print_finaltype_pattern f false (Some node) pat;
          str " -> ";
          print_finaltype_inner f false (Some node) rhs;
-         newline ())
+         if i < l - 1 then newline ())
        cases;
       str rp
   | Match (e, cases) ->
@@ -409,10 +402,10 @@ let print ?(preamble="") f (v : t) =
     Format.pp_set_tags f true;
     Format.pp_set_print_tags f true;
     Format.pp_open_box f 0;
+    Format.pp_print_string f preamble;
     print_finaltype f (if !show_all_lets then v else Ocamli2type.remove_unused_lets v);
     Format.pp_close_box f ();
-    (*Format.pp_print_flush f ();*)
-    Format.print_newline ()
+    Format.pp_print_flush f ()
 
 let to_string ?(preamble="") v =
   print ~preamble Format.str_formatter v;
