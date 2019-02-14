@@ -167,12 +167,11 @@ let rec find_funs x =
   | e -> ([], x)
 
 let rec print_finaltype_inner f isleft parent node =
-  let str = Format.fprintf f "%s" in
-  let txt = Format.pp_print_text f in
+  let str = Format.pp_print_string f in
   let newline = Format.pp_print_newline f in
   let bold () = Format.pp_open_tag f "bold" in
   let unbold () = Format.pp_close_tag f () in
-  let boldtxt t = bold (); txt t; unbold () in
+  let boldstr t = bold (); str t; unbold () in
   let lp, rp = parens node.e parent isleft in
   if node.peek = Some {underline = true} then Format.pp_open_tag f "underline";
   (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
@@ -181,11 +180,11 @@ let rec print_finaltype_inner f isleft parent node =
     (fun (recflag, {contents = bindings}) ->
        List.iter
          (fun (n, e) ->
-            if recflag then boldtxt "let rec " else boldtxt "let ";
-            txt n;
-            txt " = ";
+            if recflag then boldstr "let rec " else boldstr "let ";
+            str n;
+            str " = ";
             print_finaltype_inner f true (Some node) e;
-            boldtxt " in ")
+            boldstr " in ")
          bindings)
     node.lets;
   (* 2. Match on the expression itself, and print *)
@@ -195,33 +194,33 @@ let rec print_finaltype_inner f isleft parent node =
   | IntOp (op, l, r) ->
       str lp;
       print_finaltype_inner f true (Some node) l;
-      txt " ";
+      str " ";
       str (printstring_of_op op);
-      txt " ";
+      str " ";
       print_finaltype_inner f false (Some node) r;
       str rp
   | Compare (op, l, r) ->
       str lp;
       print_finaltype_inner f true (Some node) l;
-      txt " ";
+      str " ";
       str (printstring_of_compop op);
-      txt " ";
+      str " ";
       print_finaltype_inner f false (Some node) r;
       str rp
   | BoolOp (op, l, r) ->
       str lp;
       print_finaltype_inner f true (Some node) l;
-      txt " ";
+      str " ";
       str (printstring_of_boolop op);
-      txt " ";
+      str " ";
       print_finaltype_inner f false (Some node) r;
       str rp
   | FOp (op, l, r) ->
       str lp;
       print_finaltype_inner f true (Some node) l;
-      txt " ";
+      str " ";
       str (printstring_of_op op);
-      txt ". ";
+      str ". ";
       print_finaltype_inner f false (Some node) r;
       str rp
   | Struct structure_items ->
@@ -233,23 +232,23 @@ let rec print_finaltype_inner f isleft parent node =
           structure_items;
   | LetDef (recflag, (n, e)) ->
       str lp;
-      if recflag then boldtxt "let rec " else boldtxt "let ";
-      txt n;
+      if recflag then boldstr "let rec " else boldstr "let ";
+      str n;
       let names, e' = find_funs e in
-      List.iter (fun x -> txt " "; str x) names;
-      txt " ";
-      txt "= ";
+      List.iter (fun x -> str " "; str x) names;
+      str " ";
+      str "= ";
       print_finaltype_inner f false (Some node) e';
       str rp
   | Let (recflag, (n, e), e') ->
       str lp;
-      if recflag then boldtxt "let rec " else boldtxt "let ";
-      txt n;
+      if recflag then boldstr "let rec " else boldstr "let ";
+      str n;
       let names, e' = find_funs e in
-      List.iter (fun x -> txt " "; str x) names;
-      txt " = ";
+      List.iter (fun x -> str " "; str x) names;
+      str " = ";
       print_finaltype_inner f false (Some node) e;
-      boldtxt " in ";
+      boldstr " in ";
       print_finaltype_inner f false (Some node) e';
       str rp
   | Var x ->
@@ -258,17 +257,17 @@ let rec print_finaltype_inner f isleft parent node =
           then String.sub x 7 (String.length x - 7)
           else x
       in
-        if is_op s then txt "( ";
+        if is_op s then str "( ";
         str s;
-        if is_op s then txt " )"
+        if is_op s then str " )"
   | Apply (fn, args) ->
       str lp;
       print_finaltype_inner f false (Some node) fn;
-      List.iter (fun arg -> txt " "; print_finaltype_inner f false (Some node) arg) args;
+      List.iter (fun arg -> str " "; print_finaltype_inner f false (Some node) arg) args;
       str rp
   | Function (cases, _) ->
       str lp;
-      boldtxt "function";
+      boldstr "function";
       newline ();
       let first = ref true in
       List.iter
@@ -283,9 +282,9 @@ let rec print_finaltype_inner f isleft parent node =
       str rp
   | Match (e, cases) ->
       str lp;
-      boldtxt "match ";
+      boldstr "match ";
       print_finaltype_inner f false (Some node) e;
-      boldtxt " with";
+      boldstr " with";
       let first = ref true in
       List.iter
        (fun (pat, _, rhs) ->
@@ -308,29 +307,29 @@ let rec print_finaltype_inner f isleft parent node =
       str rp
   | ArrayExpr elts ->
       str lp;
-      txt "[|";
-      Array.iter (fun e -> print_finaltype_inner f false (Some node) e; txt "; ") elts;
-      txt "|]";
+      str "[|";
+      Array.iter (fun e -> print_finaltype_inner f false (Some node) e; str "; ") elts;
+      str "|]";
       str rp
   | ArrayGet (arr, i) ->
       str lp;
       print_finaltype_inner f false (Some node) arr;
-      txt ".(";
+      str ".(";
       print_finaltype_inner f false (Some node) i;
-      txt ")";
+      str ")";
       str rp
   | ArraySet (arr, i, v) ->
       str lp;
       print_finaltype_inner f false (Some node) arr;
-      txt ".(";
+      str ".(";
       print_finaltype_inner f false (Some node) i;
-      txt ") <- ";
+      str ") <- ";
       print_finaltype_inner f false (Some node) v;
       str rp
   | Append (h, t) ->
       str lp;
       print_finaltype_inner f false (Some node) h;
-      txt " @ ";
+      str " @ ";
       print_finaltype_inner f false (Some node) t;
       str rp
   end;
@@ -338,13 +337,13 @@ let rec print_finaltype_inner f isleft parent node =
   if node.peek = Some {underline = true} then Format.pp_close_tag f ()
 
 and print_finaltype_list f isleft parent h t =
-  let txt = Format.pp_print_text f in
+  let str = Format.pp_print_string f in
   print_finaltype_inner f false parent h;
-  txt " :: ";
+  str " :: ";
   print_finaltype_inner f false parent t
 
 and print_finaltype_pattern_list_inner f isleft parent pat =
-  let str = Format.fprintf f "%s" in
+  let str = Format.pp_print_string f in
   match pat with
   | PatConstr ("::", h::t) ->
       print_finaltype_pattern f isleft parent h;
@@ -354,17 +353,16 @@ and print_finaltype_pattern_list_inner f isleft parent pat =
   | _ -> failwith "print_finaltype_pattern_list_inner"
 
 and print_finaltype_pattern_list f isleft parent pat =
-  let txt = Format.pp_print_text f in
+  let str = Format.pp_print_string f in
   match pat with
   | PatConstr ("::", [h; PatConstr ("[]", _)]) ->
-      txt "[";
+      str "[";
       print_finaltype_pattern f isleft parent h;
-      txt "]"
+      str "]"
   | pat -> print_finaltype_pattern_list_inner f isleft parent pat
 
 and print_finaltype_pattern f isleft parent pat =
-  let str = Format.fprintf f "%s" in
-  let txt = Format.pp_print_text f in
+  let str = Format.pp_print_string f in
     match pat with
       PatAny -> str "_"
     | PatVar v -> str v
@@ -374,7 +372,7 @@ and print_finaltype_pattern f isleft parent pat =
         if pats <> [] then begin
           str " ";
           List.iter
-            (fun x -> txt " "; print_finaltype_pattern f isleft parent x)
+            (fun x -> str " "; print_finaltype_pattern f isleft parent x)
             pats
         end
     | PatConstant (IntConstant i) -> str (string_of_int i)
@@ -410,13 +408,11 @@ let print ?(preamble="") f (v : t) =
     Format.pp_set_formatter_tag_functions f tagfuns;
     Format.pp_set_tags f true;
     Format.pp_set_print_tags f true;
-    Format.pp_set_margin f !width;
-    if !simple then Format.pp_set_margin f max_int;
-    Format.pp_open_box f 4;
-    Format.pp_print_string f preamble;
+    Format.pp_open_box f 0;
     print_finaltype f (if !show_all_lets then v else Ocamli2type.remove_unused_lets v);
     Format.pp_close_box f ();
-    Format.pp_print_flush f ()
+    (*Format.pp_print_flush f ();*)
+    Format.print_newline ()
 
 let to_string ?(preamble="") v =
   print ~preamble Format.str_formatter v;
