@@ -169,6 +169,7 @@ let rec find_funs x =
 let rec print_finaltype_inner f isleft parent node =
   let str = Format.fprintf f "%s" in
   let txt = Format.pp_print_text f in
+  let newline = Format.pp_print_newline f in
   let bold () = Format.pp_open_tag f "bold" in
   let unbold () = Format.pp_close_tag f () in
   let boldtxt t = bold (); txt t; unbold () in
@@ -228,7 +229,7 @@ let rec print_finaltype_inner f isleft parent node =
         List.iteri
           (fun i x ->
              print_finaltype_inner f false (Some node) x;
-             if i < l - 1 then txt "\n\n")
+             if i < l - 1 then newline (); newline ())
           structure_items;
   | LetDef (recflag, (n, e)) ->
       str lp;
@@ -268,14 +269,16 @@ let rec print_finaltype_inner f isleft parent node =
   | Function (cases, _) ->
       str lp;
       boldtxt "function";
+      newline ();
       let first = ref true in
       List.iter
        (fun (pat, _, rhs) ->
-         if !first then str " " else str " | ";
+         if !first then str "   " else str " | ";
          first := false;
          print_finaltype_pattern f false (Some node) pat;
          str " -> ";
-         print_finaltype_inner f false (Some node) rhs)
+         print_finaltype_inner f false (Some node) rhs;
+         newline ())
        cases;
       str rp
   | Match (e, cases) ->
