@@ -8,17 +8,44 @@ let programtext = ref ""
 
 let first = ref true
 
+let string_replace_all x x' s =
+  if x = "" then s else
+    let p = ref 0
+    and slen = String.length s
+    and xlen = String.length x in
+      let output = Buffer.create (slen * 2) in
+        while !p < slen do
+          try
+            if String.sub s !p xlen = x
+              then (Buffer.add_string output x'; p := !p + xlen)
+              else (Buffer.add_char output s.[!p]; incr p)
+          with
+            _ -> Buffer.add_char output s.[!p]; incr p
+        done;
+        Buffer.contents output
+
+let indent firstlinearrow str =
+  firstlinearrow ^ (string_replace_all "\n" "\n   " str)
+
+let contains_newline s =
+  string_replace_all "\n" "xx" s <> s
+
 let rec eval_full v =
   let pre () = let r = if !first then "   " else "=> " in first := false; r in
   if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
   if !print then
     begin
-      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:(pre ()) v); exit 0
+      let str = Ocamli2print.to_string v in
+        print_endline (indent (pre ()) str);
+        if contains_newline str then print_newline ();
+        exit 0
     end
   else
     begin
-      Printf.printf "%s\n" (Ocamli2print.to_string ~preamble:(pre ()) (if !peek then Ocamli2eval.eval [] true v else v));
-      if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
+      let str = Ocamli2print.to_string (if !peek then Ocamli2eval.eval [] true v else v) in
+        print_endline (indent (pre ()) str);
+        if contains_newline str then print_newline ();
+        if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
     end
 
 let load_file f =

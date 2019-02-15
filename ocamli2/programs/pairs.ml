@@ -5,10 +5,10 @@ let rec rev = function
 
 let x = rev [1]
 
-let rec pairs f a = function
+(*let rec pairs f a = function
   [] -> rev a
 | [_] -> []
 | h::h'::t -> pairs f (f h h' :: a) t
 
-let x = pairs ( + ) [] [1; 2; 3; 4]
+let x = pairs ( + ) [] [1; 2; 3; 4]*)
 

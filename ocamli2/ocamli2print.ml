@@ -376,7 +376,7 @@ let print_finaltype f t =
 let output_tags f =
   List.iter (output_tag f) !tags
 
-let print ?(preamble="") f (v : t) =
+let print f (v : t) =
   let tagfuns =
     {Format.mark_open_tag = (fun _ -> "");
      Format.mark_close_tag = (fun _ -> "");
@@ -402,16 +402,15 @@ let print ?(preamble="") f (v : t) =
     Format.pp_set_tags f true;
     Format.pp_set_print_tags f true;
     Format.pp_open_box f 0;
-    Format.pp_print_string f preamble;
     print_finaltype f (if !show_all_lets then v else Ocamli2type.remove_unused_lets v);
     Format.pp_close_box f ();
     Format.pp_print_flush f ()
 
-let to_string ?(preamble="") v =
-  print ~preamble Format.str_formatter v;
+let to_string v =
+  print Format.str_formatter v;
   Format.flush_str_formatter ()
 
-let to_string_from_heap ?(preamble="") typ v =
+let to_string_from_heap typ v =
   to_string
     {e = Value v;
      lets = [];
