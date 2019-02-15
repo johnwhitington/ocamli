@@ -260,17 +260,19 @@ let rec print_finaltype_inner f isleft parent node =
   | Function (cases, _) ->
       str lp;
       boldstr "function";
-      newline ();
+      if lp = "" then newline ();
       let first = ref true in
       let l = List.length cases in
       List.iteri
        (fun i (pat, _, rhs) ->
-         if !first then str "   " else str " | ";
+         if !first then
+           (if lp = "(" then str " " else str "  ") else
+           (if lp = "(" then str " | " else str "| ");
          first := false;
          print_finaltype_pattern f false (Some node) pat;
          str " -> ";
          print_finaltype_inner f false (Some node) rhs;
-         if i < l - 1 then newline ())
+         if i < l - 1 && lp = "" then newline ())
        cases;
       str rp
   | Match (e, cases) ->
