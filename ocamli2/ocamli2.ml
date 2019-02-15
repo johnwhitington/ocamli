@@ -8,27 +8,11 @@ let programtext = ref ""
 
 let first = ref true
 
-let string_replace_all x x' s =
-  if x = "" then s else
-    let p = ref 0
-    and slen = String.length s
-    and xlen = String.length x in
-      let output = Buffer.create (slen * 2) in
-        while !p < slen do
-          try
-            if String.sub s !p xlen = x
-              then (Buffer.add_string output x'; p := !p + xlen)
-              else (Buffer.add_char output s.[!p]; incr p)
-          with
-            _ -> Buffer.add_char output s.[!p]; incr p
-        done;
-        Buffer.contents output
-
 let indent firstlinearrow str =
-  firstlinearrow ^ (string_replace_all "\n" "\n   " str)
+  firstlinearrow ^ (Ocamli2util.string_replace_all "\n" "\n   " str)
 
 let contains_newline s =
-  string_replace_all "\n" "xx" s <> s
+  Ocamli2util.string_replace_all "\n" "xx" s <> s
 
 let rec eval_full v =
   let pre () = let r = if !first then "   " else "=> " in first := false; r in
