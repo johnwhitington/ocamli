@@ -1,6 +1,4 @@
-let f = function
-  [] -> []
-| x -> x
+let f = function h::_ -> [h]
 
-let y = f [3]
+let x = f [1]
 
