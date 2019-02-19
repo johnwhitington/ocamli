@@ -3,7 +3,7 @@ open Parsetree
 open Types
 open Ocamli2type
 
-(* Set this to false to debug failures in tinyocaml_of_ocaml_heap_value *)
+(* Set this to false to debug failures in string_of_value *)
 let showvals = ref true
 
 (* Use bold and underlining *)
