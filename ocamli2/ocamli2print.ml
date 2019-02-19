@@ -146,9 +146,10 @@ let rec string_of_value v = function
       ^ List.fold_left ( ^ ) "" (List.map (fun x -> let r = (if !first then "" else "; ") ^ x in first := false; r) 
           (List.map (fun v -> string_of_value v (find_type_desc elt_t)) (list_elements v)))
       ^ "]"
-  | _ -> if !showvals
-           then failwith "tinyocaml_of_ocaml_heap_value: unknown type"
-           else "<unknown val>"
+  | t ->
+      if !showvals
+        then failwith (Printf.sprintf "string_of_value: unknown type %s" (string_of_ocaml_type t))
+        else Printf.sprintf "<%s>" (string_of_ocaml_type t)
 
 (* Find the names of functions which are candidates for abbreviation, and return the expression below *)
 let rec find_funs x =

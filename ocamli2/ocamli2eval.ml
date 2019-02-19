@@ -230,7 +230,10 @@ let rec eval env peek expr =
 | Apply (_, _) -> failwith "malformed Apply on evaluation"
 | LetDef (recflag, (n, e)) ->
     if !showrules then print_endline "LetDef";
-    {expr with e = LetDef (recflag, (n, eval env peek e))}
+    let evalled = eval env peek e in
+    (* We copy the type of the letdef to the type of the rhs, since it may not
+     * have one due to polymorphism *)
+    {expr with e = LetDef (recflag, (n, {evalled with typ = expr.typ}))}
 | Struct lst ->
     if !showrules then print_endline "Struct";
     {expr with e = Struct (eval_first_non_value_element_of_list env peek lst)}

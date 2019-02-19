@@ -26,10 +26,14 @@ let rec eval_full v =
     end
   else
     begin
-      let str = Ocamli2print.to_string (if !peek then Ocamli2eval.eval [] true v else v) in
+      flush stdout; if !Ocamli2eval.showrules then print_endline "---Beginning of evaluation";
+      let evalled = if !peek then Ocamli2eval.eval [] true v else v in
+      flush stdout; if !Ocamli2eval.showrules then print_endline "---End of evaluation, beginning of printing";
+      let str = Ocamli2print.to_string evalled in
         print_endline (indent (pre ()) str);
+        flush stdout; if !Ocamli2eval.showrules then print_endline "---End of printing";
         if contains_newline str then print_newline ();
-        if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
+        flush stdout; if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval [] false v)
     end
 
 let load_file f =
