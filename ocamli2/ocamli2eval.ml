@@ -213,7 +213,9 @@ let rec eval env peek expr =
     (* See if the case matches, if not move on *)
     if peek then underline expr else
     begin match patmatch a p with
-      None -> {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
+      None ->
+        (* FIXME. This can leave an empty ps, which is a malformity. *)
+        {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
     | Some rhs ->
         (* We have matched. And so, we see if ags is empty. If it is, we just
          * return the right hand side. If not, we return Apply(rhs, ags) *)
