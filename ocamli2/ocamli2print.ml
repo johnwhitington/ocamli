@@ -420,6 +420,8 @@ let to_string_from_heap typ v =
      typ = typ;
      peek = None}
 
+let string_of_t_show_types = ref true
+
 let string_of_op = function
     Add -> "Add"
   | Sub -> "Sub"
@@ -513,7 +515,7 @@ and string_of_t {typ; e; lets; peek} =
        Printf.sprintf "{%b, %s}" recflag (string_of_bindings !r))
     lets)
   ^
-  "{typ = " ^ string_of_ocaml_type typ ^ "}" 
+  (if !string_of_t_show_types then "{typ = " ^ string_of_ocaml_type typ ^ "}" else "")
   ^
   string_of_t' typ e
 
@@ -528,6 +530,4 @@ and string_of_envitem (recflag, {contents}) =
 
 and string_of_env es =
   List.fold_left ( ^ ) "" (List.map (fun e -> string_of_envitem e ^ ";\n") es)
-
-
 

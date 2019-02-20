@@ -59,6 +59,7 @@ let argspec =
    "-dno-syntax", Arg.Clear Ocamli2print.syntax, " Do not use syntax highlighting";
    "-dprint", Arg.Set print, " Just show the program, do not evaluate it";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
+   "-dsteps-no-types", Arg.Clear Ocamli2print.string_of_t_show_types, " But not types...";
    "-dnovals", Arg.Clear Ocamli2print.showvals, "Do not show values in steps";
    "-dshowalllets", Arg.Set Ocamli2print.show_all_lets, "Show even unused lets";
    "-dnopeek", Arg.Clear peek, "Do not peek";

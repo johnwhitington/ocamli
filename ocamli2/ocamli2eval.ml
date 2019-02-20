@@ -226,8 +226,10 @@ let rec eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
-| Apply (_, []) -> failwith "empty cases"
-| Apply (_, _) -> failwith "malformed Apply on evaluation"
+| Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
+| Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
+| Apply (_, []) -> failwith "Apply: empty cases"
+| Apply (_, _) -> failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Ocamli2print.string_of_t expr))
 | LetDef (recflag, (n, e)) ->
     if !showrules then print_endline "LetDef";
     let evalled = eval env peek e in
