@@ -48,7 +48,7 @@ let rec patmatch expr (pat, guard, rhs) =
               Some {rhs with lets = lunder.lets @ runder.lets @ rhs.lets}
           | _ -> no
           end
-  | {e = Value v}, PatVar varname ->
+  | _, PatVar varname ->
       (* Introduce an implicit let into the rhs *)
       if !showrules then Printf.printf "Adding %s to implicit lets of rhs\n" varname;
       Some {rhs with lets = (false, ref [(varname, expr)]) :: rhs.lets}
