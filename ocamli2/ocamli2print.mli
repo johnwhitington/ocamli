@@ -10,6 +10,8 @@ val string_of_t : Ocamli2type.t -> string
 
 val string_of_t' : Types.type_desc -> Ocamli2type.t' -> string
 
+val string_of_pattern : Ocamli2type.pattern -> string
+
 (* Print to a formatter. *)
 val print : Format.formatter -> Ocamli2type.t -> unit
 

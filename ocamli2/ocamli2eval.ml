@@ -214,8 +214,14 @@ let rec eval env peek expr =
     if peek then underline expr else
     begin match patmatch a p with
       None ->
-        (* FIXME. This can leave an empty ps, which is a malformity. *)
-        {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
+        begin match ps with
+        [] ->
+          failwith
+            (Printf.sprintf "Pattern-match failed on function, matching pattern %s to value %s"
+              (Ocamli2print.string_of_pattern ((fun (x, _, _) -> x) p)) (Ocamli2print.to_string a))
+        | _ ->
+          {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
+        end
     | Some rhs ->
         (* We have matched. And so, we see if ags is empty. If it is, we just
          * return the right hand side. If not, we return Apply(rhs, ags) *)
@@ -231,7 +237,8 @@ let rec eval env peek expr =
 | Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
 | Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
 | Apply (_, []) -> failwith "Apply: empty cases"
-| Apply (_, _) -> failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Ocamli2print.string_of_t expr))
+| Apply (_, _) ->
+    failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Ocamli2print.string_of_t expr))
 | LetDef (recflag, (n, e)) ->
     if !showrules then print_endline "LetDef";
     let evalled = eval env peek e in
