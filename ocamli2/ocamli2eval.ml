@@ -1,4 +1,5 @@
 open Ocamli2type
+open Types
 
 let showrules = ref false
 
@@ -23,6 +24,13 @@ let append_lists a b =
     Value a, Value b ->
       Value (Obj.magic ((Obj.magic a : 'a list) @ (Obj.magic b : 'a list)) : Obj.t)
   | _ -> assert false
+
+(* One or both lists may be polymorphic. If we can find an element type for one
+ * of them, this is our type for the appended list *)
+let append_lists_promote_type ta tb =
+  match ta with
+    Tconstr (_, [{desc = Tvar None}], _) -> tb
+  | _ -> ta
 
 (* Pattern matching. *)
 let rec patmatch expr (pat, guard, rhs) =
@@ -71,6 +79,19 @@ let compare_func_of_op = function
 | GTE -> ( >= )
 | LTE -> ( <= )
 | NEQ -> ( <> )
+
+(* Take something which should be a value, e.g Cons (Value _, Value _)
+ * representing [1] and give it the appropriate type. Due to polymorphism,
+ * there may be a TVar None in the type of the whole expression.*)
+(* FIXME should use Types.type_expr not Types.type_desc in Ocamli2type.t? *)
+let type_ocaml_heap_value = function
+  Cons (h, t) ->
+    begin match t.typ with
+      Tconstr (path, _, abbrev) ->
+        Tconstr (path, [{desc = h.typ; level = 0; scope = 0; id = 0}], abbrev) 
+    | _ -> failwith "type_ocaml_heap_value2"
+    end
+| _ -> failwith "type_ocaml_heap_value"
 
 let rec eval env peek expr =
   if !showrules then print_string "RULE: ";
@@ -152,12 +173,15 @@ let rec eval env peek expr =
       if peek then {expr with e = evalled} else
       (*Printf.printf "Evalled is %s\n" (string_of_t' expr.typ evalled);*)
       if should_be_value_t' evalled
-        then {expr with e = Value (Ocamli2read.to_ocaml_heap_value evalled)}
+        then
+          {expr with
+             e = Value (Ocamli2read.to_ocaml_heap_value evalled);
+             typ = type_ocaml_heap_value evalled}
         else {expr with e = evalled}
 | Append (a, b) when is_value a && is_value b ->
     if !showrules then print_endline "Append-values";
     if peek then underline expr else
-    {expr with e = append_lists a.e b.e}
+    {expr with e = append_lists a.e b.e; typ = append_lists_promote_type a.typ b.typ}
 | Append (a, b) ->
     if !showrules then print_endline "Append";
     {expr with e =
