@@ -161,7 +161,7 @@ let rec find_funs x =
 
 let rec print_finaltype_inner f isleft parent node =
   let str = Format.pp_print_string f in
-  let newline = Format.pp_print_newline f in
+  let newline () = Format.fprintf f "@\n" in
   let bold () = Format.pp_open_tag f "bold" in
   let unbold () = Format.pp_close_tag f () in
   let boldstr t = bold (); str t; unbold () in
@@ -181,7 +181,11 @@ let rec print_finaltype_inner f isleft parent node =
          bindings)
     node.lets;
   (* 2. Match on the expression itself, and print *)
-  begin match node.e with
+  begin match node.printas with
+    Some x -> str x
+  | None -> ()
+  end;
+  if node.printas = None then begin match node.e with
     Value v ->
       str (string_of_value v node.typ)
   | IntOp (op, l, r) ->
@@ -418,7 +422,8 @@ let to_string_from_heap typ v =
     {e = Value v;
      lets = [];
      typ = typ;
-     peek = None}
+     peek = None;
+     printas = None}
 
 let string_of_t_show_types = ref true
 

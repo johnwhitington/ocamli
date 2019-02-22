@@ -139,8 +139,13 @@ let rec eval env peek expr =
 | Var x ->
     if !showrules then print_endline "Var";
     if !showrules then Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);
-    if peek then underline expr else
-    lookup x env
+    let value = lookup x env in
+      begin match value.e with
+        Function _ ->
+          if peek then underline expr else {value with printas = Some x}
+      | _ ->
+          if peek then underline expr else value
+      end
 | Let (recflag, (n, exp), exp') ->
     if !showrules then print_endline "Let";
     let evalled = eval env peek exp in
@@ -151,7 +156,8 @@ let rec eval env peek expr =
             {e = exp'.e;
              typ = exp.typ;
              lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ exp'.lets;
-             peek = expr.peek}
+             peek = expr.peek;
+             printas = None}
           else {expr with e = Let (recflag, (n, evalled), exp')}
 | ArrayExpr a ->
     if !showrules then print_endline "ArrayExpr";

@@ -39,7 +39,8 @@ and t =
   {typ : Types.type_desc;
    e : t';
    lets : env;
-   peek : peekinfo option}
+   peek : peekinfo option;
+   printas : string option}
 
 and env = envitem list
 
