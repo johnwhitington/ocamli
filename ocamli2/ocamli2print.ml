@@ -172,7 +172,11 @@ let rec print_finaltype_inner f isleft parent node =
   if node.peek = Some {underline = true} then Format.pp_open_tag f "underline";
   (* Calculate any outer parentheses, around the implicit lets. If any lets, new parent is now lets. *)
   let (lp', rp'), parent =
-    parens (if node.lets = [] then node.e else fakelet.e) parent isleft,
+    (match node.printas with
+      Some _ ->
+        "", ""
+    | None ->
+        parens (if node.lets = [] then node.e else fakelet.e) parent isleft),
     if node.lets = [] then parent else Some fakelet
   in
   (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
