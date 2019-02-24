@@ -159,16 +159,25 @@ let rec find_funs x =
         (v::more, e')
   | e -> ([], x)
 
+let rec fakelet =
+  {e = Let (false, ("fakelet", fakelet), fakelet);
+   lets = []; peek = None; printas = None; typ = Tvar None}
+
 let rec print_finaltype_inner f isleft parent node =
   let str = Format.pp_print_string f in
   let newline () = Format.fprintf f "@\n" in
   let bold () = Format.pp_open_tag f "bold" in
   let unbold () = Format.pp_close_tag f () in
   let boldstr t = bold (); str t; unbold () in
-  let lp, rp = parens node.e parent isleft in
   if node.peek = Some {underline = true} then Format.pp_open_tag f "underline";
+  (* Calculate any outer parentheses, around the implicit lets. If any lets, new parent is now lets. *)
+  let (lp', rp'), parent =
+    parens (if node.lets = [] then node.e else fakelet.e) parent isleft,
+    if node.lets = [] then parent else Some fakelet
+  in
   (* 1. Print any implicit lets which are not shadowed (or preprocess?) *)
-  if List.length node.lets > 0 then str lp;
+  str lp';
+  (*if List.length node.lets > 0 then str lp;*)
   List.iter
     (fun (recflag, {contents = bindings}) ->
        List.iter
@@ -180,6 +189,8 @@ let rec print_finaltype_inner f isleft parent node =
             boldstr " in ")
          bindings)
     node.lets;
+  (* Inner parentheses, i.e with relation to any implicit lets printed. *)
+  let lp, rp = parens node.e parent isleft in
   (* 2. Match on the expression itself, and print *)
   begin match node.printas with
     Some x -> str x
@@ -333,7 +344,8 @@ let rec print_finaltype_inner f isleft parent node =
       print_finaltype_inner f false (Some node) t;
       str rp
   end;
-  if List.length node.lets > 0 then str rp;
+  (*if List.length node.lets > 0 then str rp;*)
+  str rp';
   if node.peek = Some {underline = true} then Format.pp_close_tag f ()
 
 and print_finaltype_list f isleft parent h t =
