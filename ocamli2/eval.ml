@@ -1,4 +1,4 @@
-open Ocamli2type
+open Type
 open Types
 
 let showrules = ref false
@@ -83,7 +83,7 @@ let compare_func_of_op = function
 (* Take something which should be a value, e.g Cons (Value _, Value _)
  * representing [1] and give it the appropriate type. Due to polymorphism,
  * there may be a TVar None in the type of the whole expression.*)
-(* FIXME should use Types.type_expr not Types.type_desc in Ocamli2type.t? *)
+(* FIXME should use Types.type_expr not Types.type_desc in type.t? *)
 let type_ocaml_heap_value = function
   Cons (h, t) ->
     begin match t.typ with
@@ -168,7 +168,7 @@ let rec eval env peek expr =
     in
       if peek then evalled else
       if should_be_value evalled then
-        {expr with e = Value (Ocamli2read.to_ocaml_heap_value evalled.e)}
+        {expr with e = Value (Read.to_ocaml_heap_value evalled.e)}
       else
         evalled
 | Cons (h, t) ->
@@ -181,7 +181,7 @@ let rec eval env peek expr =
       if should_be_value_t' evalled
         then
           {expr with
-             e = Value (Ocamli2read.to_ocaml_heap_value evalled);
+             e = Value (Read.to_ocaml_heap_value evalled);
              typ = type_ocaml_heap_value evalled}
         else {expr with e = evalled}
 | Append (a, b) when is_value a && is_value b ->
@@ -248,7 +248,7 @@ let rec eval env peek expr =
         [] ->
           failwith
             (Printf.sprintf "Pattern-match failed on function, matching pattern %s to value %s"
-              (Ocamli2print.string_of_pattern ((fun (x, _, _) -> x) p)) (Ocamli2print.to_string a))
+              (Print.string_of_pattern ((fun (x, _, _) -> x) p)) (Print.to_string a))
         | _ ->
           {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
         end
@@ -268,7 +268,7 @@ let rec eval env peek expr =
 | Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
 | Apply (_, []) -> failwith "Apply: empty cases"
 | Apply (_, _) ->
-    failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Ocamli2print.string_of_t expr))
+    failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Print.string_of_t expr))
 | LetDef (recflag, (n, e)) ->
     if !showrules then print_endline "LetDef";
     let evalled = eval env peek e in

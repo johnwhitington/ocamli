@@ -1,5 +1,5 @@
 open Typedtree
-open Ocamli2type
+open Type
 open Types
 
 let op_of_text = function
@@ -40,7 +40,7 @@ let rec to_ocaml_heap_value = function
       cell
 | _ -> failwith "to_ocaml_heap_value: unknown"
 
-exception IsImplicitLet of string * Ocamli2type.t * Ocamli2type.t 
+exception IsImplicitLet of string * Type.t * Type.t 
 
 let rec finaltype_of_expression_desc env = function
   Texp_constant (Const_int x) -> Value (Obj.repr x)
@@ -203,3 +203,7 @@ let typedtree_of_string ?(filename="") code =
       e ->
         Location.report_exception Format.std_formatter e;
         exit 2
+
+let read x =
+  finaltype_of_typedtree (typedtree_of_string x)
+

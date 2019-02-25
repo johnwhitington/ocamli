@@ -9,38 +9,31 @@ let programtext = ref ""
 let first = ref true
 
 let indent firstlinearrow str =
-  firstlinearrow ^ (Ocamli2util.string_replace_all "\n" "\n   " str)
+  firstlinearrow ^ (Util.string_replace_all "\n" "\n   " str)
 
 let contains_newline s =
-  Ocamli2util.string_replace_all "\n" "xx" s <> s
-
-(* The Standard Library *)
-let read x =
-  Ocamli2read.finaltype_of_typedtree (Ocamli2read.typedtree_of_string x)
-
-let stdlib =
-  [(false, ref [("Stdlib.+", read "fun a b -> a + b")])]
+  Util.string_replace_all "\n" "xx" s <> s
 
 let rec eval_full v =
   let pre () = let r = if !first then "   " else "=> " in first := false; r in
-  if !showsteps then Printf.printf "%s\n" (Ocamli2print.string_of_t v);
+  if !showsteps then Printf.printf "%s\n" (Print.string_of_t v);
   if !print then
     begin
-      let str = Ocamli2print.to_string v in
+      let str = Print.to_string v in
         print_endline (indent (pre ()) str);
         if contains_newline str then print_newline ();
         exit 0
     end
   else
     begin
-      flush stdout; if !Ocamli2eval.showrules then print_endline "---Beginning of evaluation";
-      let evalled = if !peek then Ocamli2eval.eval stdlib true v else v in
-      flush stdout; if !Ocamli2eval.showrules then print_endline "---End of evaluation, beginning of printing";
-      let str = Ocamli2print.to_string evalled in
+      flush stdout; if !Eval.showrules then print_endline "---Beginning of evaluation";
+      let evalled = if !peek then Eval.eval Lib.stdlib true v else v in
+      flush stdout; if !Eval.showrules then print_endline "---End of evaluation, beginning of printing";
+      let str = Print.to_string evalled in
         print_endline (indent (pre ()) str);
-        flush stdout; if !Ocamli2eval.showrules then print_endline "---End of printing";
+        flush stdout; if !Eval.showrules then print_endline "---End of printing";
         if contains_newline str then print_newline ();
-        flush stdout; if Ocamli2type.is_value v then v else eval_full (Ocamli2eval.eval stdlib false v)
+        flush stdout; if Type.is_value v then v else eval_full (Eval.eval Lib.stdlib false v)
     end
 
 let load_file f =
@@ -56,15 +49,15 @@ let setfile filename =
 
 let argspec =
   ["-e", Arg.Set_string programtext, " Set program text";
-   "-dno-syntax", Arg.Clear Ocamli2print.syntax, " Do not use syntax highlighting";
+   "-dno-syntax", Arg.Clear Print.syntax, " Do not use syntax highlighting";
    "-dprint", Arg.Set print, " Just show the program, do not evaluate it";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
-   "-dsteps-no-types", Arg.Clear Ocamli2print.string_of_t_show_types, " But not types...";
-   "-dnovals", Arg.Clear Ocamli2print.showvals, "Do not show values in steps";
-   "-dshowalllets", Arg.Set Ocamli2print.show_all_lets, "Show even unused lets";
+   "-dsteps-no-types", Arg.Clear Print.string_of_t_show_types, " But not types...";
+   "-dnovals", Arg.Clear Print.showvals, "Do not show values in steps";
+   "-dshowalllets", Arg.Set Print.show_all_lets, "Show even unused lets";
    "-dnopeek", Arg.Clear peek, "Do not peek";
-   "-drules", Arg.Set Ocamli2eval.showrules, " Show reduction rule for each step of evaluation"]
+   "-drules", Arg.Set Eval.showrules, " Show reduction rule for each step of evaluation"]
 
 let _ =
   Arg.parse argspec setfile "Syntax: ocamli2 <filename | -e program>\n";
-  eval_full (read !programtext)
+  eval_full (Read.read !programtext)

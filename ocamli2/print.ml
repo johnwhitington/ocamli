@@ -1,7 +1,7 @@
 open Asttypes
 open Parsetree
 open Types
-open Ocamli2type
+open Type
 
 (* Set this to false to debug failures in string_of_value *)
 let showvals = ref true
@@ -425,7 +425,7 @@ let print f (v : t) =
     Format.pp_set_tags f true;
     Format.pp_set_print_tags f true;
     Format.pp_open_box f 0;
-    print_finaltype f (if !show_all_lets then v else Ocamli2type.remove_unused_lets v);
+    print_finaltype f (if !show_all_lets then v else Type.remove_unused_lets v);
     Format.pp_close_box f ();
     Format.pp_print_flush f ()
 

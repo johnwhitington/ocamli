@@ -164,7 +164,7 @@ and free_in {e; lets} =
  * lets may be removed. Then, at the node above, they have already gone, so do
  * not count as used from that node. *)
 let remove_lets tokeep lets =
-  Ocamli2util.option_map
+  Util.option_map
     (fun x ->
        if List.for_all (fun (n, e) -> not (List.mem n tokeep)) !(snd x)
          then None
@@ -178,7 +178,7 @@ let appears_in h t =
     (false, {contents = [(n, _)]}) ->
       List.mem
         n
-        (Ocamli2util.option_map
+        (Util.option_map
           (function (false, {contents = [(x, _)]}) -> Some x | _ -> None)
           t)
   | _ -> false
