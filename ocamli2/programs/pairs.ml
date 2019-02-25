@@ -1,12 +1,12 @@
 (* The buggy version, for demonstration purposes *)
-let rec rev = function
+(*let rec rev = function
   [] -> []
 | h::t -> rev t @ [h]
 
-let x = rev [1]
+let x = rev [1]*)
 
 let rec pairs f a = function
-  [] -> rev a
+  [] -> List.rev a
 | [_] -> []
 | h::h'::t -> pairs f (f h h' :: a) t
 

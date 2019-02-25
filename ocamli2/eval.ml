@@ -139,7 +139,7 @@ let rec eval env peek expr =
 | Var x ->
     if !showrules then print_endline "Var";
     if !showrules then Printf.printf "looking for var %s in environment of length %i\n" x (List.length env);
-    let value = lookup x env in
+    let value = try lookup x env with Not_found -> failwith ("not in environment: " ^ x) in
       begin match value.e with
         Function _ ->
           if peek then underline expr else {value with printas = Some x}
@@ -264,6 +264,8 @@ let rec eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
+| Apply ({e = CallBuiltIn f}, [{e = Value v}]) ->
+    if peek then underline expr else {expr with e = Value (f v)}
 | Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
 | Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
 | Apply (_, []) -> failwith "Apply: empty cases"

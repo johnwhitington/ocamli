@@ -10,14 +10,15 @@ open Type
  * must be different for different arities? Anyway, proceed with just one for now.
  *
  * with a printas of List.rev *)
+
 let list_rev =
   {e = CallBuiltIn (Obj.magic (List.rev : 'a -> 'a));
    lets = [];
    typ = Types.Tvar None;
-   printas = None;
+   printas = Some "List.rev";
    peek = None}
 
 let stdlib =
   [(false, ref [("Stdlib.+", Read.read "fun a b -> a + b")]);
-   (false, ref [("List.rev", list_rev)])]
+   (false, ref [("Stdlib.List.rev", list_rev)])]
 
