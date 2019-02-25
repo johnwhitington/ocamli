@@ -278,7 +278,7 @@ let rec eval env peek expr =
 | Struct lst ->
     if !showrules then print_endline "Struct";
     {expr with e = Struct (eval_first_non_value_element_of_list env peek lst)}
-| Value _ | Function _ -> if peek then expr else failwith "already a value"
+| Value _ | Function _ | CallBuiltIn _ -> if peek then expr else failwith "already a value"
 
 and eval_first_non_value_element_of_list env peek = function
     [] -> []
