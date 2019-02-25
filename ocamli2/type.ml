@@ -36,6 +36,7 @@ type t' =
 | Match of t * case list
 | Struct of t list
 | LetDef of bool * binding
+| CallBuiltIn of (Obj.t -> Obj.t)
 
 and t =
   {typ : Types.type_desc;
