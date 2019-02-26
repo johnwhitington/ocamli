@@ -465,7 +465,7 @@ let string_of_boolop = function
 
 let rec string_of_t' typ = function
   Value x -> to_string_from_heap typ x
-| CallBuiltIn b -> "CALLBUILTIN"
+| CallBuiltIn (n, _) -> "CALLBUILTIN" ^ string_of_int n 
 | Function (cases, env) ->
     Printf.sprintf "Function (%s, env = %s)" (string_of_cases cases) (string_of_env env)
 | Apply (e, args) ->

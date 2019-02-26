@@ -36,7 +36,7 @@ type t' =
 | Match of t * case list
 | Struct of t list
 | LetDef of bool * binding
-| CallBuiltIn of (Obj.t -> Obj.t)
+| CallBuiltIn of int * Obj.t (* Number of curried arguments to apply (0 for a -> b function), function itself. *)
 
 and t =
   {typ : Types.type_desc;
@@ -78,7 +78,7 @@ and should_be_value {e} = should_be_value_t' e
 (* Map over the data structure, given a function from t -> t *)
 let rec map_t' f = function
   Value v -> Value v
-| CallBuiltIn b -> CallBuiltIn b
+| CallBuiltIn (n, f) -> CallBuiltIn (n, f)
 | Function (cases, env) -> Function (List.map (map_case f) cases, map_env f env)
 | Apply (func, args) -> Apply (map_t f func, List.map (map_t f) args)
 | Var v -> Var v

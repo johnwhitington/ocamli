@@ -34,7 +34,7 @@ type t' =
 | Match of t * case list
 | Struct of t list
 | LetDef of bool * binding (* recflag *)
-| CallBuiltIn of (Obj.t -> Obj.t)
+| CallBuiltIn of int * Obj.t
 
 and t =
   {typ : Types.type_desc;
