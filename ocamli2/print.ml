@@ -15,6 +15,9 @@ let syntax_tex = ref false
 (* Show all implicit lets, for debug *)
 let show_all_lets = ref false
 
+(* Use printas *)
+let printas = ref true
+
 type assoc = L | R | N
 
 let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
@@ -197,10 +200,10 @@ let rec print_finaltype_inner f isleft parent node =
   let lp, rp = parens node.e parent isleft in
   (* 2. Match on the expression itself, and print *)
   begin match node.printas with
-    Some x -> str x
-  | None -> ()
+    Some x when !printas -> str x
+  | _ -> ()
   end;
-  if node.printas = None then begin match node.e with
+  if node.printas = None || not !printas then begin match node.e with
     Value v ->
       str (string_of_value v node.typ)
   | CallBuiltIn _ ->

@@ -56,6 +56,7 @@ let argspec =
    "-dnovals", Arg.Clear Print.showvals, " Do not show values in steps";
    "-dshowalllets", Arg.Set Print.show_all_lets, " Show even unused lets";
    "-dnopeek", Arg.Clear peek, " Do not peek";
+   "-dnoprintas", Arg.Clear Print.printas, " Do not use printas";
    "-drules", Arg.Set Eval.showrules, " Show reduction rule for each step of evaluation"]
 
 let _ =

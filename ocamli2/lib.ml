@@ -1,22 +1,23 @@
 (* The Standard Library *)
 open Type
 
-let make_t e n =
+let make_t n e =
   {e; lets = []; typ = Types.Tvar None; printas = Some n; peek = None}
 
-let make1 n f =
-  make_t (CallBuiltIn (0, f)) n
+let rec make arity arity_left n f =
+  if arity_left = 1 then
+    make_t n (CallBuiltIn (arity - 1, f))
+  else
+    make_t n
+      (Function
+         ([(PatVar (string_of_int (arity_left - 1)), None, (make arity (arity_left - 1) n f))],
+          []))
 
-let make2 n f =
-  make_t
-    (Function
-       ([(PatVar "a", None, (make_t (CallBuiltIn (1, f)) n))],
-        [])
-    )
-    n
+let entry name arity func =
+  (false, ref [("Stdlib." ^ name, make arity arity name (Obj.magic func : Obj.t))])
 
 let stdlib =
-  [(false, ref [("Stdlib.( + )", make2 "( + )" (Obj.magic ( + ) : Obj.t))]);
-   (false, ref [("Stdlib.List.nth", make2 "List.nth" (Obj.magic List.nth : Obj.t))]);
-   (false, ref [("Stdlib.List.rev", make1 "List.rev" (Obj.magic List.rev : Obj.t))])]
+  [entry "( + )" 2 ( + );
+   entry "List.nth" 2 List.nth;
+   entry "List.rev" 1 List.rev]
 

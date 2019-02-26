@@ -271,11 +271,11 @@ let rec eval env peek expr =
         {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}
       else
         (* Lookup 'a' in the environment, and apply it first. Then apply it. Then apply the arg *)
-        begin match try lookup "a" lhs.lets with Not_found -> failwith "Apply partial not found" with
+        begin match try lookup "1" lhs.lets with Not_found -> failwith "Apply partial not found" with
           {e = Value a} ->
             let applied1 = (Obj.magic f : Obj.t -> Obj.t) a in
               {expr with e = Value ((Obj.magic applied1 : Obj.t -> Obj.t) v)}
-        | _ -> failwith "apply partial malformed"
+        | _ -> failwith "apply partial implement more args"
         end
 | Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
 | Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
