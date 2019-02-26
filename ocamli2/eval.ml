@@ -264,13 +264,14 @@ let rec eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
-| Apply ({e = CallBuiltIn (n, f)}, [{e = Value v}]) ->
+| Apply ({e = CallBuiltIn (n, f)} as lhs, [{e = Value v}]) ->
+    if !showrules then print_endline "Apply-CallBuiltIn";
     if peek then underline expr else
       if n = 0 then
         {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}
       else
         (* Lookup 'a' in the environment, and apply it first. Then apply it. Then apply the arg *)
-        begin match try lookup "a" env with Not_found -> failwith "Apply partial not found" with
+        begin match try lookup "a" lhs.lets with Not_found -> failwith "Apply partial not found" with
           {e = Value a} ->
             let applied1 = (Obj.magic f : Obj.t -> Obj.t) a in
               {expr with e = Value ((Obj.magic applied1 : Obj.t -> Obj.t) v)}

@@ -16,6 +16,7 @@ let make2 n f =
     n
 
 let stdlib =
-  [(false, ref [("plus", make2 "plus" (Obj.magic ( + ) : Obj.t))]);
+  [(false, ref [("Stdlib.( + )", make2 "( + )" (Obj.magic ( + ) : Obj.t))]);
+   (false, ref [("Stdlib.List.nth", make2 "List.nth" (Obj.magic List.nth : Obj.t))]);
    (false, ref [("Stdlib.List.rev", make1 "List.rev" (Obj.magic List.rev : Obj.t))])]
 

@@ -53,9 +53,9 @@ let argspec =
    "-dprint", Arg.Set print, " Just show the program, do not evaluate it";
    "-dsteps", Arg.Set showsteps, " Show information for each step of evaluation";
    "-dsteps-no-types", Arg.Clear Print.string_of_t_show_types, " But not types...";
-   "-dnovals", Arg.Clear Print.showvals, "Do not show values in steps";
-   "-dshowalllets", Arg.Set Print.show_all_lets, "Show even unused lets";
-   "-dnopeek", Arg.Clear peek, "Do not peek";
+   "-dnovals", Arg.Clear Print.showvals, " Do not show values in steps";
+   "-dshowalllets", Arg.Set Print.show_all_lets, " Show even unused lets";
+   "-dnopeek", Arg.Clear peek, " Do not peek";
    "-drules", Arg.Set Eval.showrules, " Show reduction rule for each step of evaluation"]
 
 let _ =
