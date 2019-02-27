@@ -197,10 +197,13 @@ let rec print_finaltype_inner f isleft parent node =
          bindings)
     node.lets;
   (* Inner parentheses, i.e with relation to any implicit lets printed. *)
-  let lp, rp = parens node.e parent isleft in
+  let lp, rp = if lp' = "(" then "", "" else parens node.e parent isleft in
   (* 2. Match on the expression itself, and print *)
   begin match node.printas with
-    Some x when !printas -> str x
+    Some x when !printas ->
+      if is_op x then str "( ";
+      str x;
+      if is_op x then str " )"
   | _ -> ()
   end;
   if node.printas = None || not !printas then begin match node.e with

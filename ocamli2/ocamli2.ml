@@ -14,6 +14,8 @@ let indent firstlinearrow str =
 let contains_newline s =
   Util.string_replace_all "\n" "xx" s <> s
 
+let last_s = ref ""
+
 let rec eval_full v =
   let pre () = let r = if !first then "   " else "=> " in first := false; r in
   if !showsteps then Printf.printf "%s\n" (Print.string_of_t v);
@@ -30,7 +32,8 @@ let rec eval_full v =
       let evalled = if !peek then Eval.eval Lib.stdlib true v else v in
       flush stdout; if !Eval.showrules then print_endline "---End of evaluation, beginning of printing";
       let str = Print.to_string evalled in
-        print_endline (indent (pre ()) str);
+        if str <> !last_s then print_endline (indent (pre ()) str);
+        last_s := str;
         flush stdout; if !Eval.showrules then print_endline "---End of printing";
         if contains_newline str then print_newline ();
         flush stdout; if Type.is_value v then v else eval_full (Eval.eval Lib.stdlib false v)

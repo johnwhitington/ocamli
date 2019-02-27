@@ -1,10 +1,4 @@
 (* The buggy version, for demonstration purposes *)
-(*let rec rev = function
-  [] -> []
-| h::t -> rev t @ [h]
-
-let x = rev [1]*)
-
 let rec pairs f a = function
   [] -> List.rev a
 | [_] -> []

@@ -142,7 +142,7 @@ let rec eval env peek expr =
     let value = try lookup x env with Not_found -> failwith ("not in environment: " ^ x) in
       begin match value.e with
         Function _ ->
-          if peek then underline expr else {value with printas = Some x}
+          if peek then underline expr else {value with printas = match value.printas with None -> Some x | _ -> value.printas}
       | _ ->
           if peek then underline expr else value
       end
@@ -229,6 +229,10 @@ let rec eval env peek expr =
     if !showrules then print_endline "Match";
     if peek then underline expr else
     failwith "Matched no pattern"
+(* We have a variable for the function. Look it up and carry straight on to apply it. *)
+| Apply ({e = Var v} as f, args) ->
+    if peek then underline expr else
+      eval env peek {expr with e = Apply (eval env peek f, args)}
 (* 1. Function not a yet a value. Eval one step. *)
 | Apply (f, args) when not (is_value f) ->
     if !showrules then print_endline "Apply-fun-not-value";
