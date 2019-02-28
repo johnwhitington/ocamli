@@ -93,6 +93,17 @@ let type_ocaml_heap_value = function
     end
 | _ -> failwith "type_ocaml_heap_value"
 
+(* Make the native function to call the interpreted function f, so we can pass it to a built-in e.g in the case of
+ *
+ * List.map (fun x -> x + 1) [1; 2; 3]
+ *
+ * where List.map is a CallBuiltIn *)
+let make_native_function f fenv =
+  (* The function, when called with one argument (for now),
+   * calls the interpreter repeatedly until there is a value. Then it returns that value *)
+  (fun x -> x + 1)
+  
+
 let rec eval env peek expr =
   if !showrules then print_string "RULE: ";
   let env = List.rev expr.lets @ env in
@@ -276,9 +287,13 @@ let rec eval env peek expr =
       else
         (* Lookup 'a' in the environment, and apply it first. Then apply it. Then apply the arg *)
         begin match try lookup "1" lhs.lets with Not_found -> failwith "Apply partial not found" with
-          {e = Value a} ->
+          {e = Value a | CallBuiltIn (0, a)} ->    
             let applied1 = (Obj.magic f : Obj.t -> Obj.t) a in
               {expr with e = Value ((Obj.magic applied1 : Obj.t -> Obj.t) v)}
+        | {e = Function (ff, fenv)} ->
+            let f_native = make_native_function ff fenv in
+              let applied1 = (Obj.magic f : Obj.t -> Obj.t) (Obj.magic f_native : Obj.t) in
+                {expr with e = Value ((Obj.magic applied1 : Obj.t -> Obj.t) v)}
         | _ -> failwith "apply partial implement more args"
         end
 | Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"

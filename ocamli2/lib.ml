@@ -19,5 +19,9 @@ let f name arity func =
 let stdlib =
   [f "+" 2 ( + );
    f "List.nth" 2 List.nth;
-   f "List.rev" 1 List.rev]
+   f "List.rev" 1 List.rev;
+   f "List.tl" 1 List.tl;
+   (* A higher-order function *)
+   f "List.map" 2 List.map;
+  ]
 
