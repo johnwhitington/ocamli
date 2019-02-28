@@ -154,19 +154,22 @@ let rec string_of_value v = function
         then failwith (Printf.sprintf "string_of_value: unknown type %s" (string_of_ocaml_type t))
         else Printf.sprintf "<%s>" (string_of_ocaml_type t)
 
-(* Find the names of functions which are candidates for abbreviation, and return the expression below *)
-let rec find_funs x =
-  match x.e with
-  | Function ([(PatVar v, _, e)], _) ->
-      let more, e' = find_funs e in
-        (v::more, e')
-  | e -> ([], x)
-
-let rec fakelet =
+and fakelet =
   {e = Let (false, ("fakelet", fakelet), fakelet);
    lets = []; peek = None; printas = None; typ = Tvar None}
 
-let rec print_finaltype_inner f isleft parent node =
+(* Find the names of functions which are candidates for abbreviation, and return the expression below *)
+and find_funs x =
+  match x.e with
+  | Function ([(PatVar v, _, e)], _) ->
+      (*Printf.printf "findfun, got %s\n" v;*)
+      let more, e' = find_funs e in
+        (v::more, e')
+  | e ->
+      (*Printf.printf "Found instead %s\n" (string_of_t' x.typ e);*)
+      ([], x)
+
+and print_finaltype_inner f isleft parent node =
   let str = Format.pp_print_string f in
   let newline () = Format.fprintf f "@\n" in
   let bold () = Format.pp_open_tag f "bold" in
@@ -191,8 +194,10 @@ let rec print_finaltype_inner f isleft parent node =
          (fun (n, e) ->
             if recflag then boldstr "let rec " else boldstr "let ";
             str n;
+            let names, e' = find_funs e in
+            List.iter (fun x -> str " "; str x) names;
             str " = ";
-            print_finaltype_inner f true (Some node) e;
+            print_finaltype_inner f true (Some node) e';
             boldstr " in ")
          bindings)
     node.lets;
@@ -264,10 +269,10 @@ let rec print_finaltype_inner f isleft parent node =
       str lp;
       if recflag then boldstr "let rec " else boldstr "let ";
       str n;
-      let names, e' = find_funs e in
+      let names, e'' = find_funs e in
       List.iter (fun x -> str " "; str x) names;
       str " = ";
-      print_finaltype_inner f false (Some node) e;
+      print_finaltype_inner f false (Some node) e'';
       boldstr " in ";
       print_finaltype_inner f false (Some node) e';
       str rp
@@ -401,13 +406,13 @@ and print_finaltype_pattern f isleft parent pat =
         end
     | PatConstant (IntConstant i) -> str (string_of_int i)
 
-let print_finaltype f t =
+and print_finaltype f t =
   print_finaltype_inner f true None t
 
-let output_tags f =
+and output_tags f =
   List.iter (output_tag f) !tags
 
-let print f (v : t) =
+and print f (v : t) =
   let tagfuns =
     {Format.mark_open_tag = (fun _ -> "");
      Format.mark_close_tag = (fun _ -> "");
@@ -437,11 +442,11 @@ let print f (v : t) =
     Format.pp_close_box f ();
     Format.pp_print_flush f ()
 
-let to_string v =
+and to_string v =
   print Format.str_formatter v;
   Format.flush_str_formatter ()
 
-let to_string_from_heap typ v =
+and to_string_from_heap typ v =
   to_string
     {e = Value v;
      lets = [];
@@ -449,15 +454,15 @@ let to_string_from_heap typ v =
      peek = None;
      printas = None}
 
-let string_of_t_show_types = ref true
+and string_of_t_show_types = ref true
 
-let string_of_op = function
+and string_of_op = function
     Add -> "Add"
   | Sub -> "Sub"
   | Mul -> "Mul"
   | Div -> "Div" 
 
-let string_of_compop = function
+and string_of_compop = function
   | LT -> "LT"
   | GT -> "GT"
   | GTE -> "GTE"
@@ -465,11 +470,11 @@ let string_of_compop = function
   | EQ -> "EQ"
   | NEQ -> "NEQ"
 
-let string_of_boolop = function
+and string_of_boolop = function
   | AND -> "AND"
   | OR -> "OR"
 
-let rec string_of_t' typ = function
+and string_of_t' typ = function
   Value x -> to_string_from_heap typ x
 | CallBuiltIn (n, _) -> "CALLBUILTIN" ^ string_of_int n 
 | Function (cases, env) ->

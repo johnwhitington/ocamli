@@ -1,6 +1,7 @@
 (* The Standard Library *)
 open Type
 
+(* Build nested arity 1 functions so that partial application works. *)
 let rec make arity arity_left n f =
   {e =
     (if arity_left = 1 then CallBuiltIn (arity - 1, f) else
@@ -12,11 +13,11 @@ let rec make arity arity_left n f =
    printas = Some n;
    peek = None}
 
-let entry name arity func =
+let f name arity func =
   (false, ref [("Stdlib." ^ name, make arity arity name (Obj.magic func : Obj.t))])
 
 let stdlib =
-  [entry "+" 2 ( + );
-   entry "List.nth" 2 List.nth;
-   entry "List.rev" 1 List.rev]
+  [f "+" 2 ( + );
+   f "List.nth" 2 List.nth;
+   f "List.rev" 1 List.rev]
 
