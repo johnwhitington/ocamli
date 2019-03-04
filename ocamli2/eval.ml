@@ -2,6 +2,16 @@ open Type
 open Types
 
 let showrules = ref false
+let showsteps = ref false
+let peek = ref true
+let print = ref false
+let first = ref true
+
+let indent firstlinearrow str =
+  firstlinearrow ^ (Util.string_replace_all "\n" "\n   " str)
+
+let contains_newline s =
+  Util.string_replace_all "\n" "xx" s <> s
 
 (* Now, the evaluator *)
 let perform_float_op op x y =
@@ -98,13 +108,26 @@ let type_ocaml_heap_value = function
  * List.map (fun x -> x + 1) [1; 2; 3]
  *
  * where List.map is a CallBuiltIn *)
-let make_native_function f fenv =
   (* The function, when called with one argument (for now),
    * calls the interpreter repeatedly until there is a value. Then it returns that value *)
-  (fun x -> x + 1)
-  
+let mkempty e =
+  {e; lets = []; peek = None; printas = None; typ = Types.Tvar None}
 
-let rec eval env peek expr =
+let rec make_native = function
+  | Function ([PatVar vname, None, rhs], fenv) as f ->
+      let fn =
+        let expr =
+          mkempty (Apply (mkempty f, [mkempty (Var vname)]))
+        in
+          fun x ->
+            match (eval_full ((false, ref [(vname, mkempty (Value x))])::fenv) expr).e with
+              Value ret -> ret
+            | _ -> failwith "didn't make a value"
+      in
+        (Obj.magic fn : Obj.t)
+  | _ -> failwith "make_native not a function"
+
+and eval env peek expr =
   if !showrules then print_string "RULE: ";
   let env = List.rev expr.lets @ env in
   match expr.e with
@@ -279,6 +302,14 @@ let rec eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
+| Apply ({e = Value f}, [{e = Function _ as fi}]) ->
+    if !showrules then print_endline "Apply-Builtin-Interp-Final";
+    if peek then underline expr else
+      {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native fi))}
+| Apply ({e = Value f} as lhs, {e = Function _ as fi}::more) ->
+    if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
+    if peek then underline expr else
+      {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native fi))}, more)}
 | Apply ({e = Value f}, [{e = Value v}]) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
@@ -329,3 +360,25 @@ and eval_first_non_value_element env peek arr =
     false
   with
     Exit -> true
+
+and eval_full env v =
+  let pre () = let r = if !first then "   " else "=> " in first := false; r in
+  if !showsteps then Printf.printf "%s\n" (Print.string_of_t v);
+  if !print then
+    begin
+      let str = Print.to_string v in
+        print_endline (indent (pre ()) str);
+        if contains_newline str then print_newline ();
+        exit 0
+    end
+  else
+    begin
+      flush stdout; if !showrules then print_endline "---Beginning of evaluation";
+      let evalled = if !peek then eval env true v else v in
+      flush stdout; if !showrules then print_endline "---End of evaluation, beginning of printing";
+      let str = Print.to_string evalled in
+        print_endline (indent (pre ()) str);
+        flush stdout; if !showrules then print_endline "---End of printing";
+        if contains_newline str then print_newline ();
+        flush stdout; if Type.is_value v then v else eval_full env (eval env false v)
+    end
