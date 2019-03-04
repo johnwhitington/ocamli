@@ -98,7 +98,7 @@ let prec = function
 | IntOp ((Mul | Div), _, _) -> 90
 | IntOp (_, _, _) -> 80
 | ArraySet _ -> 55
-| Function _ | Let _ | LetDef _ | CallBuiltIn _ -> 10
+| Function _ | Let _ | LetDef _ -> 10
 | Struct _  -> 3
 | Value _ | Var _ | ArrayExpr _ | Cons _ | FOp _ | Match _ -> max_int
 
@@ -214,8 +214,6 @@ and print_finaltype_inner f isleft parent node =
   if node.printas = None || not !printas then begin match node.e with
     Value v ->
       str (string_of_value v node.typ)
-  | CallBuiltIn _ ->
-      str "!CallBuiltIn!"
   | IntOp (op, l, r) ->
       str lp;
       print_finaltype_inner f true (Some node) l;
@@ -476,7 +474,6 @@ and string_of_boolop = function
 
 and string_of_t' typ = function
   Value x -> to_string_from_heap typ x
-| CallBuiltIn (n, _) -> "CALLBUILTIN" ^ string_of_int n 
 | Function (cases, env) ->
     Printf.sprintf "Function (%s, env = %s)" (string_of_cases cases) (string_of_env env)
 | Apply (e, args) ->

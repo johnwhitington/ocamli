@@ -36,7 +36,6 @@ type t' =
 | Match of t * case list
 | Struct of t list
 | LetDef of bool * binding
-| CallBuiltIn of int * Obj.t (* Number of curried arguments to apply (0 for a -> b function), function itself. *)
 
 and t =
   {typ : Types.type_desc;
@@ -55,7 +54,7 @@ and case = pattern * t option * t
 
 (* Check if something is a value *)
 let rec is_value_t' = function
-  Value _ | Function _ | CallBuiltIn _ -> true
+  Value _ | Function _ -> true
 | ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
 | ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ | Apply _ 
 | Compare _ | BoolOp _ -> false
@@ -78,7 +77,6 @@ and should_be_value {e} = should_be_value_t' e
 (* Map over the data structure, given a function from t -> t *)
 let rec map_t' f = function
   Value v -> Value v
-| CallBuiltIn (n, f) -> CallBuiltIn (n, f)
 | Function (cases, env) -> Function (List.map (map_case f) cases, map_env f env)
 | Apply (func, args) -> Apply (map_t f func, List.map (map_t f) args)
 | Var v -> Var v
@@ -114,7 +112,6 @@ let remove_name l n = List.filter (fun x -> x <> n) l
 
 let rec free_in_t' = function
   Value _ -> []
-| CallBuiltIn _ -> []
 | Function (cases, _) -> free_in_cases cases
 | Apply (a, es) -> free_in a @ List.flatten (List.map free_in es)
 | Var x -> [x]

@@ -279,23 +279,14 @@ let rec eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
-| Apply ({e = CallBuiltIn (n, f)} as lhs, [{e = Value v}]) ->
-    if !showrules then print_endline "Apply-CallBuiltIn";
+| Apply ({e = Value f}, [{e = Value v}]) ->
+    if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
-      if n = 0 then
-        {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}
-      else
-        (* Lookup 'a' in the environment, and apply it first. Then apply it. Then apply the arg *)
-        begin match try lookup "1" lhs.lets with Not_found -> failwith "Apply partial not found" with
-          {e = Value a | CallBuiltIn (0, a)} ->    
-            let applied1 = (Obj.magic f : Obj.t -> Obj.t) a in
-              {expr with e = Value ((Obj.magic applied1 : Obj.t -> Obj.t) v)}
-        | {e = Function (ff, fenv)} ->
-            let f_native = make_native_function ff fenv in
-              let applied1 = (Obj.magic f : Obj.t -> Obj.t) (Obj.magic f_native : Obj.t) in
-                {expr with e = Value ((Obj.magic applied1 : Obj.t -> Obj.t) v)}
-        | _ -> failwith "apply partial implement more args"
-        end
+      {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}
+| Apply ({e = Value f} as lhs, {e = Value v}::more) ->
+    if !showrules then print_endline "Apply-BuiltIn-Partial";
+    if peek then underline expr else
+      {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
 | Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
 | Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
 | Apply (_, []) -> failwith "Apply: empty cases"
@@ -310,7 +301,7 @@ let rec eval env peek expr =
 | Struct lst ->
     if !showrules then print_endline "Struct";
     {expr with e = Struct (eval_first_non_value_element_of_list env peek lst)}
-| Value _ | Function _ | CallBuiltIn _ -> if peek then expr else failwith "already a value"
+| Value _ | Function _ -> if peek then expr else failwith "already a value"
 
 and eval_first_non_value_element_of_list env peek = function
     [] -> []
