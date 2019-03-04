@@ -15,6 +15,7 @@ let stdlib =
   [f "+" ( + );
    f "List.nth" List.nth;
    f "List.rev" List.rev;
+   f "List.map2" List.map2;
    f "List.tl" List.tl;
    f "List.map" List.map;
   ]
