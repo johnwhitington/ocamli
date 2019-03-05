@@ -109,21 +109,25 @@ let type_ocaml_heap_value = function
 let mkempty lets e =
   {e; lets; peek = None; printas = None; typ = Types.Tvar None}
 
-let rec make_native impl_lets = function
+let rec make_native printas impl_lets = function
   | Function ([PatVar vname, None, rhs], fenv) as f ->
       let fn =
         let expr =
           mkempty impl_lets (Apply (mkempty [] f, [mkempty [] (Var vname)]))
         in
           fun x ->
+            Printf.printf "{Function %s}\n" printas;
             let newlet = (false, ref [(vname, mkempty [] (Value x))]) in
-              match ((eval_full (newlet::fenv)) expr).e with
-                Value ret -> ret
-              | Function (f', fenv') ->
-                  (* This was a partial application. Keep the binding for next time. *)
-                  make_native (newlet::impl_lets) (Function (f', fenv'))
-              | _ -> 
-                  failwith "didn't make a value"
+             let r =
+                match ((eval_full (newlet::fenv)) expr).e with
+                  Value ret -> ret
+                | Function (f', fenv') ->
+                    (* This was a partial application. Keep the binding for next time. *)
+                    make_native printas (newlet::impl_lets) (Function (f', fenv'))
+                | _ -> 
+                    failwith "didn't make a value"
+             in
+               r
       in
         (Obj.magic fn : Obj.t)
   | _ -> failwith "make_native not a function"
@@ -303,14 +307,14 @@ and eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
-| Apply ({e = Value f}, [{e = Function _ as fi}]) ->
+| Apply ({e = Value f}, [{e = Function _ as fi} as f_print]) ->
     if !showrules then print_endline "Apply-Builtin-Interp-Final";
     if peek then underline expr else
-      {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}
-| Apply ({e = Value f} as lhs, {e = Function _ as fi}::more) ->
+      {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native (Print.to_string f_print) [] fi))}
+| Apply ({e = Value f} as lhs, ({e = Function _ as fi} as f_print)::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
     if peek then underline expr else
-      {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}, more)}
+      {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native (Print.to_string f_print) [] fi))}, more)}
 | Apply ({e = Value f}, [{e = Value v}]) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
