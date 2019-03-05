@@ -149,6 +149,20 @@ let rec string_of_value v = function
       ^ List.fold_left ( ^ ) "" (List.map (fun x -> let r = (if !first then "" else "; ") ^ x in first := false; r) 
           (List.map (fun v -> string_of_value v (find_type_desc elt_t)) (list_elements v)))
       ^ "]"
+  | Tlink l -> string_of_value v l.desc
+  (*| Tconstr _ -> "unknown Tconstr"
+  | Tvar _ -> "unknown Tvar"
+  | Tarrow _ -> "unknown tarrow"
+  | Ttuple _ -> "unknwn ttuple"
+  | Tobject _ -> "unknwn tobject"
+  | Tfield _ -> "unknwn tfield"
+  | Tnil -> "unknwn tnil"
+  | Tlink _ -> "unknwn tlink"
+  | Tsubst _ -> "unknwn tsubst"
+  | Tvariant _ -> "unknwn tvariant"
+  | Tunivar _ -> "unknwn tunivar"
+  | Tpoly _ -> "unknwn tpoly"
+  | Tpackage _ -> "unknwn tpackage"*)
   | t ->
       if !showvals
         then failwith (Printf.sprintf "string_of_value: unknown type %s" (string_of_ocaml_type t))
