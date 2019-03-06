@@ -1,8 +1,7 @@
 (* The buggy version, for demonstration purposes *)
 let rec pairs f a = function
-  [] -> List.rev a
-| [_] -> []
-| h::h'::t -> pairs f (f h h' :: a) t
+| h::t -> pairs f (f h :: a) t
+| _ -> []
 
-let x = pairs ( + ) [] [1; 2; 3; 4]
+let x = pairs ( + ) [] [1]
 

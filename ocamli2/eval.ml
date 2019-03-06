@@ -107,7 +107,7 @@ let type_ocaml_heap_value = function
  *
  * List.map (fun x -> x + 1) [1; 2; 3] *)
 let mkempty lets e =
-  {e; lets; peek = None; printas = None; typ = Types.Tvar None}
+  {e; lets; peek = None; printas = None; typ = Types.Tvar (Some "mkempty")}
 
 let rec make_native impl_lets funexpr =
   match funexpr with
@@ -317,10 +317,24 @@ and eval env peek expr =
     if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
     if peek then underline expr else
       {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}, more)}
-| Apply ({e = Value f}, [{e = Value v}]) ->
+| Apply ({e = Value f} as fprint, [{e = Value v} as vprint]) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
-      {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}
+      (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
+      let printas =
+        match expr.printas with
+          Some x -> Some x
+        | None ->
+            match expr.typ with
+              Types.Tarrow _ -> Some (Print.to_string fprint)
+            | _ -> None
+      in
+        (* Print type of expr, type of fprint, type of vprint *)
+        Printf.printf "expr: %s\nf: %s\nv: %s\n"
+          (Print.string_of_ocaml_type expr.typ)
+          (Print.string_of_ocaml_type fprint.typ)
+          (Print.string_of_ocaml_type vprint.typ);
+        {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas}
 | Apply ({e = Value f} as lhs, {e = Value v}::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Partial";
     if peek then underline expr else

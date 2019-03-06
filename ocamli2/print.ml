@@ -170,7 +170,7 @@ let rec string_of_value v = function
 
 and fakelet =
   {e = Let (false, ("fakelet", fakelet), fakelet);
-   lets = []; peek = None; printas = None; typ = Tvar None}
+   lets = []; peek = None; printas = None; typ = Tvar (Some "fakelet")}
 
 (* Find the names of functions which are candidates for abbreviation, and return the expression below *)
 and find_funs x =
