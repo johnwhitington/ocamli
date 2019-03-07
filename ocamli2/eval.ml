@@ -48,6 +48,14 @@ let better_type ta tb =
   | Tvar (Some s) when Util.prefix "DEBUG" s -> tb
   | _ -> ta
 
+let better_type ta tb =
+  let t = better_type ta tb in
+    Printf.printf "Bettertype: choices were %s and %s\nI chose %s\n"
+      (Print.string_of_ocaml_type ta)
+      (Print.string_of_ocaml_type tb)
+      (Print.string_of_ocaml_type t);
+    t
+
 (* Pattern matching. *)
 let rec patmatch expr (pat, guard, rhs) =
   let yes = Some rhs and no = None in
