@@ -5,6 +5,9 @@ let rec option_map f = function
         None -> option_map f t
       | Some x -> x::option_map f t
 
+let prefix x y =
+  String.length y >= String.length x && String.sub y 0 (String.length x) = x
+
 let string_replace_all x x' s =
   if x = "" then s else
     let p = ref 0

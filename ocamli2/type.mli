@@ -58,5 +58,3 @@ val should_be_value_t' : t' -> bool
 
 val remove_unused_lets : t -> t
 
-val find_type_desc : Types.type_expr -> Types.type_desc
-

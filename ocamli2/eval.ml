@@ -42,6 +42,12 @@ let append_lists_promote_type ta tb =
     Tconstr (_, [{desc = Tvar None}], _) -> tb
   | _ -> ta
 
+let better_type ta tb =
+  match ta with
+    Tvar None -> tb
+  | Tvar (Some s) when Util.prefix "DEBUG" s -> tb
+  | _ -> ta
+
 (* Pattern matching. *)
 let rec patmatch expr (pat, guard, rhs) =
   let yes = Some rhs and no = None in
@@ -56,7 +62,7 @@ let rec patmatch expr (pat, guard, rhs) =
       if v = Obj.repr [] then no else
         let htyp =
           match expr.typ with
-            Tconstr (_, [elt_t], _) -> find_type_desc elt_t
+            Tconstr (_, [elt_t], _) -> elt_t.desc
           | _ -> failwith "patmatch bad list"
         in
         let h = {expr with e = Value (Obj.field v 0); typ = htyp}
@@ -107,7 +113,7 @@ let type_ocaml_heap_value = function
  *
  * List.map (fun x -> x + 1) [1; 2; 3] *)
 let mkempty lets e =
-  {e; lets; peek = None; printas = None; typ = Types.Tvar (Some "mkempty")}
+  {e; lets; peek = None; printas = None; typ = Types.Tvar (Some "DEBUG-mkempty")}
 
 let rec make_native impl_lets funexpr =
   match funexpr with
@@ -183,9 +189,14 @@ and eval env peek expr =
     let value = try lookup x env with Not_found -> failwith ("not in environment: " ^ x) in
       begin match value.e with
         Function _ ->
-          if peek then underline expr else {value with printas = match value.printas with None -> Some x | _ -> value.printas}
+          if peek then underline expr else
+            {value with
+               printas = (match value.printas with None -> Some x | _ -> value.printas);
+               typ = better_type expr.typ value.typ}
       | _ ->
-          if peek then underline expr else value
+          if peek then underline expr else
+            {value with
+              typ = better_type expr.typ value.typ}
       end
 | Let (recflag, (n, exp), exp') ->
     if !showrules then print_endline "Let";

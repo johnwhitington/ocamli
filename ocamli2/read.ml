@@ -23,6 +23,41 @@ let boolop_of_text = function
 | "||" -> OR
 | _ -> failwith "boolop_of_text"
 
+let source = ref 0
+
+(* Follow any Tlinks left from typechecking, to make pattern matching on types easier. *)
+let rec remove_links type_expr =
+  match type_expr.desc with
+    Tlink x -> remove_links x
+  | Tvar _ | Tnil | Tvariant _ | Tunivar _ -> type_expr
+  | x ->
+      {type_expr with desc =
+         begin match x with
+           Tarrow (arg_label, a, b, commutable) -> Tarrow (arg_label, remove_links a, remove_links b, commutable)
+          | Ttuple ts -> Ttuple (List.map remove_links ts)
+          | Tconstr (path, ts, abbrev_memo) -> Tconstr (path, List.map remove_links ts, abbrev_memo)
+          | Tobject (t, ({contents = None} as r)) -> Tobject (remove_links t, r)
+          | Tobject (t, ({contents = Some (p, ts)} as r)) ->
+              r := Some (p, List.map remove_links ts);
+              Tobject (remove_links t, r)
+          | Tfield (s, field_kind, a, b) -> Tfield (s, field_kind, remove_links a, remove_links b)
+          | Tsubst t -> Tsubst (remove_links t)
+          | Tpoly (t, ts) -> Tpoly (remove_links t, List.map remove_links ts)
+          | Tpackage (path, idents, ts) -> Tpackage (path, idents, List.map remove_links ts)
+          | x -> x
+         end}
+
+let rec debug_type type_expr =
+  {type_expr with desc =
+     begin match type_expr.desc with
+       Tvar None -> Tvar (Some (source := !source + 1; "DEBUG-TVARNONE " ^ string_of_int !source))
+     | Tarrow (label, a, b, commutable) -> Tarrow (label, debug_type a, debug_type b, commutable)
+     | Ttuple ts -> Ttuple (List.map debug_type ts)
+     | Tconstr (path, ts, a) -> Tconstr (path, List.map debug_type ts, a)
+     | Tlink t -> failwith "debug_type: should be no links after reading"
+     | x -> x
+     end}
+
 let rec to_ocaml_heap_value = function
   Value x -> x
 | ArrayExpr arr ->
@@ -150,7 +185,7 @@ and finaltype_of_binding env {vb_pat; vb_expr} =
 and finaltype_of_expression env exp =
   try
     {e = finaltype_of_expression_desc env exp.exp_desc;
-     typ = find_type_desc exp.exp_type;
+     typ = (debug_type (remove_links exp.exp_type)).desc;
      lets = [];
      peek = None;
      printas = None}
@@ -176,7 +211,7 @@ let finaltype_of_typedtree {str_items} =
                 in
                   {e = LetDef (recflag = Recursive, (name, finaltype_of_expression [] vb.vb_expr));
                    lets = [];
-                   typ = find_type_desc vb.vb_expr.exp_type;
+                   typ = (debug_type (remove_links vb.vb_expr.exp_type)).desc;
                    peek = None;
                    printas = None}
             | _ -> failwith "finaltype_of_typedtree")

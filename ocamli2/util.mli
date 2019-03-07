@@ -4,3 +4,5 @@ val string_replace_all : string -> string -> string -> string
 
 val load_file : string -> string
 
+val prefix : string -> string -> bool
+

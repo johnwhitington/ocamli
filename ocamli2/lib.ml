@@ -5,7 +5,7 @@ let f name func =
   let e = 
     {e = Value (Obj.magic func : Obj.t);
      lets = [];
-     typ = Types.Tvar (Some "lib.ml");
+     typ = Types.Tvar (Some "DEBUG-lib.ml");
      printas = Some name;
      peek = None}
   in

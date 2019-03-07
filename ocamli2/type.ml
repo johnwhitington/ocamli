@@ -196,9 +196,4 @@ let rec remove_unused_lets t =
         {t2 with lets = trim_lets (remove_lets (free_in_t' t2.e) t2.lets)})
     t
 
-(* Follow any Tlinks left from typechecking, to make pattern matching on types easier. *)
-let rec find_type_desc {desc} =
-  match desc with
-    Tlink x -> find_type_desc x
-  | typ -> typ
 

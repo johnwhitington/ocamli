@@ -58,7 +58,7 @@ let rec string_of_ocaml_type = function
 | Ttuple _ -> "Ttuple"
 | Tobject (_, _) -> "Tobject"
 | Tfield (_, _, _, _) -> "Tfield"
-| Tlink x -> string_of_ocaml_type (find_type_desc x)
+| Tlink _ -> failwith "Tlink not allowed to get to printer." 
 | Tsubst _ -> "Tsubst"
 | Tvariant _ -> "Tvariant"
 | Tunivar _ -> "Tunivar"
@@ -138,7 +138,7 @@ let rec string_of_value v = function
       let strings =
         Array.init
           (Obj.size v)
-          (fun i -> string_of_value (Obj.field v i) (find_type_desc elt_t))
+          (fun i -> string_of_value (Obj.field v i) elt_t.desc)
       in
         "[|"
       ^ Array.fold_left ( ^ ) "" (Array.map (fun x -> x ^ "; ") strings)
@@ -147,7 +147,7 @@ let rec string_of_value v = function
       let first = ref true in
         "["
       ^ List.fold_left ( ^ ) "" (List.map (fun x -> let r = (if !first then "" else "; ") ^ x in first := false; r) 
-          (List.map (fun v -> string_of_value v (find_type_desc elt_t)) (list_elements v)))
+          (List.map (fun v -> string_of_value v elt_t.desc) (list_elements v)))
       ^ "]"
   | Tlink l -> string_of_value v l.desc
   (*| Tconstr _ -> "unknown Tconstr"
@@ -170,7 +170,7 @@ let rec string_of_value v = function
 
 and fakelet =
   {e = Let (false, ("fakelet", fakelet), fakelet);
-   lets = []; peek = None; printas = None; typ = Tvar (Some "fakelet")}
+   lets = []; peek = None; printas = None; typ = Tvar (Some "DEBUG-fakelet")}
 
 (* Find the names of functions which are candidates for abbreviation, and return the expression below *)
 and find_funs x =
