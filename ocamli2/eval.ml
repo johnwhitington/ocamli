@@ -346,14 +346,25 @@ and eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
-| Apply ({e = Value f}, [{e = Function _} as fi]) ->
+| Apply ({e = Value f} as lhs, [{e = Function _} as fi]) ->
     if !showrules then print_endline "Apply-Builtin-Interp-Final";
     if peek then underline expr else
-      {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}
+      let typ =
+        match lhs.typ with
+          Tarrow (_, _, b, _) -> b.desc
+        | _ -> expr.typ (* Actually a failure, probably *)
+      in
+        {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}
 | Apply ({e = Value f} as lhs, ({e = Function _} as fi)::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
     if peek then underline expr else
-      {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}, more)}
+      let typ =
+        match lhs.typ with
+          Tarrow (_, _, b, _) -> b.desc
+        | _ -> expr.typ (* Actually a failure, probably *)
+      in
+        {expr with
+          e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}, more)}
 | Apply ({e = Value f} as fprint, [{e = Value v} as vprint]) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else

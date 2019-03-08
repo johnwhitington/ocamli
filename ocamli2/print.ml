@@ -149,7 +149,7 @@ let rec string_of_value v = function
       ^ List.fold_left ( ^ ) "" (List.map (fun x -> let r = (if !first then "" else "; ") ^ x in first := false; r) 
           (List.map (fun v -> string_of_value v elt_t.desc) (list_elements v)))
       ^ "]"
-  | Tlink l -> string_of_value v l.desc
+  | Tlink l -> failwith "string_of_value: read should have eliminated" (*string_of_value v l.desc*)
   (*| Tconstr _ -> "unknown Tconstr"
   | Tvar _ -> "unknown Tvar"
   | Tarrow _ -> "unknown tarrow"
