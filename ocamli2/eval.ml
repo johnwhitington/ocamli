@@ -42,19 +42,37 @@ let append_lists_promote_type ta tb =
     Tconstr (_, [{desc = Tvar None}], _) -> tb
   | _ -> ta
 
-let better_type ta tb =
-  match ta with
-    Tvar None -> tb
-  | Tvar (Some s) when Util.prefix "DEBUG" s -> tb
-  | _ -> ta
+let rec count_tvarnones_desc = function
+    Tlink _ -> failwith "count_tvarnones: tlink"
+  | Tvar None -> failwith "count_tvarnones: tvar none"
+  | Tvar (Some s) when Util.prefix "DEBUG" s -> 1
+  | Tvar (Some _) -> 0
+  | Tnil | Tvariant _ | Tunivar _ -> 0
+  | Tarrow (_, a, b, _) -> count_tvarnones a + count_tvarnones b
+  | Ttuple ts -> sum ts
+  | Tconstr (_, ts, _) -> sum ts 
+  | Tobject (_, ({contents = None})) -> 0
+  | Tobject (_, ({contents = Some (_, ts)})) -> sum ts
+  | Tfield (_, _, a, b) -> count_tvarnones a + count_tvarnones b
+  | Tsubst t -> count_tvarnones t
+  | Tpoly (t, ts) -> count_tvarnones t + sum ts
+  | Tpackage (_, _, ts) -> sum ts
+
+and sum ts = List.fold_left ( + ) 0 (List.map count_tvarnones ts)
+
+and count_tvarnones {desc} =
+  count_tvarnones_desc desc
 
 let better_type ta tb =
+  if count_tvarnones_desc ta < count_tvarnones_desc tb then ta else tb
+
+(*let better_type ta tb =
   let t = better_type ta tb in
     Printf.printf "Bettertype: choices were %s and %s\nI chose %s\n"
       (Print.string_of_ocaml_type ta)
       (Print.string_of_ocaml_type tb)
       (Print.string_of_ocaml_type t);
-    t
+    t*)
 
 (* Pattern matching. *)
 let rec patmatch expr (pat, guard, rhs) =
