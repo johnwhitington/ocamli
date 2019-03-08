@@ -357,25 +357,42 @@ and eval env peek expr =
 | Apply ({e = Value f} as fprint, [{e = Value v} as vprint]) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
-      (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
-      let printas =
-        match expr.printas with
-          Some x -> Some x
-        | None ->
-            match expr.typ with
-              Types.Tarrow _ -> Some (Print.to_string fprint)
-            | _ -> None
-      in
-        (* Print type of expr, type of fprint, type of vprint *)
-        Printf.printf "expr: %s\nf: %s\nv: %s\n"
-          (Print.string_of_ocaml_type expr.typ)
-          (Print.string_of_ocaml_type fprint.typ)
-          (Print.string_of_ocaml_type vprint.typ);
-        {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas}
+      (* Print type of expr, type of fprint, type of vprint *)
+      begin
+        if !showrules then
+          begin
+            Printf.printf "expr: %s\nf: %s\nv: %s\n"
+           (Print.string_of_ocaml_type expr.typ)
+           (Print.string_of_ocaml_type fprint.typ)
+           (Print.string_of_ocaml_type vprint.typ);
+          end;
+        (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
+        let printas =
+          match expr.printas with
+            Some x -> Some x
+          | None ->
+              match fprint.typ with
+                Types.Tarrow (_, a, {desc = Types.Tarrow _}, _) ->
+                  (*Printf.printf "Setting a new printas\n";*) Some (Print.to_string fprint)
+              | _ -> None
+        in
+          let typ =
+            match fprint.typ with
+              Tarrow (_, _, b, _) -> b.desc
+            | _ -> expr.typ (* Actually a failure, probably *)
+          in
+            {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
+      end
 | Apply ({e = Value f} as lhs, {e = Value v}::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Partial";
     if peek then underline expr else
-      {expr with e = Apply ({lhs with e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
+      let typ =
+        match lhs.typ with
+          Tarrow (_, _, b, _) -> b.desc
+        | _ -> expr.typ (* Actually a failure, probably *)
+      in
+        {expr with
+           e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
 | Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
 | Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
 | Apply (_, []) -> failwith "Apply: empty cases"
