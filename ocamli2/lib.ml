@@ -1,13 +1,12 @@
 (* The Standard Library *)
-open Type
-
 let f name func =
   let e = 
-    {e = Value (Obj.magic func : Obj.t);
-     lets = [];
-     typ = Types.Tvar (Some "DEBUG-lib.ml");
-     printas = Some name;
-     peek = None}
+    let open Type in
+      {e = Value (Obj.magic func : Obj.t);
+       lets = [];
+       typ = Types.Tvar (Some "DEBUG-lib.ml");
+       printas = Some name;
+       peek = None}
   in
     (false, ref [("Stdlib." ^ name, e)])
 

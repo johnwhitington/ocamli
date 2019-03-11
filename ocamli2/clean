@@ -1,5 +1,4 @@
 rm -f *.cm* a.out
-rm -f ppx_eval/*.cm* ppx_eval/a.out
 make clean
 cd tppx_interpret
 make clean
