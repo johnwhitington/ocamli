@@ -1,10 +1,12 @@
 open Tast_mapper
 open Asttypes
+open Typedtree
 
 (* We pull the eval_full function out when we find it, at the top of the file,
  * so that we have access to it to make up the fragment of typed tree which
  * applies it to the program. *)
-let eval_full_function : Typedtree.expression option ref = ref None
+let eval_full_function : expression option ref = ref None
+let template_string : expression option ref = ref None
 
 let newmapper argv =
   {default with
@@ -18,7 +20,12 @@ let newmapper argv =
              * type, and remove the attribute. *)
             (* 1. Make tinyocaml expression as a typed tree fragment *)
             let tinyocaml_expression =
-              Read.typedtree_repr_of_finaltype_of_expression [] expr
+              match !template_string with
+                None -> failwith "no template string"
+              | Some x ->
+                  {x with exp_desc =
+                     Texp_constant
+                       (Const_string (Marshal.to_string (Read.finaltype_of_expression [] expr) [], None))}
             in
             (* 2. Make the typed-tree representation of the expression which
              * calls eval_full on the tinyocaml representation, returning the
@@ -30,7 +37,7 @@ let newmapper argv =
                   None -> failwith "no eval_full found"
                 | Some x -> x
               in
-                Texp_apply (eval_full, [(_,  Some tinyocaml_expression)])
+                Texp_apply (eval_full, [(Nolabel,  Some tinyocaml_expression)])
             in
             (* 3. This new little typed-tree fragment is spliced in to the node
              * which was annotated, hopefully keeping all the invariants needed
@@ -49,6 +56,12 @@ let newmapper argv =
               when
             Ident.name varname = "eval_full" ->
               eval_full_function := Some vb_expr;
+              default.structure_item mapper sitem
+       |  {str_desc =
+            Tstr_value (_, [{vb_pat = {pat_desc = Tpat_var (varname, _)}; vb_expr}])}
+              when
+            Ident.name varname = "template_string" ->
+              template_string := Some vb_expr;
               default.structure_item mapper sitem
         | _ ->
           default.structure_item mapper sitem)
