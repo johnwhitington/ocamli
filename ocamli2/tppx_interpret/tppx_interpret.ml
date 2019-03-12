@@ -16,29 +16,42 @@ let newmapper argv =
             print_endline "Found a [@interpret] annotation";
             (* We build a new expression to replace this one, with the same
              * type, and remove the attribute. *)
-            (* 1. Make tinyocaml expression as a value. *)
+            (* 1. Make tinyocaml expression as a typed tree fragment *)
             let tinyocaml_expression =
-              Read.finaltype_of_expression [] expr 
+              Read.typedtree_repr_of_finaltype_of_expression [] expr
             in
             (* 2. Make the typed-tree representation of the expression which
              * calls eval_full on the tinyocaml representation, returning the
              * value which is the result of the evaluation. i.e "eval_full
-             * <expr" *)
-            let exp_desc =
-              exp_desc
+             * <expr>" *)
+            let exp_desc' =
+              let eval_full =
+                match !eval_full_function with
+                  None -> failwith "no eval_full found"
+                | Some x -> x
+              in
+                Texp_apply (eval_full, [(_,  Some tinyocaml_expression)])
             in
             (* 3. This new little typed-tree fragment is spliced in to the node
              * which was annotated, hopefully keeping all the invariants needed
              * to allow the OCaml compiler to complete its job correctly and
              * produce an executable. *)
-            {expr with exp_desc = exp_desc}
+            {expr with exp_desc = exp_desc'}
        | other -> 
            default.expr mapper other);
      structure_item = (fun mapper sitem ->
         (* We are trying to find "let eval_full = Eval.eval_full". When we find
          * it, we need to extract the function, making sure it has the correct
          * type with it. *)
-        default.structure_item mapper sitem)
+        match sitem with
+          {str_desc =
+            Tstr_value (_, [{vb_pat = {pat_desc = Tpat_var (varname, _)}; vb_expr}])}
+              when
+            Ident.name varname = "eval_full" ->
+              eval_full_function := Some vb_expr;
+              default.structure_item mapper sitem
+        | _ ->
+          default.structure_item mapper sitem)
   }
 
 let () =
