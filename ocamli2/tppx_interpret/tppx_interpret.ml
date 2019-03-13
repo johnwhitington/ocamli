@@ -7,6 +7,7 @@ open Typedtree
  * applies it to the program. *)
 let eval_full_function : expression option ref = ref None
 let template_string : expression option ref = ref None
+let template_int : expression option ref = ref None
 
 let newmapper argv =
   {default with
@@ -25,7 +26,8 @@ let newmapper argv =
               | Some x ->
                   {x with exp_desc =
                      Texp_constant
-                       (Const_string (Marshal.to_string (Read.finaltype_of_expression [] expr) [], None))}
+                       (Const_string
+                          (Marshal.to_string ((Read.finaltype_of_expression [] expr)) [], None))}
             in
             (* 2. Make the typed-tree representation of the expression which
              * calls eval_full on the tinyocaml representation, returning the
@@ -44,6 +46,29 @@ let newmapper argv =
              * to allow the OCaml compiler to complete its job correctly and
              * produce an executable. *)
             {expr with exp_desc = exp_desc'}
+
+       (* Finding calls to addenv. Can we rely on Tast_mapper to traverse in
+        * the correct order to build our env? May need our own mapper when we have to
+        * keep an env... *)
+       (* Finding addenv "y" (Obj.magic y : Obj.t) (Types.Tvar (Some "TPPX will fill me in") *)
+       | {exp_desc = Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; b; (arg_label, Some typ)])} as other
+             when Path.name path = "addenv" ->
+           Printf.printf "****Found an addenv instance!";
+             let typ' =
+               match !template_int with
+                 Some x ->
+                   begin match !template_string with
+                     None -> failwith "no template string 2"
+                   | Some s ->
+                       {s with exp_desc =
+                         Texp_constant
+                           (Const_string
+                              (Marshal.to_string x.exp_type.desc [], None))}
+                   end
+               | None -> failwith "template_int not found"
+             in
+             {other with exp_desc =
+               Texp_apply (addenv, [a; b; (arg_label, Some typ')])}
        | other -> 
            default.expr mapper other);
      structure_item = (fun mapper sitem ->
@@ -63,7 +88,13 @@ let newmapper argv =
             Ident.name varname = "template_string" ->
               template_string := Some vb_expr;
               default.structure_item mapper sitem
-        | _ ->
+       |  {str_desc =
+            Tstr_value (_, [{vb_pat = {pat_desc = Tpat_var (varname, _)}; vb_expr}])}
+              when
+            Ident.name varname = "template_int" ->
+              template_int := Some vb_expr;
+              default.structure_item mapper sitem
+       | _ ->
           default.structure_item mapper sitem)
   }
 
