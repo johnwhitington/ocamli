@@ -21,13 +21,11 @@ let newmapper argv =
              * type, and remove the attribute. *)
             (* 1. Make tinyocaml expression as a typed tree fragment *)
             let tinyocaml_expression =
-              match !template_string with
-                None -> failwith "no template string"
-              | Some x ->
-                  {x with exp_desc =
-                     Texp_constant
-                       (Const_string
-                          (Marshal.to_string ((Read.finaltype_of_expression [] expr)) [], None))}
+              match !template_string with None -> failwith "no template string" | Some x ->
+                {x with exp_desc =
+                   Texp_constant
+                     (Const_string
+                        (Marshal.to_string ((Read.finaltype_of_expression [] expr)) [], None))}
             in
             (* 2. Make the typed-tree representation of the expression which
              * calls eval_full on the tinyocaml representation, returning the
@@ -35,9 +33,7 @@ let newmapper argv =
              * <expr>" *)
             let exp_desc' =
               let eval_full =
-                match !eval_full_function with
-                  None -> failwith "no eval_full found"
-                | Some x -> x
+                match !eval_full_function with None -> failwith "no eval_full found" | Some x -> x
               in
                 Texp_apply (eval_full, [(Nolabel,  Some tinyocaml_expression)])
             in
@@ -46,29 +42,33 @@ let newmapper argv =
              * to allow the OCaml compiler to complete its job correctly and
              * produce an executable. *)
             {expr with exp_desc = exp_desc'}
-
-       (* Finding calls to addenv. Can we rely on Tast_mapper to traverse in
-        * the correct order to build our env? May need our own mapper when we have to
-        * keep an env... *)
-       (* Finding addenv "y" (Obj.magic y : Obj.t) (Types.Tvar (Some "TPPX will fill me in") *)
-       | {exp_desc = Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; b; (arg_label, Some typ)])} as other
-             when Path.name path = "addenv" ->
-           Printf.printf "****Found an addenv instance!";
-             let typ' =
-               match !template_int with
-                 Some x ->
-                   begin match !template_string with
-                     None -> failwith "no template string 2"
-                   | Some s ->
-                       {s with exp_desc =
-                         Texp_constant
-                           (Const_string
-                              (Marshal.to_string x.exp_type.desc [], None))}
-                   end
-               | None -> failwith "template_int not found"
-             in
-             {other with exp_desc =
-               Texp_apply (addenv, [a; b; (arg_label, Some typ')])}
+       (* Finding let y = ... in addenv "y" (Obj.magic y : Obj.t) ""; <expr'> *)
+         | {exp_desc =
+             Texp_let (recflag, [binding], ({exp_desc = Texp_sequence (whole_addenv, expr')} as sequence))} as other ->
+               begin match whole_addenv with
+                 {exp_desc =
+                   Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; b; c; (arg_label, Some typ)])}
+                 when Path.name path = "addenv" ->
+                   Printf.printf "****Found an addenv instance!";
+                     let typ' =
+                       match !template_int with
+                         Some x ->
+                           begin match !template_string with None -> failwith "no template string 2" | Some s ->
+                             {s with exp_desc =
+                               Texp_constant
+                                 (Const_string
+                                    (Marshal.to_string x.exp_type.desc [], None))}
+                           end
+                       | None -> failwith "template_int not found"
+                     in
+                       {other with exp_desc =
+                         Texp_let (recflag, [binding],
+                                   {sequence with exp_desc =
+                                     Texp_sequence ({whole_addenv with exp_desc =
+                                       Texp_apply (addenv, [a; b; c; (arg_label, Some typ')])}, default.expr mapper expr')})}
+               |  _ ->
+                    default.expr mapper other
+               end
        | other -> 
            default.expr mapper other);
      structure_item = (fun mapper sitem ->
