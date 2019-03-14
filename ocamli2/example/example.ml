@@ -4,10 +4,8 @@ let template_string = ""
 let _ = Print.showvals := false
 let eval_full = Tppxsupport.eval_full env
 
-(*let global = 40 + 2
-
-let _ = addenv env "global" (Obj.magic global : Obj.t) "" (* Added by PPX eventually *)
-*)
+let global = 40 + 2
+let _ = Tppxsupport.addenv env "global" (Obj.magic global : Obj.t) "" (* Added by PPX eventually *)
 
 let x =
   let y = 1 - 0 in

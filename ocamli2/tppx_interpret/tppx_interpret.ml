@@ -15,7 +15,7 @@ let newmapper argv =
        | {exp_attributes = [{attr_name = {txt = "interpret"}; attr_payload =  payload}];
           exp_type;
           exp_desc} ->
-            print_endline "Found a [@interpret] annotation";
+            print_endline "Found a [@interpret] annotation\n";
             (* Make tinyocaml expression as a typed tree fragment *)
             let tinyocaml_expression =
               match !template_string with None -> failwith "no template string" | Some x ->
@@ -41,9 +41,9 @@ let newmapper argv =
              Texp_let (recflag, [binding], ({exp_desc = Texp_sequence (whole_addenv, expr')} as sequence))} as other ->
                begin match whole_addenv with
                  {exp_desc =
-                   Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; b; c; (arg_label, Some typ)])}
+                   Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; ((_, Some {exp_desc = Texp_constant (Const_string (name, _))}) as b); c; (arg_label, Some typ)])}
                  when Path.name path = "Tppxsupport.addenv" ->
-                   Printf.printf "****Found an addenv instance!";
+                   Printf.printf "****Found an addenv instance! for %s\n" name;
                    let typ' =
                      match !template_string with None -> failwith "no template string 2" | Some s ->
                        {s with exp_desc =
