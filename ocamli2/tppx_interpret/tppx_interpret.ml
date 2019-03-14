@@ -42,7 +42,7 @@ let newmapper argv =
                begin match whole_addenv with
                  {exp_desc =
                    Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; b; c; (arg_label, Some typ)])}
-                 when Path.name path = "addenv" ->
+                 when Path.name path = "Tppxsupport.addenv" ->
                    Printf.printf "****Found an addenv instance!";
                    let typ' =
                      match !template_string with None -> failwith "no template string 2" | Some s ->

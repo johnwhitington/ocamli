@@ -1,7 +1,7 @@
 OCAMLFIND_IGNORE_DUPS_IN = $(shell ocamlfind query compiler-libs)
 export OCAMLFIND_IGNORE_DUPS_IN
 
-MODS = util type print read lib eval ocamli2
+MODS = util type print read lib eval tppxsupport ocamli2
 
 SOURCES = $(foreach x,$(MODS),$(x).ml $(x).mli)
 
