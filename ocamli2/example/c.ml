@@ -4,8 +4,6 @@ let env = ref []
 
 let template_string = ""
 
-let template_int = 0
-
 let _ = Print.showvals := false
 
 let eval_full x =

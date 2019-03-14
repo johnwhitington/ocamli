@@ -1,8 +1,11 @@
 rm -f *.cm* a.out
 make clean
-cd tppx_interpret
+cd ppx_interpret
+make clean
+cd ../tppx_interpret
 make clean
 cd ../example
 make clean
 ocamlfind remove ocamli2
+ocamlfind remove ppx_interpret
 ocamlfind remove tppx_interpret

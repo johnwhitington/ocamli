@@ -3,7 +3,7 @@ set -e -x
 #ocamlopt -tppx ../tppx_interpret/tppx_interpret -I /usr/local/lib/ocaml/site-lib/ocamli2 -c a.ml
 #ocamlc -I /usr/local/lib/ocaml/site-lib/ocamli2  -c b.mli
 #ocamlopt -tppx ../tppx_interpret/tppx_interpret -I +site-lib/ocamli2  -c b.ml
-ocamlopt -tppx ../tppx_interpret/tppx_interpret -I +compiler-libs -I +site-lib/ocamli2  -c c.ml
+ocamlopt -ppx ../ppx_interpret/ppx_interpret -tppx ../tppx_interpret/tppx_interpret -I +compiler-libs -I +site-lib/ocamli2  -c c.ml
 #ocamlc -c -cc "cc" -ccopt "-fPIC -DNATIVE_CODE -o ccode.o " ccode.c
 ocamlopt -I +site-lib/ocamli2 -I +compiler-libs ocamlcommon.cmxa ocamli2.cmxa -o example c.cmx
 #ocamlopt -I +site-lib/ocamli2 ocamli2.cmxa ccode.o -o example a.cmx b.cmx c.cmx

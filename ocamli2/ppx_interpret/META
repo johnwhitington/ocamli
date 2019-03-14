@@ -1,0 +1,4 @@
+name="ppx_interpret"
+description="Preprocessor for tppx_interpret"
+version="0.1"
+ppx="./ppx_interpret"

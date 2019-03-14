@@ -7,7 +7,6 @@ open Typedtree
  * applies it to the program. *)
 let eval_full_function : expression option ref = ref None
 let template_string : expression option ref = ref None
-let template_int : expression option ref = ref None
 
 let newmapper argv =
   {default with
@@ -17,9 +16,7 @@ let newmapper argv =
           exp_type;
           exp_desc} ->
             print_endline "Found a [@interpret] annotation";
-            (* We build a new expression to replace this one, with the same
-             * type, and remove the attribute. *)
-            (* 1. Make tinyocaml expression as a typed tree fragment *)
+            (* Make tinyocaml expression as a typed tree fragment *)
             let tinyocaml_expression =
               match !template_string with None -> failwith "no template string" | Some x ->
                 {x with exp_desc =
@@ -27,7 +24,7 @@ let newmapper argv =
                      (Const_string
                         (Marshal.to_string ((Read.finaltype_of_expression [] expr)) [], None))}
             in
-            (* 2. Make the typed-tree representation of the expression which
+            (* Make the typed-tree representation of the expression which
              * calls eval_full on the tinyocaml representation, returning the
              * value which is the result of the evaluation. i.e "eval_full
              * <expr>" *)
@@ -37,10 +34,7 @@ let newmapper argv =
               in
                 Texp_apply (eval_full, [(Nolabel,  Some tinyocaml_expression)])
             in
-            (* 3. This new little typed-tree fragment is spliced in to the node
-             * which was annotated, hopefully keeping all the invariants needed
-             * to allow the OCaml compiler to complete its job correctly and
-             * produce an executable. *)
+            (* Splice into typed tree *)
             {expr with exp_desc = exp_desc'}
        (* Finding let y = ... in addenv "y" (Obj.magic y : Obj.t) ""; <expr'> *)
          | {exp_desc =
@@ -50,31 +44,23 @@ let newmapper argv =
                    Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; b; c; (arg_label, Some typ)])}
                  when Path.name path = "addenv" ->
                    Printf.printf "****Found an addenv instance!";
-                     let typ' =
-                       match !template_int with
-                         Some x ->
-                           begin match !template_string with None -> failwith "no template string 2" | Some s ->
-                             {s with exp_desc =
-                               Texp_constant
-                                 (Const_string
-                                    (Marshal.to_string x.exp_type.desc [], None))}
-                           end
-                       | None -> failwith "template_int not found"
-                     in
-                       {other with exp_desc =
-                         Texp_let (recflag, [binding],
-                                   {sequence with exp_desc =
-                                     Texp_sequence ({whole_addenv with exp_desc =
-                                       Texp_apply (addenv, [a; b; c; (arg_label, Some typ')])}, default.expr mapper expr')})}
+                   let typ' =
+                     match !template_string with None -> failwith "no template string 2" | Some s ->
+                       {s with exp_desc =
+                         Texp_constant (Const_string (Marshal.to_string other.exp_type.desc [], None))}
+                   in
+                     {other with exp_desc =
+                       Texp_let (recflag, [binding],
+                                 {sequence with exp_desc =
+                                   Texp_sequence ({whole_addenv with exp_desc =
+                                     Texp_apply (addenv, [a; b; c; (arg_label, Some typ')])}, default.expr mapper expr')})}
                |  _ ->
                     default.expr mapper other
                end
        | other -> 
            default.expr mapper other);
      structure_item = (fun mapper sitem ->
-        (* We are trying to find "let eval_full = Eval.eval_full". When we find
-         * it, we need to extract the function, making sure it has the correct
-         * type with it. *)
+        (* Extract pre-made things provided by the untyped PPX. *)
         match sitem with
           {str_desc =
             Tstr_value (_, [{vb_pat = {pat_desc = Tpat_var (varname, _)}; vb_expr}])}
@@ -87,12 +73,6 @@ let newmapper argv =
               when
             Ident.name varname = "template_string" ->
               template_string := Some vb_expr;
-              default.structure_item mapper sitem
-       |  {str_desc =
-            Tstr_value (_, [{vb_pat = {pat_desc = Tpat_var (varname, _)}; vb_expr}])}
-              when
-            Ident.name varname = "template_int" ->
-              template_int := Some vb_expr;
               default.structure_item mapper sitem
        | _ ->
           default.structure_item mapper sitem)
