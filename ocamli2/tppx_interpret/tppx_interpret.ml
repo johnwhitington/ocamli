@@ -7,6 +7,7 @@ open Typedtree
  * applies it to the program. *)
 let eval_full_function : expression option ref = ref None
 let template_string : expression option ref = ref None
+let last_global_type : Types.type_expr option ref = ref None
 
 let newmapper argv =
   {default with
@@ -36,6 +37,7 @@ let newmapper argv =
             in
             (* Splice into typed tree *)
             {expr with exp_desc = exp_desc'}
+
        (* Finding let y = ... in addenv "y" (Obj.magic y : Obj.t) ""; <expr'> *)
          | {exp_desc =
              Texp_let (recflag, [binding], ({exp_desc = Texp_sequence (whole_addenv, expr')} as sequence))} as other ->
@@ -73,6 +75,35 @@ let newmapper argv =
               when
             Ident.name varname = "template_string" ->
               template_string := Some vb_expr;
+              default.structure_item mapper sitem
+       (* Finding globals: let () = addenv "y" (Obj.magic y : Obj.t) "" *)
+       | {str_desc =
+            Tstr_value (vlhs,
+              [{vb_pat = {pat_desc = Tpat_construct ({txt = Lident "()"}, _, _)};
+                vb_expr = {exp_desc = Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; ((_, Some {exp_desc = Texp_constant (Const_string (name, _))}) as b); c; (arg_label, Some typ)])} as vbexpr}
+               as vbinding])}
+          when Path.name path = "Tppxsupport.addenv"
+          ->
+              let typ' =
+                match !template_string with None -> failwith "no template string 2" | Some s ->
+                  match !last_global_type with
+                    None -> failwith "no last_global_type"
+                  | Some typ ->
+                     {s with exp_desc =
+                       Texp_constant (Const_string (Marshal.to_string typ [], None))}
+              in
+              Printf.printf "***found let () = ...\n";
+              let vbinding' =
+                {vbinding with vb_expr = {vbexpr with exp_desc = Texp_apply (addenv, [a; b; c; (arg_label, Some typ')])}}
+              in
+                {sitem with
+                  str_desc =
+                    Tstr_value (vlhs, [vbinding'])}
+       (* Finding globals : store the last global type we see, so that when we find its addenv, the type is ready *)
+       |  {str_desc =
+            Tstr_value (_, [{vb_expr; vb_pat = {pat_desc = Tpat_var (varname, _)}; _}])} ->
+              Printf.printf "***storing type for %s\n" (Ident.name varname);
+              last_global_type := Some (vb_expr.exp_type);
               default.structure_item mapper sitem
        | _ ->
           default.structure_item mapper sitem)
