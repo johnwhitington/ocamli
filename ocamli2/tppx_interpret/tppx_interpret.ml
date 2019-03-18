@@ -90,7 +90,7 @@ let newmapper argv =
                     None -> failwith "no last_global_type"
                   | Some typ ->
                      {s with exp_desc =
-                       Texp_constant (Const_string (Marshal.to_string typ [], None))}
+                       Texp_constant (Const_string (Marshal.to_string typ.desc [], None))}
               in
               Printf.printf "***found let () = ...\n";
               let vbinding' =

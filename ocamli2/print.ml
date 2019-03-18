@@ -151,13 +151,13 @@ let rec string_of_value v = function
       ^ "]"
   | Tlink l -> failwith "string_of_value: read should have eliminated" (*string_of_value v l.desc*)
   (*| Tconstr _ -> "unknown Tconstr"
-  | Tvar _ -> "unknown Tvar"
+  | Tvar None -> "unknown Tvar None"
+  | Tvar (Some x) -> Printf.sprintf "unknown Tvar Some %s" x
   | Tarrow _ -> "unknown tarrow"
   | Ttuple _ -> "unknwn ttuple"
   | Tobject _ -> "unknwn tobject"
   | Tfield _ -> "unknwn tfield"
   | Tnil -> "unknwn tnil"
-  | Tlink _ -> "unknwn tlink"
   | Tsubst _ -> "unknwn tsubst"
   | Tvariant _ -> "unknwn tvariant"
   | Tunivar _ -> "unknwn tunivar"
