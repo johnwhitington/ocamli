@@ -1,0 +1,2 @@
+rm -f *.cmi *.cmo *.cmx *.o
+for FILENAME in example; do rm -f $FILENAME; done
