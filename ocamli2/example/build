@@ -1,3 +1,6 @@
 set -e -x
-ocamlopt -ppx ../ppx_interpret/ppx_interpret -tppx ../tppx_interpret/tppx_interpret -I +compiler-libs -I +site-lib/ocamli2  -c example.ml
-ocamlopt -I +site-lib/ocamli2 -I +compiler-libs ocamlcommon.cmxa ocamli2.cmxa -o example example.cmx
+for F in example; do
+ocamlopt -ppx ../ppx_interpret/ppx_interpret -tppx ../tppx_interpret/tppx_interpret -I +compiler-libs -I +site-lib/ocamli2  -c $F.ml;
+ocamlopt -I +site-lib/ocamli2 -I +compiler-libs ocamlcommon.cmxa ocamli2.cmxa -o $F $F.cmx;
+done
+

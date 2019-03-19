@@ -1,2 +1,1 @@
-rm -f *.cmi *.cmo *.cmx *.o
-for FILENAME in example; do rm -f $FILENAME; done
+for F in example; do rm -f $F $F.cmi $F.cmo $F.cmx $F.o %; done
