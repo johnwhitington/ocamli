@@ -7,7 +7,7 @@ let ast ?(filename="") code =
   Parse.implementation lexer
 
 let preamble = ast
-{|let env = ref []
+{|let env = ref Lib.stdlib
 let template_string = ""
 let () = Print.showvals := false
 let eval_full = Tppxsupport.eval_full env|}
