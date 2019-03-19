@@ -185,7 +185,7 @@ and finaltype_of_binding env {vb_pat; vb_expr} =
 and finaltype_of_expression env exp =
   try
     {e = finaltype_of_expression_desc env exp.exp_desc;
-     typ = (debug_type (remove_links exp.exp_type)).desc;
+     typ = debug_type (remove_links exp.exp_type);
      lets = [];
      peek = None;
      printas = None}
@@ -211,13 +211,13 @@ let finaltype_of_typedtree {str_items} =
                 in
                   {e = LetDef (recflag = Recursive, (name, finaltype_of_expression [] vb.vb_expr));
                    lets = [];
-                   typ = (debug_type (remove_links vb.vb_expr.exp_type)).desc;
+                   typ = debug_type (remove_links vb.vb_expr.exp_type);
                    peek = None;
                    printas = None}
             | _ -> failwith "finaltype_of_typedtree")
           str_items);
        lets = [];
-       typ = Types.Tnil;
+       typ = {level = 0; id = 0; scope = 0; desc = Types.Tnil};
        peek = None;
        printas = None} (* FIXME: Proper support for signature types *)
 

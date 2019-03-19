@@ -9,11 +9,11 @@ val printas : bool ref
 (* Debug printers for the basic types *)
 val string_of_t : Type.t -> string
 
-val string_of_t' : Types.type_desc -> Type.t' -> string
+val string_of_t' : Types.type_expr -> Type.t' -> string
 
 val string_of_pattern : Type.pattern -> string
 
-val string_of_ocaml_type : Types.type_desc -> string
+val string_of_ocaml_type : Types.type_expr -> string
 
 (* Print to a formatter. *)
 val print : Format.formatter -> Type.t -> unit

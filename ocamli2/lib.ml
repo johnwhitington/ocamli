@@ -4,7 +4,7 @@ let f name func =
     let open Type in
       {e = Value (Obj.magic func : Obj.t);
        lets = [];
-       typ = Types.Tvar (Some "DEBUG-lib.ml");
+       typ = {level = 0; scope = 0; id = 0; desc = Types.Tvar (Some "DEBUG-lib.ml")};
        printas = Some name;
        peek = None}
   in

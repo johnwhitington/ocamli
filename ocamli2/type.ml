@@ -38,7 +38,7 @@ type t' =
 | LetDef of bool * binding
 
 and t =
-  {typ : Types.type_desc;
+  {typ : Types.type_expr;
    e : t';
    lets : env;
    peek : peekinfo option;

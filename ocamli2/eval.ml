@@ -38,7 +38,7 @@ let append_lists a b =
 (* One or both lists may be polymorphic. If we can find an element type for one
  * of them, this is our type for the appended list *)
 let append_lists_promote_type ta tb =
-  match ta with
+  match ta.desc with
     Tconstr (_, [{desc = Tvar None}], _) -> tb
   | _ -> ta
 
@@ -64,7 +64,7 @@ and count_tvarnones {desc} =
   count_tvarnones_desc desc
 
 let better_type ta tb =
-  if count_tvarnones_desc ta < count_tvarnones_desc tb then ta else tb
+  if count_tvarnones ta < count_tvarnones tb then ta else tb
 
 (*let better_type ta tb =
   let t = better_type ta tb in
@@ -87,8 +87,8 @@ let rec patmatch expr (pat, guard, rhs) =
       (* FIXME: Implicit lets added during hpat and tpat must be amalgamated here? Names cannot clash *)
       if v = Obj.repr [] then no else
         let htyp =
-          match expr.typ with
-            Tconstr (_, [elt_t], _) -> elt_t.desc
+          match expr.typ.desc with
+            Tconstr (_, [elt_t], _) -> elt_t
           | _ -> failwith "patmatch bad list"
         in
         let h = {expr with e = Value (Obj.field v 0); typ = htyp}
@@ -125,12 +125,11 @@ let compare_func_of_op = function
 (* Take something which should be a value, e.g Cons (Value _, Value _)
  * representing [1] and give it the appropriate type. Due to polymorphism,
  * there may be a TVar None in the type of the whole expression.*)
-(* FIXME should use Types.type_expr not Types.type_desc in type.t? *)
 let type_ocaml_heap_value = function
   Cons (h, t) ->
-    begin match t.typ with
+    begin match t.typ.desc with
       Tconstr (path, _, abbrev) ->
-        Tconstr (path, [{desc = h.typ; level = 0; scope = 0; id = 0}], abbrev) 
+        {t.typ with desc = Tconstr (path, [h.typ], abbrev)}
     | _ -> failwith "type_ocaml_heap_value2"
     end
 | _ -> failwith "type_ocaml_heap_value"
@@ -139,25 +138,25 @@ let type_ocaml_heap_value = function
  *
  * List.map (fun x -> x + 1) [1; 2; 3] *)
 let mkempty lets e =
-  {e; lets; peek = None; printas = None; typ = Types.Tvar (Some "DEBUG-mkempty")}
+  {e; lets; peek = None; printas = None; typ = {desc = Types.Tvar (Some "DEBUG-mkempty"); level = 0; scope = 0; id = 0}}
 
 let rec make_native impl_lets funexpr =
   match funexpr with
   | {e = Function ([PatVar vname, None, rhs], fenv);
-     typ = Tarrow (_, alpha, beta, _)} ->
+     typ = {desc = Tarrow (_, alpha, beta, _)}} ->
       let fn =
         let expr =
           {rhs with lets = impl_lets; e = Apply (funexpr, [{rhs with e = Var vname}])}
         in
           fun x ->
             Printf.printf "{Function %s}\n" (Print.to_string funexpr);
-            let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta.desc})]) in
+            let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta})]) in
              let r =
                 match ((eval_full (newlet::fenv)) expr).e with
                   Value ret -> ret
                 | Function (f', fenv') ->
                     (* This was a partial application. Keep the binding for next time. *)
-                    make_native (newlet::impl_lets) {expr with typ = beta.desc; e = (Function (f', fenv'))}
+                    make_native (newlet::impl_lets) {expr with typ = beta; e = (Function (f', fenv'))}
                 | _ -> 
                     failwith "didn't make a value"
              in
@@ -350,8 +349,8 @@ and eval env peek expr =
     if !showrules then print_endline "Apply-Builtin-Interp-Final";
     if peek then underline expr else
       let typ =
-        match lhs.typ with
-          Tarrow (_, _, b, _) -> b.desc
+        match lhs.typ.desc with
+          Tarrow (_, _, b, _) -> b
         | _ -> expr.typ (* Actually a failure, probably *)
       in
         {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}
@@ -359,8 +358,8 @@ and eval env peek expr =
     if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
     if peek then underline expr else
       let typ =
-        match lhs.typ with
-          Tarrow (_, _, b, _) -> b.desc
+        match lhs.typ.desc with
+          Tarrow (_, _, b, _) -> b
         | _ -> expr.typ (* Actually a failure, probably *)
       in
         {expr with
@@ -382,14 +381,14 @@ and eval env peek expr =
           match expr.printas with
             Some x -> Some x
           | None ->
-              match fprint.typ with
+              match fprint.typ.desc with
                 Types.Tarrow (_, a, {desc = Types.Tarrow _}, _) ->
                   (*Printf.printf "Setting a new printas\n";*) Some (Print.to_string fprint)
               | _ -> None
         in
           let typ =
-            match fprint.typ with
-              Tarrow (_, _, b, _) -> b.desc
+            match fprint.typ.desc with
+              Tarrow (_, _, b, _) -> b
             | _ -> expr.typ (* Actually a failure, probably *)
           in
             {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
@@ -398,8 +397,8 @@ and eval env peek expr =
     if !showrules then print_endline "Apply-BuiltIn-Partial";
     if peek then underline expr else
       let typ =
-        match lhs.typ with
-          Tarrow (_, _, b, _) -> b.desc
+        match lhs.typ.desc with
+          Tarrow (_, _, b, _) -> b
         | _ -> expr.typ (* Actually a failure, probably *)
       in
         {expr with

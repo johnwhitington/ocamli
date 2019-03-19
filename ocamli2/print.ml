@@ -41,19 +41,19 @@ let _ =
   ignore
     (Sys.signal Sys.sigint (Sys.Signal_handle (fun _ -> print_string code_end)))
 
-let rec string_of_ocaml_type = function
+let rec string_of_ocaml_type_desc = function
   Tvar (Some x) -> x
 | Tvar None -> "Tvar None"
 | Tnil -> "Tnil"
 | Tarrow (arg_label, a, b, commutable) ->
     Printf.sprintf
       "Tarrow (%s, %s)"
-      (string_of_ocaml_type a.desc)
-      (string_of_ocaml_type b.desc)
+      (string_of_ocaml_type a)
+      (string_of_ocaml_type b)
 | Tconstr (path, types, abbrev_memo) ->
     "Tconstr " ^ Path.name path
   ^ "("
-  ^ List.fold_left ( ^ ) "" (List.map (fun x -> string_of_ocaml_type x.desc ^ " ") types)
+  ^ List.fold_left ( ^ ) "" (List.map (fun x -> string_of_ocaml_type x ^ " ") types)
   ^ ")"
 | Ttuple _ -> "Ttuple"
 | Tobject (_, _) -> "Tobject"
@@ -64,6 +64,9 @@ let rec string_of_ocaml_type = function
 | Tunivar _ -> "Tunivar"
 | Tpoly (_, _) -> "Tpoly"
 | Tpackage (_, _, _) -> "Tpackage"
+
+and string_of_ocaml_type {desc} =
+  string_of_ocaml_type_desc desc
 
 let printstring_of_op = function
     Add -> "+"
@@ -165,12 +168,12 @@ let rec string_of_value v = function
   | Tpackage _ -> "unknwn tpackage"*)
   | t ->
       if !showvals
-        then failwith (Printf.sprintf "string_of_value: unknown type %s" (string_of_ocaml_type t))
-        else Printf.sprintf "<%s>" (string_of_ocaml_type t)
+        then failwith (Printf.sprintf "string_of_value: unknown type %s" (string_of_ocaml_type_desc t))
+        else Printf.sprintf "<%s>" (string_of_ocaml_type_desc t)
 
 and fakelet =
   {e = Let (false, ("fakelet", fakelet), fakelet);
-   lets = []; peek = None; printas = None; typ = Tvar (Some "DEBUG-fakelet")}
+   lets = []; peek = None; printas = None; typ = {level = 0; scope = 0; id = 0; desc = Tvar (Some "DEBUG-fakelet")}}
 
 (* Find the names of functions which are candidates for abbreviation, and return the expression below *)
 and find_funs x =
@@ -227,7 +230,7 @@ and print_finaltype_inner f isleft parent node =
   end;
   if node.printas = None || not !printas then begin match node.e with
     Value v ->
-      str (string_of_value v node.typ)
+      str (string_of_value v node.typ.desc)
   | IntOp (op, l, r) ->
       str lp;
       print_finaltype_inner f true (Some node) l;
@@ -335,7 +338,7 @@ and print_finaltype_inner f isleft parent node =
          print_finaltype_inner f false (Some node) rhs)
        cases;
       str rp;
-  | Cons (h, ({e = Value v; typ})) when string_of_value v typ = "[]" ->
+  | Cons (h, ({e = Value v; typ = {desc}})) when string_of_value v desc = "[]" ->
       str lp;
       str "[";
       print_finaltype_inner f false (Some node) h;

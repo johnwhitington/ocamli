@@ -49,7 +49,7 @@ let newmapper argv =
                    let typ' =
                      match !template_string with None -> failwith "no template string 2" | Some s ->
                        {s with exp_desc =
-                         Texp_constant (Const_string (Marshal.to_string other.exp_type.desc [], None))}
+                         Texp_constant (Const_string (Marshal.to_string other.exp_type [], None))}
                    in
                      {other with exp_desc =
                        Texp_let (recflag, [binding],
@@ -90,7 +90,7 @@ let newmapper argv =
                     None -> failwith "no last_global_type"
                   | Some typ ->
                      {s with exp_desc =
-                       Texp_constant (Const_string (Marshal.to_string typ.desc [], None))}
+                       Texp_constant (Const_string (Marshal.to_string typ [], None))}
               in
               Printf.printf "***found let () = ...\n";
               let vbinding' =
