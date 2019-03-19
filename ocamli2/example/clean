@@ -1,1 +1,1 @@
-for F in example; do rm -f $F $F.cmi $F.cmo $F.cmx $F.o %; done
+for F in example foo foo2; do rm -f $F $F.cmi $F.cmo $F.cmx $F.top $F.o %; done
