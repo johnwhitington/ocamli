@@ -1,5 +1,5 @@
 set -e -x
-for F in example a; do
+for F in example a b; do
 ocamlc -ppx ../ppx_interpret/ppx_interpret -tppx ../tppx_interpret/tppx_interpret -I +compiler-libs -I +site-lib/ocamli2  -c $F.ml;
 ocamlopt -ppx ../ppx_interpret/ppx_interpret -tppx ../tppx_interpret/tppx_interpret -I +compiler-libs -I +site-lib/ocamli2  -c $F.ml;
 ocamlopt -I +site-lib/ocamli2 -I +compiler-libs ocamlcommon.cmxa ocamli2.cmxa -o $F $F.cmx;
