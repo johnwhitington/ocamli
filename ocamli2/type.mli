@@ -52,9 +52,15 @@ and case = pattern * t option * t
 
 val is_value : t -> bool
 
+val is_value_funfalse : t -> bool
+
 val should_be_value : t -> bool
 
 val should_be_value_t' : t' -> bool
+
+val should_be_value_funfalse : t -> bool
+
+val should_be_value_funfalse_t' : t' -> bool
 
 val remove_unused_lets : t -> t
 

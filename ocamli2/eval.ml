@@ -245,7 +245,7 @@ and eval env peek expr =
     in
       if peek then evalled else
       if should_be_value evalled then
-        {expr with e = Value (Read.to_ocaml_heap_value evalled.e)}
+        {expr with e = Value (Read.to_ocaml_heap_value evalled)}
       else
         evalled
 | Cons (h, t) ->
@@ -258,7 +258,7 @@ and eval env peek expr =
       if should_be_value_t' evalled
         then
           {expr with
-             e = Value (Read.to_ocaml_heap_value evalled);
+             e = Value (Read.to_ocaml_heap_value {expr with e = evalled});
              typ = type_ocaml_heap_value evalled}
         else {expr with e = evalled}
 | Append (a, b) when is_value a && is_value b ->
@@ -353,7 +353,7 @@ and eval env peek expr =
           Tarrow (_, _, b, _) -> b
         | _ -> expr.typ (* Actually a failure, probably *)
       in
-        {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}
+        {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}
 | Apply ({e = Value f} as lhs, ({e = Function _} as fi)::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
     if peek then underline expr else
@@ -363,7 +363,7 @@ and eval env peek expr =
         | _ -> expr.typ (* Actually a failure, probably *)
       in
         {expr with
-          e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native [] fi))}, more)}
+          e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}, more)}
 | Apply ({e = Value f} as fprint, [{e = Value v} as vprint]) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
@@ -465,5 +465,8 @@ and eval_full env v =
         print_endline (indent (pre ()) str);
         flush stdout; if !showrules then print_endline "---End of printing";
         if contains_newline str then print_newline ();
-        flush stdout; if Type.is_value v then v else eval_full env (eval env false v)
+        flush stdout;
+        (* Stop on Value v, Function, [Function] etc. *)
+        if Type.is_value v || Type.should_be_value v then v else
+          eval_full env (eval env false v)
     end

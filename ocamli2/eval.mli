@@ -5,3 +5,5 @@ val peek : bool ref
 
 val eval_full : Type.env -> Type.t -> Type.t
 
+val make_native : Type.env -> Type.t -> Obj.t
+

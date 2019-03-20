@@ -1,4 +1,4 @@
-val to_ocaml_heap_value : Type.t' -> Obj.t
+val to_ocaml_heap_value : Type.t -> Obj.t
 
 val finaltype_of_typedtree : Typedtree.structure -> Type.t
 

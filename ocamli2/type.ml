@@ -63,6 +63,16 @@ let rec is_value_t' = function
 
 and is_value {e} = is_value_t' e
 
+let rec is_value_funfalse_t' = function
+  Value _ -> true
+| ArrayExpr _ | Append _ | Cons _ | IntOp _ | FOp _
+| ArrayGet _ | ArraySet _ | Let _ | Var _ | Match _ | Apply _ 
+| Compare _ | BoolOp _ | Function _ -> false
+| Struct l -> List.for_all is_value_funfalse l
+| LetDef (_, (_, e)) -> is_value_funfalse e
+
+and is_value_funfalse {e} = is_value_funfalse_t' e
+
 (* Check if something should be a value i.e is already a value or is an
  * un-normalised but constant expression which should be converted to a heap
  * value *)
@@ -73,6 +83,14 @@ let rec should_be_value_t' = function
 | _ -> false
 
 and should_be_value {e} = should_be_value_t' e
+
+let rec should_be_value_funfalse_t' = function
+  x when is_value_funfalse_t' x -> true
+| ArrayExpr arr -> Array.for_all should_be_value_funfalse arr
+| Cons (h, t) -> should_be_value_funfalse h && should_be_value_funfalse t
+| _ -> false
+
+and should_be_value_funfalse {e} = should_be_value_funfalse_t' e
 
 (* Map over the data structure, given a function from t -> t *)
 let rec map_t' f = function

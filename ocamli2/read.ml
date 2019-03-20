@@ -58,26 +58,27 @@ let rec debug_type type_expr =
      | x -> x
      end}
 
-let rec to_ocaml_heap_value = function
-  Value x -> x
-| ArrayExpr arr ->
-    (* This arrayexpr contains only values. Turn it into a value itself. *)
-    let x = Obj.new_block 0 (Array.length arr) in
-      for i = 0 to Array.length arr - 1 do
-        Obj.set_field x i (to_ocaml_heap_value arr.(i).e)
-      done;
-      x
-| Cons ({e = Value h}, t) ->
-    (* This list now contains only values. Turn it into a value itself. *)
-    let cell = Obj.new_block 0 2 in
-      Obj.set_field cell 0 h;
-      Obj.set_field cell 1 (to_ocaml_heap_value t.e);
-      cell
-| _ -> failwith "to_ocaml_heap_value: unknown"
+let rec to_ocaml_heap_value expr =
+  match expr.e with
+    Value x -> x
+  | ArrayExpr arr ->
+      (* This arrayexpr contains only values. Turn it into a value itself. *)
+      let x = Obj.new_block 0 (Array.length arr) in
+        for i = 0 to Array.length arr - 1 do
+          Obj.set_field x i (to_ocaml_heap_value arr.(i))
+        done;
+        x
+  | Cons ({e = Value h}, t) ->
+      (* This list now contains only values. Turn it into a value itself. *)
+      let cell = Obj.new_block 0 2 in
+        Obj.set_field cell 0 h;
+        Obj.set_field cell 1 (to_ocaml_heap_value t);
+        cell
+  | _ -> failwith "to_ocaml_heap_value: unknown"
 
 exception IsImplicitLet of string * Type.t * Type.t 
 
-let rec finaltype_of_expression_desc env = function
+let rec finaltype_of_expression_desc typ env = function
   Texp_constant (Const_int x) -> Value (Obj.repr x)
 | Texp_constant (Const_float x) -> Value (Obj.repr (float_of_string x))
 | Texp_function {cases} ->
@@ -91,8 +92,8 @@ let rec finaltype_of_expression_desc env = function
     let cons_chain =
       Cons (finaltype_of_expression env h, finaltype_of_expression env t)
     in
-      if should_be_value_t' cons_chain
-        then Value (to_ocaml_heap_value cons_chain)
+      if should_be_value_funfalse_t' cons_chain
+        then Value (to_ocaml_heap_value {typ; lets = []; peek = None; printas = None; e = cons_chain})
         else cons_chain
 | Texp_let (recflag, [binding], e) ->
     let (var, expr) = finaltype_of_binding env binding
@@ -149,8 +150,8 @@ let rec finaltype_of_expression_desc env = function
              args)
 | Texp_array es ->
     let arr = Array.of_list (List.map (finaltype_of_expression env) es) in
-      if should_be_value_t' (ArrayExpr arr) then
-        Value (to_ocaml_heap_value (ArrayExpr arr))
+      if should_be_value_funfalse_t' (ArrayExpr arr) then
+        Value (to_ocaml_heap_value {typ; lets = []; peek = None; printas = None; e = ArrayExpr arr})
       else
         ArrayExpr arr
 | Texp_match (a, cases, _) ->
@@ -184,11 +185,12 @@ and finaltype_of_binding env {vb_pat; vb_expr} =
 
 and finaltype_of_expression env exp =
   try
-    {e = finaltype_of_expression_desc env exp.exp_desc;
-     typ = debug_type (remove_links exp.exp_type);
-     lets = [];
-     peek = None;
-     printas = None}
+    let typ = debug_type (remove_links exp.exp_type) in
+      {e = finaltype_of_expression_desc typ env exp.exp_desc;
+       typ = typ;
+       lets = [];
+       peek = None;
+       printas = None}
   with
     IsImplicitLet (var, expr, expr') ->
       (*Printf.printf "Adding implicit let %s\n" var;*)
