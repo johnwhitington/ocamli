@@ -43,7 +43,7 @@ let newmapper argv =
              Texp_let (recflag, [binding], ({exp_desc = Texp_sequence (whole_addenv, expr')} as sequence))} as other ->
                begin match whole_addenv with
                  {exp_desc =
-                   Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; ((_, Some {exp_desc = Texp_constant (Const_string (name, _))}) as b); c; (arg_label, Some typ)])}
+                   Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; a'; ((_, Some {exp_desc = Texp_constant (Const_string (name, _))}) as b); c; (arg_label, Some typ)])}
                  when Path.name path = "Tppxsupport.addenv" ->
                    Printf.printf "****Found an addenv instance! for %s\n" name;
                    let typ' =
@@ -55,7 +55,7 @@ let newmapper argv =
                        Texp_let (recflag, [binding],
                                  {sequence with exp_desc =
                                    Texp_sequence ({whole_addenv with exp_desc =
-                                     Texp_apply (addenv, [a; b; c; (arg_label, Some typ')])}, default.expr mapper expr')})}
+                                     Texp_apply (addenv, [a; a'; b; c; (arg_label, Some typ')])}, default.expr mapper expr')})}
                |  _ ->
                     default.expr mapper other
                end
@@ -80,7 +80,7 @@ let newmapper argv =
        | {str_desc =
             Tstr_value (vlhs,
               [{vb_pat = {pat_desc = Tpat_construct ({txt = Lident "()"}, _, _)};
-                vb_expr = {exp_desc = Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; ((_, Some {exp_desc = Texp_constant (Const_string (name, _))}) as b); c; (arg_label, Some typ)])} as vbexpr}
+                vb_expr = {exp_desc = Texp_apply ({exp_desc = Texp_ident (path, _, _)} as addenv, [a; a'; ((_, Some {exp_desc = Texp_constant (Const_string (name, _))}) as b); c; (arg_label, Some typ)])} as vbexpr}
                as vbinding])}
           when Path.name path = "Tppxsupport.addenv"
           ->
@@ -94,7 +94,7 @@ let newmapper argv =
               in
               Printf.printf "***found let () = ...\n";
               let vbinding' =
-                {vbinding with vb_expr = {vbexpr with exp_desc = Texp_apply (addenv, [a; b; c; (arg_label, Some typ')])}}
+                {vbinding with vb_expr = {vbexpr with exp_desc = Texp_apply (addenv, [a; a'; b; c; (arg_label, Some typ')])}}
               in
                 {sitem with
                   str_desc =

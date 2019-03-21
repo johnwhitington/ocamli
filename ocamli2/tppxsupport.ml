@@ -2,6 +2,12 @@
  * evaluation in Eval.eval_full. But we always need a heap value in the TPPX. *)
 open Type
 
+(* Read environment variables from OCAMLI2PARAM etc. *)
+let init () =
+  match Sys.getenv_opt "OCAMLI2PARAM" with
+    Some "rules" -> Eval.showrules := true
+  | _ -> ()
+
 (* At the moment, this is copy-and-pasted mostly from read.ml, because of a compilation order problem read <--> eval *)
 let rec to_ocaml_heap_value expr =
   match expr.e with
@@ -28,12 +34,12 @@ let eval_full env x =
       {Type.e = Type.Value x} -> x
     | x -> to_ocaml_heap_value x
 
-let addenv envref n v t =
+let addenv envref printas n v t =
   let binding =
     {Type.e = Type.Value v;
      Type.typ = Read.debug_type (Read.remove_links (Marshal.from_string t 0 : Types.type_expr));
      Type.lets = [];
      Type.peek = None;
-     Type.printas = None}
+     Type.printas = printas}
   in
     envref := (false, ref [(n, binding)])::!envref

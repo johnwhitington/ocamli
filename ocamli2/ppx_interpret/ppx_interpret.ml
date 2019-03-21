@@ -8,22 +8,25 @@ let ast ?(filename="") code =
 
 let preamble = ast
 {|let env = ref Lib.stdlib
+let () = Tppxsupport.init ()
 let template_string = ""
 let () = Print.showvals := false
 let eval_full = Tppxsupport.eval_full env|}
 
-let global_addenv n =
-  ast ("let () = Tppxsupport.addenv env \"" ^ n ^ "\" (Obj.magic " ^ n ^ "\ : Obj.t) \"\"")
+let printas_text = function None -> "None" | Some x -> "(Some " ^ x ^ ")" 
 
-let local_addenv n =
-  match ast ("Tppxsupport.addenv env \"" ^ n ^ "\" (Obj.magic " ^ n ^ "\ : Obj.t) \"\"") with
+let global_addenv printas n =
+  ast ("let () = Tppxsupport.addenv env " ^ printas_text printas ^ " \"" ^ n ^ "\" (Obj.magic " ^ n ^ "\ : Obj.t) \"\"")
+
+let local_addenv printas n =
+  match ast ("Tppxsupport.addenv env " ^ printas_text printas ^ " \"" ^ n ^ "\" (Obj.magic " ^ n ^ "\ : Obj.t) \"\"") with
    [{pstr_desc = Pstr_eval (e, _)}] -> e
   | _ -> failwith "local_addenv"
 
 let rec add_global_addenvs default_mapper mapper = function
   | {pstr_desc = Pstr_value (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = n}}}])} as letdef::t ->
          mapper.structure_item mapper letdef
-      :: global_addenv n
+      :: global_addenv None n
       @  add_global_addenvs default_mapper mapper t
   | h::t ->
          mapper.structure_item mapper h
@@ -35,7 +38,7 @@ let add_local_addenvs default_mapper mapper lett =
   | {pexp_desc = Pexp_let (recflag, ([{pvb_pat = {ppat_desc = Ppat_var {txt = n}}}] as bindings), expr)} ->
       let sequence =
         {expr with pexp_desc =
-          Pexp_sequence (local_addenv n, mapper.expr mapper expr)}
+          Pexp_sequence (local_addenv None n, mapper.expr mapper expr)}
       in
         {lett with pexp_desc = Pexp_let (recflag, bindings, sequence)}
   | e -> default_mapper.expr mapper e
