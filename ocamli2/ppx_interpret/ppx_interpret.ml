@@ -13,7 +13,7 @@ let template_string = ""
 let () = Print.showvals := false
 let eval_full = Tppxsupport.eval_full env|}
 
-let printas_text = function None -> "None" | Some x -> "(Some " ^ x ^ ")" 
+let printas_text = function None -> "None" | Some x -> "(Some \"" ^ x ^ "!\")" 
 
 let global_addenv printas n =
   ast ("let () = Tppxsupport.addenv env " ^ printas_text printas ^ " \"" ^ n ^ "\" (Obj.magic " ^ n ^ "\ : Obj.t) \"\"")
@@ -24,9 +24,15 @@ let local_addenv printas n =
   | _ -> failwith "local_addenv"
 
 let rec add_global_addenvs default_mapper mapper = function
-  | {pstr_desc = Pstr_value (_, [{pvb_pat = {ppat_desc = Ppat_var {txt = n}}}])} as letdef::t ->
+  | {pstr_desc = Pstr_value (_, [{pvb_expr; pvb_pat = {ppat_desc = Ppat_var {txt = n}}}])} as letdef::t ->
+      (* Add a printas if it's a function, since we won't be able to print it... *)
+      let printas =
+        match pvb_expr with
+          {pexp_desc = Pexp_function _ | Pexp_fun _} -> Some n
+        | _ -> None
+      in
          mapper.structure_item mapper letdef
-      :: global_addenv None n
+      :: global_addenv printas n
       @  add_global_addenvs default_mapper mapper t
   | h::t ->
          mapper.structure_item mapper h
@@ -35,10 +41,15 @@ let rec add_global_addenvs default_mapper mapper = function
 
 let add_local_addenvs default_mapper mapper lett =
   match lett with
-  | {pexp_desc = Pexp_let (recflag, ([{pvb_pat = {ppat_desc = Ppat_var {txt = n}}}] as bindings), expr)} ->
+  | {pexp_desc = Pexp_let (recflag, ([{pvb_expr; pvb_pat = {ppat_desc = Ppat_var {txt = n}}}] as bindings), expr)} ->
+      let printas =
+        match pvb_expr with
+          {pexp_desc = Pexp_function _ | Pexp_fun _} -> Some n
+        | _ -> None
+      in
       let sequence =
         {expr with pexp_desc =
-          Pexp_sequence (local_addenv None n, mapper.expr mapper expr)}
+          Pexp_sequence (local_addenv printas n, mapper.expr mapper expr)}
       in
         {lett with pexp_desc = Pexp_let (recflag, bindings, sequence)}
   | e -> default_mapper.expr mapper e
