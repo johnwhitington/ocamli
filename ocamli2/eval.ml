@@ -16,18 +16,10 @@ let contains_newline s =
 
 (* Now, the evaluator *)
 let perform_float_op op x y =
-  match op with
-    Add -> x +. y
-  | Sub -> x -. y
-  | Mul -> x *. y
-  | Div -> x /. y
+  match op with Add -> x +. y | Sub -> x -. y | Mul -> x *. y | Div -> x /. y
 
 let perform_int_op op x y =
-  match op with
-    Add -> x + y
-  | Sub -> x - y
-  | Mul -> x * y
-  | Div -> x / y
+  match op with Add -> x + y | Sub -> x - y | Mul -> x * y | Div -> x / y
 
 (* Append two lists which are 'a values *)
 let append_lists a b =
@@ -70,9 +62,7 @@ let better_type ta tb =
 (*let better_type ta tb =
   let t = better_type ta tb in
     Printf.printf "Bettertype: choices were %s and %s\nI chose %s\n"
-      (Print.string_of_ocaml_type ta)
-      (Print.string_of_ocaml_type tb)
-      (Print.string_of_ocaml_type t);
+      (Print.string_of_ocaml_type ta) (Print.string_of_ocaml_type tb) (Print.string_of_ocaml_type t);
     t*)
 
 (* Pattern matching. *)
@@ -116,12 +106,7 @@ let underline expr =
   {expr with peek = Some {underline = true}}
 
 let compare_func_of_op = function
-  LT -> ( < )
-| GT -> ( > )
-| EQ -> ( = )
-| GTE -> ( >= )
-| LTE -> ( <= )
-| NEQ -> ( <> )
+  LT -> ( < ) | GT -> ( > ) | EQ -> ( = ) | GTE -> ( >= ) | LTE -> ( <= ) | NEQ -> ( <> )
 
 (* Take something which should be a value, e.g Cons (Value _, Value _)
  * representing [1] and give it the appropriate type. Due to polymorphism,
@@ -372,8 +357,11 @@ and eval env peek expr =
                 match more with
                 | [] -> {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
                 | _ ->
-                  {expr with
-                    e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
+                  let next =
+                    {expr with
+                       e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
+                  in
+                    if !fastcurry then eval env peek next else next
           end
       |_ -> failwith "Apply-Buitin: malformed"
       end

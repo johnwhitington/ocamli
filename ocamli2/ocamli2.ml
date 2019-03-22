@@ -17,6 +17,5 @@ let argspec =
 
 let _ =
   Arg.parse argspec setfile "Syntax: ocamli2 <filename | -e program>\n";
-  let red = Read.read !programtext in
-    Printf.printf "Have read program\n";
-  Eval.eval_full Lib.stdlib red
+  let read = Read.read !programtext in
+    Eval.eval_full Lib.stdlib read
