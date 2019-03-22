@@ -6,6 +6,7 @@ let showsteps = ref false
 let peek = ref true
 let print = ref false
 let first = ref true
+let fastcurry = ref true
 
 let indent firstlinearrow str =
   firstlinearrow ^ (Util.string_replace_all "\n" "\n   " str)
@@ -315,10 +316,10 @@ and eval env peek expr =
     if !showrules then print_endline "Apply-fun-not-value";
     {expr with e = Apply (eval env peek f, args)}
 (* 2. First argument not yet a value. *) 
-| Apply (f, h::t) when not (is_value h) ->
+| Apply (f, args) when not (List.for_all is_value args) ->
     if !showrules then print_endline "Apply-arg-not-value";
-    {expr with e = Apply (f, eval env peek h::t)}
-(* 3. We have a function and at least one argument which is a value. *)
+    {expr with e = Apply (f, eval_first_non_value_element_of_list env peek args)}
+(* 3. We have a function and at all arguments are now values. *)
 | Apply ({e = Function ((pat, guard, rhs) as p::ps, fenv); lets = flets} as f, a::ags) ->
     if !showrules then print_endline "Apply";
     (* See if the case matches, if not move on *)
