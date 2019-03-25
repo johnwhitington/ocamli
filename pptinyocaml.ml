@@ -105,17 +105,19 @@ let pp_constructor_arg pp = function
     Pprintast.core_type pp
       {ptyp_desc = Ptyp_tuple coretypes;
        ptyp_loc = Location.none; 
-       ptyp_attributes = []}
+       ptyp_attributes = [];
+       ptyp_loc_stack =[]}
 | _ -> failwith "unimplemented record type"
 
 let str_of_builtin_args n = " x"
 
 let rec print_tiny_inner f isleft parent node =
-  let str = Format.fprintf f "%s" in
-  let txt = Format.pp_print_text f in
+  let str = Format.pp_print_string f in
+  let txt = str in
+  let newline () = Format.fprintf f "@\n" in
   let bold () = Format.pp_open_tag f (string_of_tag Bold) in
   let unbold () = Format.pp_close_tag f () in
-  let boldtxt t = bold (); txt t; unbold () in
+  let boldtxt t = bold (); str t; unbold () in
   let lp, rp = parens node parent isleft in
   match node with
   | Include e ->
@@ -170,7 +172,7 @@ let rec print_tiny_inner f isleft parent node =
       boldtxt "open ";
       txt x;
       str rp;
-      txt "\n";
+      newline ();
   | LocalOpen (x, e) ->
       str lp;
       txt x;
@@ -197,38 +199,40 @@ let rec print_tiny_inner f isleft parent node =
       print_cases f false (Some node) patmatch;
       str rp
   | Struct (b, structure_items) ->
-      if b then boldtxt "struct \n";
+      if b then (boldtxt "struct "; newline ());
       let l = List.length structure_items in
         List.iteri
           (fun i x ->
              print_tiny_inner f false (Some node) x;
-             if i < l - 1 then txt "\n\n")
+             if i < l - 1 then (newline (); newline ()))
           structure_items;
       if b then begin
-        txt "\n";
+        newline ();
         boldtxt "end"
       end
   | Sig (sig_items) ->
-      boldtxt "sig \n";
+      boldtxt "sig ";
+      newline ();
       let l = List.length sig_items in
         List.iteri
           (fun i x ->
              print_tiny_inner f false (Some node) x;
-             if i < l - 1 then txt "\n\n")
+             if i < l - 1 then (newline (); newline ()))
           sig_items;
-      txt "\n";
+      newline ();
       boldtxt "end"
   | ModuleBinding (n, ModuleConstraint (t, e)) ->
       boldtxt "module ";
       txt n;
       txt " : ";
       print_modtype f false (Some node) t;
-      txt " = \n";
+      txt " = "; newline ();
       print_tiny_inner f false (Some node) e
   | ModuleBinding (n, e) ->
       boldtxt "module ";
       txt n;
-      txt " = \n";
+      txt " = ";
+      newline ();
       print_tiny_inner f false (Some node) e
   | ModuleConstraint (t, e) ->
       ()
