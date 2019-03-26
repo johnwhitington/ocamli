@@ -59,7 +59,12 @@ let add_local_addenvs default_mapper mapper lett =
         {lett with pexp_desc = Pexp_let (recflag, bindings, sequence)}
   | e -> default_mapper.expr mapper e
 
-let string_of_pattern p = "pat"
+let string_of_pattern p =
+  let b = Buffer.create 16 in
+  let formatter = Format.formatter_of_buffer b in
+  Pprintast.pattern formatter p;
+  Format.pp_print_flush formatter ();
+  Buffer.contents b
 
 (* Expression mapper for [@patmatch]. 1. recognise the attribute 2. check it's on a function. 3. Modify the cases *)
 let add_patmatch_printer default_mapper mapper expr =
