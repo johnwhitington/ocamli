@@ -1,2 +1,0 @@
-ocamlfind ppx_tools/rewriter ../ppx_interpret b.ml > foo.ml
-

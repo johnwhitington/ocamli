@@ -1,2 +1,0 @@
-make bc
-ocamlfind ocamlmktop -warn-error -31 -package bigarray -package str -package unix -package compiler-libs.common -package ocamli -linkpkg -custom -g -o example.top a.cmo b.cmo c.cmo
