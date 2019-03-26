@@ -1,2 +1,0 @@
-val double : int -> int
-

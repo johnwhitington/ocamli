@@ -2,7 +2,9 @@ rm -f *.cm* a.out
 make clean
 cd ppx_interpret
 make clean
-cd ../tppx_interpret
+cd example
+make clean
+cd ../../tppx_interpret
 make clean
 cd ../example
 ./clean

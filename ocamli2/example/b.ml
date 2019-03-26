@@ -1,4 +1,4 @@
-let rec pairs f a = function
+let rec pairs f a = function [@showmatch]
   [] -> List.rev a
 | [_] -> []
 | h::h'::t -> pairs f (f h h'::a) t

@@ -4,15 +4,15 @@ export OCAMLFIND_IGNORE_DUPS_IN
 #This is a normal makefile, but we specify ppx_interpret to
 #make debugging happen. We then annotate the file b.ml with [@interpret].
 #These two changes are all that is required to debug a module
-SOURCES = ccode.c a.mli a.ml b.mli b.ml c.ml
+SOURCES = example.ml
 
 #This will include the interpreter and C support code for it.
-PACKS = bigarray str ocamli
+PACKS = ocamli2
 
 RESULT = example
 
-OCAMLNCFLAGS = -ppx ../ppx_interpret -ppx ../../ppx_auto/ppx_auto
-OCAMLBCFLAGS = -ppx ../ppx_interpret -ppx ../../ppx_auto/ppx_auto
+OCAMLNCFLAGS = -ppx ../ppx_interpret
+OCAMLBCFLAGS = -ppx ../ppx_interpret
 
 CFLAGS = -fPIC
 

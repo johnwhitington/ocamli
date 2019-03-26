@@ -3,8 +3,10 @@ echo "*****BUILDING OCAMLI2"
 make install
 echo "*****BUILDING PPX_INTERPRET"
 cd ppx_interpret && make
+echo "*****BUILDING PPX_INTERPRET EXAMPLE"
+cd example && make
 echo "*****BUILDING TPPX_INTERPRET"
-cd ../tppx_interpret && make
-echo "*****BUILDING EXAMPLE"
+cd ../../tppx_interpret && make
+echo "*****BUILDING MAIN EXAMPLE"
 cd ../example && ./build
 
