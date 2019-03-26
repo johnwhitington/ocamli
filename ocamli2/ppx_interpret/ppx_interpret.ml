@@ -6,6 +6,11 @@ let ast ?(filename="") code =
   Location.init lexer filename;
   Parse.implementation lexer
 
+let expr_ast code =
+  match ast code with
+  [{pstr_desc = Pstr_eval (e, _)}] -> e
+  | _ -> failwith "expr_ast"
+
 let preamble = ast
 {|let env = ref Lib.stdlib
 let () = Tppxsupport.init ()
@@ -54,6 +59,28 @@ let add_local_addenvs default_mapper mapper lett =
         {lett with pexp_desc = Pexp_let (recflag, bindings, sequence)}
   | e -> default_mapper.expr mapper e
 
+let string_of_pattern p = "pat"
+
+(* Expression mapper for [@patmatch]. 1. recognise the attribute 2. check it's on a function. 3. Modify the cases *)
+let add_patmatch_printer default_mapper mapper expr =
+  match expr with
+  | {pexp_desc = Pexp_function cases;
+     pexp_attributes = [{attr_name = {txt ="showmatch"}}]} ->
+       Printf.printf "||||| found a showmatch\n";
+       let f case = match case with
+         {pc_lhs; pc_rhs} ->
+           let printit = expr_ast ("print_endline \"{matches " ^ string_of_pattern pc_lhs ^ "}\"") in
+             let sequence =
+               {pexp_desc = Pexp_sequence (printit, pc_rhs); 
+                pexp_loc = expr.pexp_loc;
+                pexp_loc_stack = expr.pexp_loc_stack;
+                pexp_attributes = []}
+             in
+               {case with pc_rhs = sequence}
+       in
+         {expr with pexp_desc = Pexp_function (List.map f cases); pexp_attributes = []}
+  | e -> default_mapper.expr mapper e
+
 let interpret_mapper argv =
   {default_mapper with
      structure =
@@ -61,7 +88,7 @@ let interpret_mapper argv =
          preamble @ add_global_addenvs default_mapper mapper structure);
      expr =
        (fun mapper expression ->
-         add_local_addenvs default_mapper mapper expression)} 
+         add_patmatch_printer default_mapper mapper (add_local_addenvs default_mapper mapper expression))} 
 
 let _ = register "interpret" interpret_mapper
 
