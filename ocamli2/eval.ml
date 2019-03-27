@@ -127,6 +127,7 @@ let mkempty lets e =
   {e; lets; peek = None; printas = None; typ = {desc = Types.Tvar (Some "DEBUG-mkempty"); level = 0; scope = 0; id = 0}}
 
 let rec make_native impl_lets funexpr =
+  Printf.printf "********* make_native\n"; flush stdout;
   match funexpr with
   | {e = Function ([PatVar vname, None, rhs], fenv);
      typ = {desc = Tarrow (_, alpha, beta, _)}} ->
@@ -135,18 +136,16 @@ let rec make_native impl_lets funexpr =
           {rhs with lets = impl_lets; e = Apply (funexpr, [{rhs with e = Var vname}])}
         in
           fun x ->
-            Printf.printf "{Function %s}\n" (Print.to_string funexpr);
+            (*Printf.printf "{Function %s}\n" (Print.to_string funexpr);*)
             let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta})]) in
-             let r =
-                match ((eval_full (newlet::fenv)) expr).e with
-                  Value ret -> ret
-                | Function (f', fenv') ->
-                    (* This was a partial application. Keep the binding for next time. *)
-                    make_native (newlet::impl_lets) {expr with typ = beta; e = (Function (f', fenv'))}
-                | _ -> 
-                    failwith "didn't make a value"
-             in
-               r
+              Printf.printf "********** EVALUATING IN MADE-NATIVE FUNCTION\n"; flush stdout;
+              match ((eval_full (newlet::fenv)) expr).e with
+                Value ret -> ret
+              | Function (f', fenv') ->
+                  (* This was a partial application. Keep the binding for next time. *)
+                  make_native (newlet::impl_lets) {expr with typ = beta; e = (Function (f', fenv'))}
+              | _ -> 
+                  failwith "didn't make a value"
       in
         (Obj.magic fn : Obj.t)
   | _ -> failwith "make_native not a function"
@@ -332,11 +331,11 @@ and eval env peek expr =
     if !showrules then print_endline "Apply-BuiltIn";
     if peek then underline expr else
       begin match a with
-        {e = Function _} as fi ->
+        {e = Function _} ->
           let native =
-            {fi with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}
+            {a with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets a))}
           in
-            eval env peek {expr with e = (Apply (lhs, native::more))}
+            eval env peek {expr with e = Apply (lhs, native::more)}
       | {e = Value v} ->
           begin
             (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
@@ -355,8 +354,11 @@ and eval env peek expr =
                 | _ -> expr.typ (* Actually a failure, probably *)
               in
                 match more with
-                | [] -> {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
+                | [] ->
+                    Printf.printf "**********LAST ARG TO FUNCTION\n"; flush stdout;
+                    {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
                 | _ ->
+                  Printf.printf "**********NON-LAST ARG TO FUNCTION\n"; flush stdout;
                   let next =
                     {expr with
                        e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}

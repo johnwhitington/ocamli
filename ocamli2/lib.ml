@@ -16,6 +16,7 @@ let stdlib =
    f "List.rev" List.rev;
    f "List.map2" List.map2;
    f "List.tl" List.tl;
+   f "List.hd" List.hd;
    f "List.map" List.map;
    f "Random.int" Random.int;
   ]
