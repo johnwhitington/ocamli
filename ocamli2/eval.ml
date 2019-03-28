@@ -136,9 +136,9 @@ let rec make_native impl_lets funexpr =
           {rhs with lets = impl_lets; e = Apply (funexpr, [{rhs with e = Var vname}])}
         in
           fun x ->
+            Printf.printf "********** EVALUATING IN MADE-NATIVE FUNCTION\n"; flush stdout;
             (*Printf.printf "{Function %s}\n" (Print.to_string funexpr);*)
             let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta})]) in
-              Printf.printf "********** EVALUATING IN MADE-NATIVE FUNCTION\n"; flush stdout;
               match ((eval_full (newlet::fenv)) expr).e with
                 Value ret -> ret
               | Function (f', fenv') ->
@@ -332,10 +332,15 @@ and eval env peek expr =
     if peek then underline expr else
       begin match a with
         {e = Function _} ->
-          let native =
-            {a with e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets a))}
+          let typ =
+            match lhs.typ.desc with
+              Tarrow (_, _, b, _) -> b
+            | _ -> expr.typ (* Actually a failure, probably *)
           in
-            eval env peek {expr with e = Apply (lhs, native::more)}
+            let native =
+              {a with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets a))}
+            in
+              eval env peek {expr with e = Apply (lhs, native::more)}
       | {e = Value v} ->
           begin
             (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
