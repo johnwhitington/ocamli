@@ -66,7 +66,7 @@ let string_of_pattern p =
   Format.pp_print_flush formatter ();
   Buffer.contents b
 
-(* Expression mapper for [@patmatch]. 1. recognise the attribute 2. check it's on a function. 3. Modify the cases *)
+(* Expression mapper for [@showmatch]. 1. recognise the attribute 2. check it's on a function. 3. Modify the cases *)
 let add_patmatch_printer default_mapper mapper expr =
   match expr with
   | {pexp_desc = Pexp_function cases;
@@ -84,7 +84,7 @@ let add_patmatch_printer default_mapper mapper expr =
                {case with pc_rhs = sequence}
        in
          {expr with pexp_desc = Pexp_function (List.map f cases); pexp_attributes = []}
-  | e -> default_mapper.expr mapper e
+  | e -> e (* Don't do anything. This needs to fixed properly to allow us to have multiple expr mappers which do not interfere with one another... *)
 
 let interpret_mapper argv =
   {default_mapper with
@@ -93,7 +93,7 @@ let interpret_mapper argv =
          preamble @ add_global_addenvs default_mapper mapper structure);
      expr =
        (fun mapper expression ->
-         (*add_patmatch_printer default_mapper mapper*) (add_local_addenvs default_mapper mapper expression))} 
+         add_patmatch_printer default_mapper mapper (add_local_addenvs default_mapper mapper expression))} 
 
 let _ = register "interpret" interpret_mapper
 
