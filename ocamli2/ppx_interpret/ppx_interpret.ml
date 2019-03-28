@@ -93,7 +93,7 @@ let interpret_mapper argv =
          preamble @ add_global_addenvs default_mapper mapper structure);
      expr =
        (fun mapper expression ->
-         add_patmatch_printer default_mapper mapper (add_local_addenvs default_mapper mapper expression))} 
+         (*add_patmatch_printer default_mapper mapper*) (add_local_addenvs default_mapper mapper expression))} 
 
 let _ = register "interpret" interpret_mapper
 
