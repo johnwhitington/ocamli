@@ -150,7 +150,6 @@ let rec make_native impl_lets funexpr =
           {rhs with lets = impl_lets; e = Apply (funexpr, [{rhs with e = Var vname}])}
         in
           fun x ->
-            Printf.printf "{Function %s}\n" (Print.to_string funexpr);
             let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta})]) in
              let r =
                 match ((eval_full (newlet::fenv)) expr).e with
@@ -343,7 +342,9 @@ and eval env peek expr =
         in
         begin match ags with
           [] -> rhs'
-        | ags -> {expr with e = Apply (rhs', ags)} 
+        | ags ->
+            let next = {expr with e = Apply (rhs', ags)} in
+              if !fastcurry then eval env peek next else next
         end
     end
 | Apply ({e = Value f} as lhs, ({e = Function _} as fi)::more) ->
@@ -355,8 +356,11 @@ and eval env peek expr =
         if more = [] then
           {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}
         else
-          {expr with
-            e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}, more)}
+          let next =
+            {expr with
+              e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}, more)}
+          in
+            if !fastcurry then eval env peek next else next
 | Apply ({e = Value f} as lhs, {e = Value v}::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
