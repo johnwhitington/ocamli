@@ -16,10 +16,18 @@ let contains_newline s =
 
 (* Now, the evaluator *)
 let perform_float_op op x y =
-  match op with Add -> x +. y | Sub -> x -. y | Mul -> x *. y | Div -> x /. y
+  match op with
+    Add -> x +. y
+  | Sub -> x -. y
+  | Mul -> x *. y
+  | Div -> x /. y
 
 let perform_int_op op x y =
-  match op with Add -> x + y | Sub -> x - y | Mul -> x * y | Div -> x / y
+  match op with
+    Add -> x + y
+  | Sub -> x - y
+  | Mul -> x * y
+  | Div -> x / y
 
 (* Append two lists which are 'a values *)
 let append_lists a b =
@@ -62,7 +70,9 @@ let better_type ta tb =
 (*let better_type ta tb =
   let t = better_type ta tb in
     Printf.printf "Bettertype: choices were %s and %s\nI chose %s\n"
-      (Print.string_of_ocaml_type ta) (Print.string_of_ocaml_type tb) (Print.string_of_ocaml_type t);
+      (Print.string_of_ocaml_type ta)
+      (Print.string_of_ocaml_type tb)
+      (Print.string_of_ocaml_type t);
     t*)
 
 (* Pattern matching. *)
@@ -106,7 +116,12 @@ let underline expr =
   {expr with peek = Some {underline = true}}
 
 let compare_func_of_op = function
-  LT -> ( < ) | GT -> ( > ) | EQ -> ( = ) | GTE -> ( >= ) | LTE -> ( <= ) | NEQ -> ( <> )
+  LT -> ( < )
+| GT -> ( > )
+| EQ -> ( = )
+| GTE -> ( >= )
+| LTE -> ( <= )
+| NEQ -> ( <> )
 
 (* Take something which should be a value, e.g Cons (Value _, Value _)
  * representing [1] and give it the appropriate type. Due to polymorphism,
@@ -127,7 +142,6 @@ let mkempty lets e =
   {e; lets; peek = None; printas = None; typ = {desc = Types.Tvar (Some "DEBUG-mkempty"); level = 0; scope = 0; id = 0}}
 
 let rec make_native impl_lets funexpr =
-  Printf.printf "********* make_native\n"; flush stdout;
   match funexpr with
   | {e = Function ([PatVar vname, None, rhs], fenv);
      typ = {desc = Tarrow (_, alpha, beta, _)}} ->
@@ -136,16 +150,18 @@ let rec make_native impl_lets funexpr =
           {rhs with lets = impl_lets; e = Apply (funexpr, [{rhs with e = Var vname}])}
         in
           fun x ->
-            Printf.printf "********** EVALUATING IN MADE-NATIVE FUNCTION\n"; flush stdout;
-            (*Printf.printf "{Function %s}\n" (Print.to_string funexpr);*)
+            Printf.printf "{Function %s}\n" (Print.to_string funexpr);
             let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta})]) in
-              match ((eval_full (newlet::fenv)) expr).e with
-                Value ret -> ret
-              | Function (f', fenv') ->
-                  (* This was a partial application. Keep the binding for next time. *)
-                  make_native (newlet::impl_lets) {expr with typ = beta; e = (Function (f', fenv'))}
-              | _ -> 
-                  failwith "didn't make a value"
+             let r =
+                match ((eval_full (newlet::fenv)) expr).e with
+                  Value ret -> ret
+                | Function (f', fenv') ->
+                    (* This was a partial application. Keep the binding for next time. *)
+                    make_native (newlet::impl_lets) {expr with typ = beta; e = (Function (f', fenv'))}
+                | _ -> 
+                    failwith "didn't make a value"
+             in
+               r
       in
         (Obj.magic fn : Obj.t)
   | _ -> failwith "make_native not a function"
@@ -303,9 +319,10 @@ and eval env peek expr =
 | Apply (f, args) when not (List.for_all is_value args) ->
     if !showrules then print_endline "Apply-arg-not-value";
     {expr with e = Apply (f, eval_first_non_value_element_of_list env peek args)}
-(* 3. We have an interpreted function and at all arguments are now values. *)
+(* 3. We have a function and at all arguments are now values. *)
 | Apply ({e = Function ((pat, guard, rhs) as p::ps, fenv); lets = flets} as f, a::ags) ->
     if !showrules then print_endline "Apply";
+    (* See if the case matches, if not move on *)
     if peek then underline expr else
     begin match patmatch a p with
       None ->
@@ -318,60 +335,78 @@ and eval env peek expr =
           {expr with e = Apply ({f with e = Function (ps, fenv)}, [a])}
         end
     | Some rhs ->
+        (* We have matched. And so, we see if ags is empty. If it is, we just
+         * return the right hand side. If not, we return Apply(rhs, ags) *)
         let rhs' =
           (* When it does, add the bindings from the closure as implicit lets in the rhs *)
           {rhs with lets = fenv @ expr.lets @ flets @ rhs.lets}
         in
-          match ags with [] -> rhs' | ags ->
-            let next = {expr with e = Apply (rhs', ags)} in
-              if !fastcurry then eval env peek next else next
+        begin match ags with
+          [] -> rhs'
+        | ags -> {expr with e = Apply (rhs', ags)} 
+        end
     end
-(* 4. We have a native function, and all its arguments are now values *)
-| Apply ({e = Value f} as lhs, a::more) ->
-    if !showrules then print_endline "Apply-BuiltIn";
+| Apply ({e = Value f} as lhs, [{e = Function _} as fi]) ->
+    if !showrules then print_endline "Apply-Builtin-Interp-Final";
     if peek then underline expr else
-      begin match a with
-        {e = Function _} ->
+      let typ =
+        match lhs.typ.desc with
+          Tarrow (_, _, b, _) -> b
+        | _ -> expr.typ (* Actually a failure, probably *)
+      in
+        {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}
+| Apply ({e = Value f} as lhs, ({e = Function _} as fi)::more) ->
+    if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
+    if peek then underline expr else
+      let typ =
+        match lhs.typ.desc with
+          Tarrow (_, _, b, _) -> b
+        | _ -> expr.typ (* Actually a failure, probably *)
+      in
+        {expr with
+          e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}, more)}
+| Apply ({e = Value f} as fprint, [{e = Value v} as vprint]) ->
+    if !showrules then print_endline "Apply-BuiltIn-Final";
+    if peek then underline expr else
+      (* Print type of expr, type of fprint, type of vprint *)
+      begin
+        if !showrules then
+          begin
+            Printf.printf "expr: %s\nf: %s\nv: %s\n"
+           (Print.string_of_ocaml_type expr.typ)
+           (Print.string_of_ocaml_type fprint.typ)
+           (Print.string_of_ocaml_type vprint.typ);
+          end;
+        (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
+        let printas =
+          match expr.printas with
+            Some x -> Some x
+          | None ->
+              match fprint.typ.desc with
+                Types.Tarrow (_, a, {desc = Types.Tarrow _}, _) ->
+                  (*Printf.printf "Setting a new printas\n";*) Some (Print.to_string fprint)
+              | _ -> None
+        in
           let typ =
-            match lhs.typ.desc with
+            match fprint.typ.desc with
               Tarrow (_, _, b, _) -> b
             | _ -> expr.typ (* Actually a failure, probably *)
           in
-            let native =
-              {a with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets a))}
-            in
-              eval env peek {expr with e = Apply (lhs, native::more)}
-      | {e = Value v} ->
-          begin
-            (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
-            let printas =
-              match expr.printas with
-                Some x -> Some x
-              | None ->
-                  match lhs.typ.desc with
-                    Types.Tarrow (_, a, {desc = Types.Tarrow _}, _) ->
-                      Some (Print.to_string lhs)
-                  | _ -> None
-            in
-              let typ =
-                match lhs.typ.desc with
-                  Tarrow (_, _, b, _) -> b
-                | _ -> expr.typ (* Actually a failure, probably *)
-              in
-                match more with
-                | [] ->
-                    Printf.printf "**********LAST ARG TO FUNCTION\n"; flush stdout;
-                    {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
-                | _ ->
-                  Printf.printf "**********NON-LAST ARG TO FUNCTION\n"; flush stdout;
-                  let next =
-                    {expr with
-                       e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
-                  in
-                    if !fastcurry then eval env peek next else next
-          end
-      |_ -> failwith "Apply-Buitin: malformed"
+            {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
       end
+| Apply ({e = Value f} as lhs, {e = Value v}::more) ->
+    if !showrules then print_endline "Apply-BuiltIn-Partial";
+    if peek then underline expr else
+      let typ =
+        match lhs.typ.desc with
+          Tarrow (_, _, b, _) -> b
+        | _ -> expr.typ (* Actually a failure, probably *)
+      in
+        {expr with
+           e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
+| Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
+| Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
+| Apply (_, []) -> failwith "Apply: empty cases"
 | Apply (_, _) ->
     failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Print.string_of_t expr))
 | LetDef (recflag, (n, e)) ->
