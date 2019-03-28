@@ -346,67 +346,40 @@ and eval env peek expr =
         | ags -> {expr with e = Apply (rhs', ags)} 
         end
     end
-| Apply ({e = Value f} as lhs, [{e = Function _} as fi]) ->
-    if !showrules then print_endline "Apply-Builtin-Interp-Final";
-    if peek then underline expr else
-      let typ =
-        match lhs.typ.desc with
-          Tarrow (_, _, b, _) -> b
-        | _ -> expr.typ (* Actually a failure, probably *)
-      in
-        {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}
 | Apply ({e = Value f} as lhs, ({e = Function _} as fi)::more) ->
-    if !showrules then print_endline "Apply-BuiltIn-Interp-Partial";
+    if !showrules then print_endline "Apply-BuiltIn-Interp";
     if peek then underline expr else
       let typ =
-        match lhs.typ.desc with
-          Tarrow (_, _, b, _) -> b
-        | _ -> expr.typ (* Actually a failure, probably *)
+        match lhs.typ.desc with Tarrow (_, _, b, _) -> b | _ -> expr.typ (* Actually a failure, probably *)
       in
-        {expr with
-          e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}, more)}
-| Apply ({e = Value f} as fprint, [{e = Value v} as vprint]) ->
+        if more = [] then
+          {expr with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}
+        else
+          {expr with
+            e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) (make_native expr.lets fi))}, more)}
+| Apply ({e = Value f} as lhs, {e = Value v}::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Final";
     if peek then underline expr else
-      (* Print type of expr, type of fprint, type of vprint *)
       begin
-        if !showrules then
-          begin
-            Printf.printf "expr: %s\nf: %s\nv: %s\n"
-           (Print.string_of_ocaml_type expr.typ)
-           (Print.string_of_ocaml_type fprint.typ)
-           (Print.string_of_ocaml_type vprint.typ);
-          end;
         (* If still a function, e.g in List.map (( + ) 2) [1; 2; 3], set a printas. *)
         let printas =
           match expr.printas with
             Some x -> Some x
           | None ->
-              match fprint.typ.desc with
+              match lhs.typ.desc with
                 Types.Tarrow (_, a, {desc = Types.Tarrow _}, _) ->
-                  (*Printf.printf "Setting a new printas\n";*) Some (Print.to_string fprint)
+                  Some (Print.to_string lhs)
               | _ -> None
         in
           let typ =
-            match fprint.typ.desc with
-              Tarrow (_, _, b, _) -> b
-            | _ -> expr.typ (* Actually a failure, probably *)
+            match lhs.typ.desc with Tarrow (_, _, b, _) -> b | _ -> expr.typ (* Actually a failure, probably *)
           in
-            {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
+            if more = [] then
+              {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
+            else
+              {expr with
+                e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
       end
-| Apply ({e = Value f} as lhs, {e = Value v}::more) ->
-    if !showrules then print_endline "Apply-BuiltIn-Partial";
-    if peek then underline expr else
-      let typ =
-        match lhs.typ.desc with
-          Tarrow (_, _, b, _) -> b
-        | _ -> expr.typ (* Actually a failure, probably *)
-      in
-        {expr with
-           e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}
-| Apply ({e = Function ([], _)}, _) -> failwith "Apply: empty function"
-| Apply ({e = Function _}, _) -> failwith "Apply: don't understand this function"
-| Apply (_, []) -> failwith "Apply: empty cases"
 | Apply (_, _) ->
     failwith (Printf.sprintf "Apply: malformed Apply on evaluation:\n %s\n" (Print.string_of_t expr))
 | LetDef (recflag, (n, e)) ->
