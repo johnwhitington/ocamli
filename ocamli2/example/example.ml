@@ -1,8 +1,9 @@
-let global = function x -> x * 2
+let global x = x * 2
 
 let x () =
-  let y = 1 - 0 in
-    (Random.int 50 + y + 2 * 3 + global 42 [@interpret]) + 4
+  let y = 3 - 4 in
+    (Random.int 50 + y + 5 + global 6 [@interpret]) + 7
 
 let _ =
   Printf.printf "Result is %i\n" (x ())
+
