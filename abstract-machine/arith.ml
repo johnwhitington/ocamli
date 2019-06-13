@@ -176,7 +176,7 @@ let argspec =
    ("-quiet", Arg.Set quiet, " Suppress output")]
 
 let prog_of_string s =
-  of_tinyocaml (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s))
+  of_tinyocaml (snd (Tinyocamlrw.of_real_ocaml [] (Ocamliutil.ast s)))
 
 let go () =
   let prog = compile (prog_of_string !program) in

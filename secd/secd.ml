@@ -1,6 +1,3 @@
-
-let bold, ul, code_end = ("\x1b[1m", "\x1b[4m", "\x1b[0m")
-
 type op = Add | Sub | Mul | Div
 
 (* The main type is done with deBruijn indexes when read in. *)
