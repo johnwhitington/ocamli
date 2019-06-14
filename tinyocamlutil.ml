@@ -86,7 +86,7 @@ let rec underline_redex e =
     | App (Function f, x) ->
         if is_value x then underline e else App (Function f, underline_redex x)
     | App (Var v, x) ->
-        if is_value x then underline e else App (Var v, underline_redex x)
+        App (underline (Var v), x)
     | App (App _, _) when !fastcurry ->
         underline_curry e
     | App (f, x) -> App (underline_redex f, x)
