@@ -134,6 +134,7 @@ let rec print_tiny_inner f isleft parent node =
       str rp
   | Functor (n, mt, ModuleConstraint (mtc, me)) ->
       str lp;
+      Format.pp_open_box f 2;
       boldtxt "functor (";
       str n;
       begin match mt with
@@ -146,7 +147,9 @@ let rec print_tiny_inner f isleft parent node =
       txt " : ";
       print_modtype f isleft (Some node) mtc;
       txt " -> ";
+      newline ();
       print_tiny_inner f isleft (Some node) me;
+      Format.pp_close_box f ();
       str rp
   | Functor (n, mt, me) ->
       str lp;
@@ -198,6 +201,7 @@ let rec print_tiny_inner f isleft parent node =
       print_cases f false (Some node) patmatch;
       str rp
   | Struct (b, structure_items) ->
+      if b then Format.pp_open_box f 2;
       if b then (boldtxt "struct "; newline ());
       let l = List.length structure_items in
         List.iteri
@@ -205,10 +209,12 @@ let rec print_tiny_inner f isleft parent node =
              print_tiny_inner f false (Some node) x;
              if i < l - 1 then (newline (); newline ()))
           structure_items;
-      if b then begin
-        newline ();
-        boldtxt "end"
-      end
+      if b then
+        begin
+          Format.pp_close_box f ();
+          newline ();
+          boldtxt "end"
+        end
   | Sig (sig_items) ->
       boldtxt "sig ";
       newline ();
@@ -226,13 +232,13 @@ let rec print_tiny_inner f isleft parent node =
       txt " : ";
       print_modtype f false (Some node) t;
       txt " = "; newline ();
-      print_tiny_inner f false (Some node) e
+      print_tiny_inner f false (Some node) e;
   | ModuleBinding (n, e) ->
       boldtxt "module ";
       txt n;
       txt " = ";
       newline ();
-      print_tiny_inner f false (Some node) e
+      print_tiny_inner f false (Some node) e;
   | ModuleConstraint (t, e) ->
       ()
   | ModuleIdentifier x ->
