@@ -171,8 +171,7 @@ let rec print_tiny_inner f isleft parent node =
       str lp;
       boldtxt "open ";
       txt x;
-      str rp;
-      newline ();
+      str rp
   | LocalOpen (x, e) ->
       str lp;
       txt x;
@@ -620,10 +619,12 @@ and print_series_of_funs lp rp f isleft parent e =
     str rp
 
 and print_cases f isleft parent cases =
+  let txt = Format.pp_print_text f in
   match cases with
     [] -> ()
   | h::t ->
       print_case ~bar:false f isleft parent h;
+      if t <> [] then txt " ";
       List.iter (print_case f isleft parent) t
 
 and print_case ?(bar=true) f isleft parent (pattern, guard, rhs) =
@@ -641,7 +642,7 @@ and print_case ?(bar=true) f isleft parent (pattern, guard, rhs) =
   end;
   boldtxt " -> ";
   print_tiny_inner f false parent rhs;
-  txt " "
+
 
 and print_pattern f isleft parent pat label =
   let str = Format.fprintf f "%s" in

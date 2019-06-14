@@ -142,7 +142,7 @@ let rec print isleft parent node =
   | VarAccess (n, x) ->
       Printf.sprintf "%s" n
   | Underline x ->
-      ul ^ print isleft parent x ^ code_end
+      print isleft parent x
 
 let print x =
   print false None x
