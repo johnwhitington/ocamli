@@ -39,5 +39,7 @@ val skipped : bool ref
 val wait_for_enter : Eval.t -> string option
 
 val print_string : string -> unit
+
 val eval_string_to_ast : ?stdlib:bool -> ?filename:string -> string -> Parsetree.expression
 
+val eval_string :  ?stdlib:bool -> ?filename:string -> string -> string
