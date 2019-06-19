@@ -292,10 +292,24 @@ let rec sections b e codes count before during after = function
 | [] ->
     (List.rev before, List.rev during, List.rev after, codes)
 
+let debug_charlist chars =
+  List.iter (Printf.printf "%C ") chars;
+  print_newline ()
+
 let highlight_charlist b e chars =
+  Printf.printf "highlight_charlist: search result is at %i --> %i\n" b e;
+  debug_charlist chars;
   let before, during, after, codes = sections b e [] 0 [] [] [] chars in
+  print_endline "BEFORE:";
+  debug_charlist before;
+  print_endline "DURING:";
+  debug_charlist during;
+  print_endline "AFTER:";
+  debug_charlist after;
+  print_endline "CODES:";
+  debug_charlist (List.flatten codes);
       before @ explode reverse_video @ during @ explode code_end
-    @ (List.flatten codes) @ after
+    @ (List.flatten codes) @ after @ explode code_end
 
 let highlight_string b e s =
   implode (highlight_charlist b e (explode s))
