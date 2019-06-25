@@ -40,7 +40,9 @@ and t =
    e : t';
    lets : env;
    peek : peekinfo option;
-   printas : string option}
+   printas : string option;
+   printbefore : string option;
+   printafter : string option}
 
 and env = envitem list
 

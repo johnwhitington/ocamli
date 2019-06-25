@@ -173,7 +173,7 @@ let rec string_of_value v = function
 
 and fakelet =
   {e = Let (false, ("fakelet", fakelet), fakelet);
-   lets = []; peek = None; printas = None; typ = {level = 0; scope = 0; id = 0; desc = Tvar (Some "DEBUG-fakelet")}}
+   lets = []; peek = None; printbefore = None; printafter = None; printas = None; typ = {level = 0; scope = 0; id = 0; desc = Tvar (Some "DEBUG-fakelet")}}
 
 (* Find the names of functions which are candidates for abbreviation, and return the expression below *)
 and find_funs x =
@@ -308,13 +308,13 @@ and print_finaltype_inner f isleft parent node =
   | Function (cases, _) ->
       str lp;
       boldstr "function";
-      if lp = "" then newline ();
+      (*if lp = "" then newline ();*)
       let first = ref true in
       let l = List.length cases in
       List.iteri
        (fun i (pat, _, rhs) ->
          if !first then
-           (if lp = "(" then str " " else str "  ") else
+           (if lp = "(" || l = 1 then str " " else str "  ") else
            (if lp = "(" then str " | " else str "| ");
          first := false;
          print_finaltype_pattern f false (Some node) pat;
@@ -467,6 +467,8 @@ and to_string_from_heap typ v =
      lets = [];
      typ = typ;
      peek = None;
+     printbefore = None;
+     printafter = None;
      printas = None}
 
 and string_of_t_show_types = ref true

@@ -93,7 +93,7 @@ let rec finaltype_of_expression_desc typ env = function
       Cons (finaltype_of_expression env h, finaltype_of_expression env t)
     in
       if should_be_value_funfalse_t' cons_chain
-        then Value (to_ocaml_heap_value {typ; lets = []; peek = None; printas = None; e = cons_chain})
+        then Value (to_ocaml_heap_value {typ; lets = []; peek = None; printbefore = None; printafter = None; printas = None; e = cons_chain})
         else cons_chain
 | Texp_let (recflag, [binding], e) ->
     let (var, expr) = finaltype_of_binding env binding
@@ -151,7 +151,7 @@ let rec finaltype_of_expression_desc typ env = function
 | Texp_array es ->
     let arr = Array.of_list (List.map (finaltype_of_expression env) es) in
       if should_be_value_funfalse_t' (ArrayExpr arr) then
-        Value (to_ocaml_heap_value {typ; lets = []; peek = None; printas = None; e = ArrayExpr arr})
+        Value (to_ocaml_heap_value {typ; lets = []; peek = None; printafter = None; printbefore = None; printas = None; e = ArrayExpr arr})
       else
         ArrayExpr arr
 | Texp_match (a, cases, _) ->
@@ -190,6 +190,8 @@ and finaltype_of_expression env exp =
        typ = typ;
        lets = [];
        peek = None;
+       printbefore = None;
+       printafter = None;
        printas = None}
   with
     IsImplicitLet (var, expr, expr') ->
@@ -215,12 +217,16 @@ let finaltype_of_typedtree {str_items} =
                    lets = [];
                    typ = debug_type (remove_links vb.vb_expr.exp_type);
                    peek = None;
+                   printbefore = None;
+                   printafter = None;
                    printas = None}
             | _ -> failwith "finaltype_of_typedtree")
           str_items);
        lets = [];
        typ = {level = 0; id = 0; scope = 0; desc = Types.Tnil};
        peek = None;
+       printbefore = None;
+       printafter = None;
        printas = None} (* FIXME: Proper support for signature types *)
 
 let env =

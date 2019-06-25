@@ -139,7 +139,7 @@ let type_ocaml_heap_value = function
  *
  * List.map (fun x -> x + 1) [1; 2; 3] *)
 let mkempty lets e =
-  {e; lets; peek = None; printas = None; typ = {desc = Types.Tvar (Some "DEBUG-mkempty"); level = 0; scope = 0; id = 0}}
+  {e; lets; peek = None; printbefore = None; printafter = None; printas = None; typ = {desc = Types.Tvar (Some "DEBUG-mkempty"); level = 0; scope = 0; id = 0}}
 
 let rec make_native impl_lets funexpr =
   match funexpr with
@@ -150,6 +150,7 @@ let rec make_native impl_lets funexpr =
           {rhs with lets = impl_lets; e = Apply (funexpr, [{rhs with e = Var vname}])}
         in
           fun x ->
+            Printf.printf "{entering %s}\n" (Print.to_string funexpr);
             let newlet = (false, ref [(vname, {expr with e = Value x; typ = beta})]) in
              let r =
                 match ((eval_full (newlet::fenv)) expr).e with
@@ -160,10 +161,17 @@ let rec make_native impl_lets funexpr =
                 | _ -> 
                     failwith "didn't make a value"
              in
+               Printf.printf "{leaving %s}\n" (Print.to_string funexpr);
                r
       in
         (Obj.magic fn : Obj.t)
   | _ -> failwith "make_native not a function"
+
+and print_before expr =
+  match expr.printbefore with None -> () | Some x -> print_string x
+
+and print_after expr =
+  match expr.printafter with None -> () | Some x -> print_string x
 
 and eval env peek expr =
   if !showrules then print_string "RULE: ";
@@ -234,6 +242,8 @@ and eval env peek expr =
              typ = exp.typ;
              lets = expr.lets @ [(recflag, ref [(n, evalled)])] @ exp'.lets;
              peek = expr.peek;
+             printbefore = None;
+             printafter = None;
              printas = None}
           else {expr with e = Let (recflag, (n, evalled), exp')}
 | ArrayExpr a ->
@@ -349,6 +359,7 @@ and eval env peek expr =
     end
 | Apply ({e = Value f} as lhs, ({e = Function _} as fi)::more) ->
     if !showrules then print_endline "Apply-BuiltIn-Interp";
+    print_before lhs;
     if peek then underline expr else
       let typ =
         match lhs.typ.desc with Tarrow (_, _, b, _) -> b | _ -> expr.typ (* Actually a failure, probably *)
@@ -379,7 +390,9 @@ and eval env peek expr =
             match lhs.typ.desc with Tarrow (_, _, b, _) -> b | _ -> expr.typ (* Actually a failure, probably *)
           in
             if more = [] then
-              {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ}
+              let r = {expr with e = Value ((Obj.magic f : Obj.t -> Obj.t) v); printas; typ} in
+              print_after lhs;
+              r
             else
               {expr with
                 e = Apply ({lhs with typ; e = Value ((Obj.magic f : Obj.t -> Obj.t) v)}, more)}

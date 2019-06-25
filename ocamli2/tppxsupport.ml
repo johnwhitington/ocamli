@@ -34,12 +34,21 @@ let eval_full env x =
       {Type.e = Type.Value x} -> x
     | x -> to_ocaml_heap_value x
 
+let eval_full_from_typedtree env x =
+  let typedtree = (Marshal.from_string x 0 : Typedtree.expression) in
+    let program = Read.finaltype_of_expression !env typedtree in
+      match Eval.eval_full !env program with
+        {Type.e = Type.Value x} -> x
+      | x -> to_ocaml_heap_value x
+
 let addenv envref printas n v t =
   let binding =
     {Type.e = Type.Value v;
      Type.typ = Read.debug_type (Read.remove_links (Marshal.from_string t 0 : Types.type_expr));
      Type.lets = [];
      Type.peek = None;
+     Type.printbefore = None;
+     Type.printafter = None;
      Type.printas = printas}
   in
     envref := (false, ref [(n, binding)])::!envref

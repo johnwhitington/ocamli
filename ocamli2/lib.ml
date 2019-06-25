@@ -6,6 +6,8 @@ let f name func =
        lets = [];
        typ = {level = 0; scope = 0; id = 0; desc = Types.Tvar (Some "DEBUG-lib.ml")};
        printas = Some name;
+       printbefore = Some ("{entering " ^ name ^ "}\n");
+       printafter = Some ("{leaving " ^ name ^ "}\n");
        peek = None}
   in
     (false, ref [("Stdlib." ^ name, e)])
