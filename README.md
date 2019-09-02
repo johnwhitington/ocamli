@@ -193,5 +193,5 @@ In short, make it more than a proof-of-concept:
 Building
 --------
 
-Should work on all platforms with OCaml 4.05. To build, run the `build` script. You will need `ocamlfind` and `ppx_tools` installed, both of which are available on OPAM.
+Make sure to download from tag "OCaml17". Should work on all platforms with OCaml 4.05. To build, run the `build` script. You will need `ocamlfind` and `ppx_tools` installed, both of which are available on OPAM.
 
