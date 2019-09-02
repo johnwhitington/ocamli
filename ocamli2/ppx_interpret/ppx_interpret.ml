@@ -16,7 +16,7 @@ let preamble = ast
 let () = Tppxsupport.init ()
 let template_string = ""
 let () = Print.showvals := false
-let eval_full = Tppxsupport.eval_full env|}
+let eval_full = Tppxsupport.eval_full_from_typedtree env|}
 
 let printas_text = function None -> "None" | Some x -> "(Some \"" ^ x ^ "!\")" 
 
@@ -84,6 +84,10 @@ let add_patmatch_printer default_mapper mapper expr =
                {case with pc_rhs = sequence}
        in
          {expr with pexp_desc = Pexp_function (List.map f cases); pexp_attributes = []}
+  | {pexp_desc;
+     pexp_attributes = [{attr_name = {txt ="interpret"}; attr_payload}]} as e ->
+       print_string "&&&&&&&&&&&&&&&&&&&&&&&&&Plain PPX found the [@interpret] annotation\n";
+       e
   | e -> e (* Don't do anything. This needs to fixed properly to allow us to have multiple expr mappers which do not interfere with one another... *)
 
 let interpret_mapper argv =
